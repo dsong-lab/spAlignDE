@@ -1,0 +1,25 @@
+cff-version: 1.2.0
+message: "If you use spAlignDE, please cite the software and the associated manuscript."
+type: software
+title: "spAlignDE"
+version: 0.1.0
+repository-code: "https://github.com/dsong-lab/spAlignDE"
+authors:
+  - family-names: Xu
+    given-names: Su
+    orcid: "https://orcid.org/0009-0003-3000-271X"
+  - family-names: Wang
+    given-names: Yu
+    orcid: "https://orcid.org/0000-0002-4955-3832"
+  - family-names: Meng
+    given-names: Lingzhen
+    orcid: "https://orcid.org/0009-0007-6871-4893"
+  - family-names: Dalal
+    given-names: Aarya
+    orcid: "https://orcid.org/0009-0008-5448-5783"
+  - family-names: Yin
+    given-names: Yuxin
+    orcid: "https://orcid.org/0009-0005-5377-4928"
+  - family-names: Song
+    given-names: Dongyuan
+    orcid: "https://orcid.org/0000-0002-9288-5648"

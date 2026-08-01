@@ -1,0 +1,8 @@
+streamlit>=1.60,<2
+pandas>=2,<3
+pillow>=10,<13
+numpy>=1.24,<2
+pynrrd>=1,<2
+scipy>=1.10,<2
+matplotlib>=3.7,<4
+plotly>=5.14,<6

@@ -1,0 +1,38 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: pip
+      - name: Install matched CPU PyTorch wheels
+        run: >-
+          python -m pip install
+          --index-url https://download.pytorch.org/whl/cpu
+          torch==2.10.0+cpu torchvision==0.25.0+cpu
+      - name: Install package and test dependencies
+        run: python -m pip install -e ".[clustering,atlas,histology,ui,tutorial,test]"
+      - name: Run package tests
+        env:
+          PYTHONNOUSERSITE: "1"
+          MPLCONFIGDIR: /tmp/spalignde-matplotlib
+        run: python -m pytest -q
+      - name: Audit public notebooks
+        env:
+          PYTHONNOUSERSITE: "1"
+        run: python tools/audit_source_notebooks.py source_notebooks
+      - name: Compile the UI entry point
+        run: python -m py_compile ui/app.py

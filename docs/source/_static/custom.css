@@ -1,0 +1,57 @@
+/* Match the default Read the Docs typography used by STalign. */
+html,
+body,
+.wy-nav-content,
+.rst-content {
+  font-size: 16px;
+}
+
+.rst-content p,
+.rst-content li,
+.rst-content dt,
+.rst-content dd {
+  font-size: 16px;
+}
+
+.wy-menu-vertical,
+.wy-menu-vertical li,
+.wy-menu-vertical li.toctree-l3,
+.wy-menu-vertical li.toctree-l4 {
+  font-size: 16px;
+}
+
+.wy-menu-vertical a {
+  font-size: 14.4px;
+}
+
+h1 { font-size: 175%; }
+h2 { font-size: 150%; }
+h3 { font-size: 125%; }
+
+.wy-side-scroll {
+  padding-bottom: 188px;
+}
+
+.lab-logo-container {
+  position: fixed;
+  bottom: 18px;
+  left: 0;
+  z-index: 200;
+  display: flex;
+  justify-content: center;
+  width: 300px;
+  pointer-events: none;
+}
+
+.lab-logo-container .lab-logo {
+  display: block;
+  width: 150px;
+  height: 150px;
+  object-fit: contain;
+  margin: 0;
+}
+
+/* Hide removed legacy tutorial links if a browser renders a stale sidebar. */
+.wy-menu-vertical li:has(a[href$="he_nissel_alignment.html"]) {
+  display: none !important;
+}

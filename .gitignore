@@ -1,0 +1,47 @@
+# Python/package products
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+build/
+dist/
+
+# Environments and local configuration
+.venv/
+venv/
+.env
+.env.*
+.python-version
+.DS_Store
+
+# Jupyter/editor caches
+.ipynb_checkpoints/
+.jupyter_cache/
+.idea/
+.vscode/
+
+# Documentation build products
+docs/build/
+
+# Downloaded datasets, pretrained models and generated workflow outputs
+/data/
+tutorials/**/output/
+**/example_output/
+*.h5
+*.h5ad
+*.nrrd
+*.pickle
+*.pkl
+*.npz
+
+# The UI source/component and small structure table are tracked; user uploads
+# and the external Allen annotation are not.
+ui/uploaded_datasets/*
+!ui/uploaded_datasets/.gitkeep
+ui/data/allen_ccf_2022/
+
+# Local application/runtime products
+*.log
+.cache/
