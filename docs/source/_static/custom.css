@@ -36,6 +36,7 @@ h3 { font-size: 125%; }
   height: 100vh;
   padding-bottom: 0;
   overflow: hidden;
+  overflow: clip;
 }
 
 .wy-side-scroll > .wy-side-nav-search {
