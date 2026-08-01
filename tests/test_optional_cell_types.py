@@ -1,3 +1,4 @@
+import inspect
 import unittest
 
 import pandas as pd
@@ -6,6 +7,12 @@ from spAlignDE import PreparedInference, fit_local_de
 
 
 class OptionalCellTypeTests(unittest.TestCase):
+    def test_cell_type_adjustment_is_opt_in(self):
+        parameter = inspect.signature(fit_local_de).parameters[
+            "cell_type_adjustment"
+        ]
+        self.assertIs(parameter.default, False)
+
     def test_cell_type_adjustment_requires_available_annotations(self):
         prepared = PreparedInference(
             shared={},

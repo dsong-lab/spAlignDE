@@ -892,8 +892,8 @@ def plot_alignment_result(
     point_size: float = 1.0,
     alpha: float = 0.10,
     figsize: tuple[float, float] = (12, 6),
-) -> None:
-    """Plot pre-aligned and final query/reference overlays without clusters."""
+) -> tuple[Any, Any]:
+    """Plot overlays without clusters and return the figure and axes."""
     adata = result.adata
     metadata = _metadata(adata)["cross_sample_alignment"]
     sample_key = metadata["sample_key"]
@@ -908,7 +908,7 @@ def plot_alignment_result(
     query_aligned = adata.obs.loc[
         query_mask, ["x_aligned", "y_aligned"]
     ].to_numpy(dtype=float)
-    lddmm_core.plot_alignment_overlays(
+    return lddmm_core.plot_alignment_overlays(
         query_pre,
         query_aligned,
         raw[reference_mask],
@@ -925,8 +925,8 @@ def plot_cluster_alignment_result(
     target_alpha: float = 0.35,
     source_alpha: float = 0.55,
     figsize: tuple[float, float] = (16, 7),
-) -> None:
-    """Plot pre-aligned and final overlays with consistent cluster colors."""
+) -> tuple[Any, Any]:
+    """Plot cluster-colored overlays and return the figure and axes."""
     adata = result.adata
     metadata = _metadata(adata)["cross_sample_alignment"]
     sample_key = metadata["sample_key"]
@@ -945,7 +945,7 @@ def plot_cluster_alignment_result(
     query = adata.obs.loc[query_mask].copy()
     reference = adata.obs.loc[reference_mask].copy()
     reference_xy = raw[reference_mask]
-    lddmm_core.plot_cluster_overlay_before_after(
+    return lddmm_core.plot_cluster_overlay_before_after(
         query,
         reference,
         query_pre[:, 0],
