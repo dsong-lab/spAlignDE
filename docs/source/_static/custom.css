@@ -29,6 +29,12 @@ h2 { font-size: 150%; }
 h3 { font-size: 125%; }
 
 /* Keep the lab mark in its own footer so long navigation trees scroll above it. */
+.wy-nav-side {
+  padding-bottom: 0;
+  overflow: hidden;
+  overflow: clip;
+}
+
 .wy-side-scroll {
   display: flex;
   flex-direction: column;

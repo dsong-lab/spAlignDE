@@ -47,24 +47,34 @@
     });
   }
 
-  function lockSidebarShellAtTop() {
-    var sidebar = document.querySelector('.wy-side-scroll');
-    if (!sidebar) {
+  function lockSidebarShellsAtTop() {
+    var shells = Array.prototype.slice.call(
+      document.querySelectorAll('.wy-nav-side, .wy-side-scroll')
+    );
+    if (!shells.length) {
       return;
     }
 
     function resetShellScroll() {
-      if (sidebar.scrollTop !== 0) {
-        sidebar.scrollTop = 0;
-      }
-      if (sidebar.scrollLeft !== 0) {
-        sidebar.scrollLeft = 0;
-      }
+      shells.forEach(function (shell) {
+        if (shell.scrollTop !== 0) {
+          shell.scrollTop = 0;
+        }
+        if (shell.scrollLeft !== 0) {
+          shell.scrollLeft = 0;
+        }
+      });
     }
 
-    if (!sidebar.dataset.spaligndeScrollLock) {
-      sidebar.dataset.spaligndeScrollLock = 'true';
-      sidebar.addEventListener('scroll', resetShellScroll, { passive: true });
+    shells.forEach(function (shell) {
+      if (!shell.dataset.spaligndeScrollLock) {
+        shell.dataset.spaligndeScrollLock = 'true';
+        shell.addEventListener('scroll', resetShellScroll, { passive: true });
+      }
+    });
+
+    if (!document.documentElement.dataset.spaligndeWindowScrollLock) {
+      document.documentElement.dataset.spaligndeWindowScrollLock = 'true';
       window.addEventListener('load', resetShellScroll);
       window.addEventListener('pageshow', resetShellScroll);
     }
@@ -78,7 +88,7 @@
   function initializeSidebar() {
     moveLabLogoToSidebarBottom();
     removeLegacyHeNisselLinks();
-    lockSidebarShellAtTop();
+    lockSidebarShellsAtTop();
   }
 
   if (document.readyState === 'loading') {
