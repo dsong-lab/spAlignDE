@@ -37,6 +37,12 @@ observation names and a finite ``n_obs × 2`` spatial matrix.
 ``cluster_single``
 ~~~~~~~~~~~~~~~~~~
 
+Signature::
+
+   spAlignDE.cluster_single(adata, *, config=None, spatial_key="spatial",
+                            cluster_key="cluster", copy=True,
+                            banksy_output_dir=None, return_details=False)
+
 .. code-block:: python
 
    clustered = spAlignDE.cluster_single(
@@ -53,6 +59,59 @@ preserving the input expression matrix and coordinates. It adds
 ``cluster_raw``, ``cluster_refined`` and the selected ``cluster`` labels.
 ``plot_single_cluster_refinement`` compares raw and refined spatial maps using
 one shared label-color mapping.
+
+``adata`` is the input AnnData; ``spatial_key`` and ``cluster_key`` select the
+coordinate and output-label fields. ``copy=False`` permits mutation of the
+input object. ``banksy_output_dir`` optionally preserves BANKSY diagnostics;
+otherwise a temporary directory is used. With ``return_details=True``, the
+return value is ``(clustered_adata, details)`` instead of AnnData alone.
+
+.. list-table:: ``SingleClusteringConfig`` fields
+   :header-rows: 1
+   :widths: 28 18 54
+
+   * - Field
+     - Default
+     - Effect
+   * - ``num_neighbors``
+     - ``30``
+     - Spatial neighbors used by BANKSY.
+   * - ``banksy_lambda``
+     - ``0.8``
+     - Weight of spatial-neighborhood features.
+   * - ``resolution`` / ``pca_dim``
+     - ``1.2`` / ``20``
+     - Leiden granularity and number of PCA components.
+   * - ``max_m`` / ``decay``
+     - ``1`` / ``"scaled_gaussian"``
+     - BANKSY neighborhood harmonics and distance decay.
+   * - ``random_state``
+     - ``1234``
+     - Reproducibility seed.
+   * - ``refine_boundaries``
+     - ``True``
+     - Enable spatial boundary refinement.
+   * - ``k_interior`` / ``k_boundary``
+     - ``150`` / ``8``
+     - Refinement neighborhoods away from and near boundaries.
+   * - ``boundary_distance_pixels``
+     - ``3``
+     - Boundary band width.
+   * - ``protected_labels``
+     - layer-1 aliases
+     - Labels requiring stronger replacement support.
+   * - ``min_same_fraction``
+     - ``0.8``
+     - Minimum local support for retaining a label.
+   * - ``min_new_fraction_interior`` / ``min_new_fraction_boundary``
+     - ``0.2`` / ``0.8``
+     - Support required to replace interior/boundary labels.
+   * - ``min_new_fraction_protected``
+     - ``0.9``
+     - Support required to replace a protected label.
+
+Raises ``TypeError`` or ``ValueError`` for an invalid AnnData/configuration and
+``ImportError`` when the ``clustering`` optional dependencies are absent.
 
 ``load_cross_sample_data``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -95,6 +154,13 @@ clustering.
 ``cluster_joint``
 ~~~~~~~~~~~~~~~~~
 
+Signature::
+
+   spAlignDE.cluster_joint(adata, *, config=None, sample_key="sample_id",
+                           spatial_key="spatial", cluster_key="cluster",
+                           cell_id_key="cell_id", layer=None, copy=True,
+                           return_details=False)
+
 .. code-block:: python
 
    clustered = spAlignDE.cluster_joint(
@@ -118,6 +184,43 @@ identical and ``cluster_refined`` is not added.
 ``JointClusteringConfig`` contains BANKSY neighborhood and lambda settings,
 PCA dimension, SNN neighborhood size, Leiden resolution, Harmony settings,
 boundary refinement, and random state.
+
+``layer`` selects an AnnData expression layer; the default uses ``adata.X``.
+``copy=False`` permits mutation of the input. With ``return_details=True``,
+the return value is ``(clustered_adata, details)`` instead of AnnData alone.
+
+.. list-table:: ``JointClusteringConfig`` fields
+   :header-rows: 1
+   :widths: 28 18 54
+
+   * - Field
+     - Default
+     - Effect
+   * - ``num_neighbors`` / ``banksy_lambda``
+     - ``30`` / ``0.8``
+     - BANKSY spatial neighborhood and its feature weight.
+   * - ``pca_dim`` / ``resolution``
+     - ``20`` / ``1.4``
+     - Joint PCA dimension and Leiden granularity.
+   * - ``snn_neighbors``
+     - ``50``
+     - Shared-nearest-neighbor graph size.
+   * - ``harmony_theta`` / ``harmony_max_iter``
+     - ``2.0`` / ``30``
+     - Sample correction strength and iteration limit.
+   * - ``random_state``
+     - ``1000``
+     - Reproducibility seed.
+   * - ``decay``
+     - ``"scaled_gaussian"``
+     - BANKSY distance-decay model.
+   * - ``refine_boundaries`` / ``compute_umap``
+     - ``True`` / ``False``
+     - Enable refinement and optionally compute UMAP diagnostics.
+
+Raises ``TypeError`` or ``ValueError`` for an invalid AnnData/configuration,
+``ImportError`` when clustering dependencies are absent, and ``RuntimeError``
+when BANKSY output cannot be mapped one-to-one to input observations.
 
 ``plot_joint_cluster_refinement``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -526,9 +629,18 @@ Post-alignment local inference
 ``canonical_visium_barcodes``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+Signature::
+
+   spAlignDE.canonical_visium_barcodes(values, *, source_name="barcode values")
+
 Extracts terminal 10x barcodes from plain, sample-prefixed or source-file
 annotated observation identifiers. The kidney tutorial uses it to join raw
 counts to the aligned H5AD by identifier rather than row order.
+``values`` accepts a sequence, Series or Index and returns a string Series in
+the same order. ``source_name`` is used in validation messages. A
+``ValueError`` is raised when any identifier lacks a terminal 10x barcode. The
+same function is also available as
+``spAlignDE.datasets.canonical_visium_barcodes``.
 
 ``build_visium_inference_table``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -584,6 +696,15 @@ genes and Naive/Mismatch-aware fits.
 ``fit_local_de``
 ~~~~~~~~~~~~~~~~
 
+Signature::
+
+   spAlignDE.fit_local_de(prepared, *, genes=None, contrast="vs_reference",
+                          alpha=0.05, mismatch_aware=True,
+                          technical_adjustment=True,
+                          cell_type_adjustment=False, global_offset=True,
+                          region_cleanup=False, n_jobs=1,
+                          random_state=None, verbose=True)
+
 .. code-block:: python
 
    result = spAlignDE.fit_local_de(
@@ -604,6 +725,18 @@ according to post-alignment risk without changing the estimated contrast.
 Complete cell-type annotations are required before
 ``cell_type_adjustment=True`` can be used. BH adjustment is applied within
 each gene and contrast across tested grid locations.
+
+``prepared`` must be returned by ``prepare_inference``. ``genes=None`` tests
+all genes prepared earlier. ``contrast`` is ``"vs_reference"`` or
+``"sequential"``; ``alpha`` is strictly between zero and one.
+``mismatch_aware`` enables post-alignment risk weighting,
+``technical_adjustment`` enables technical-quality weighting, and
+``global_offset`` includes the global sample offset. ``region_cleanup`` only
+post-processes the significant-region mask. ``n_jobs``, ``random_state`` and
+``verbose`` control execution. The function returns ``LocalDEResult`` and
+raises ``TypeError`` for a non-``PreparedInference`` input or ``ValueError``
+for invalid contrasts, alpha, genes, or unavailable requested cell-type
+adjustment.
 
 The returned ``LocalDEResult`` stores fitted maps in ``result.fits`` and keeps
 the originating ``PreparedInference``. ``plot_local_result`` displays aligned

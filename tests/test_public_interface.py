@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 import unittest
 
 import matplotlib.pyplot as plt
@@ -16,6 +17,45 @@ class PublicInterfaceTests(unittest.TestCase):
 
         self.assertIs(prepare_inference, spAlignDE.prepare_inference)
         self.assertTrue(callable(spAlignDE.build_visium_inference_table))
+        self.assertTrue(callable(spAlignDE.canonical_visium_barcodes))
+
+    def test_clustering_wrappers_publish_real_signatures(self):
+        joint = inspect.signature(spAlignDE.cluster_joint)
+        single = inspect.signature(spAlignDE.cluster_single)
+
+        self.assertEqual(
+            list(joint.parameters),
+            [
+                "adata",
+                "config",
+                "sample_key",
+                "spatial_key",
+                "cluster_key",
+                "cell_id_key",
+                "layer",
+                "copy",
+                "return_details",
+            ],
+        )
+        self.assertEqual(
+            list(single.parameters),
+            [
+                "adata",
+                "config",
+                "spatial_key",
+                "cluster_key",
+                "copy",
+                "banksy_output_dir",
+                "return_details",
+            ],
+        )
+
+    def test_bundled_cross_sample_example_satisfies_public_contract(self):
+        adata = spAlignDE.make_cross_sample_example(n_per_cluster=3)
+
+        self.assertEqual(adata.shape, (18, 12))
+        self.assertEqual(set(adata.obs["sample_id"]), {"query", "reference"})
+        spAlignDE.validate_cross_sample_anndata(adata)
 
     def test_canonical_import_exposes_alignment_subpackage(self):
         from spAlignDE.alignment import interactive_manual_prealignment

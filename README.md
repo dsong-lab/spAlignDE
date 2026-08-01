@@ -1,5 +1,7 @@
 # spAlignDE
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 spAlignDE is a structure-guided framework for spatial alignment and
 mismatch-aware local inference. The public package accepts AnnData/H5AD and
 standardized CSV inputs and covers:
@@ -61,17 +63,23 @@ Run notebooks in workflow order. The canonical, executed copies are under
 [`source_notebooks/`](source_notebooks/); the documentation contains the same
 saved outputs.
 
+For a self-contained CPU installation check with generated example data, run:
+
+```bash
+jupyter lab source_notebooks/quickstart_nb.ipynb
+```
+
 | Workflow | Notebook order |
 |---|---|
-| MERFISH mouse-brain cross-sample | `clustering/clustering_joint_nb.ipynb` → `cross_sample_alignment_nb.ipynb` |
-| Mouse-kidney cross-sample | `cross_sample_alignment_mouse_kidney_clustering_nb.ipynb` → `cross_sample_alignment_mouse_kidney_alignment_nb.ipynb` |
-| Breast-cancer cross-sample | `cross_sample_alignment_breast_cancer_clustering_nb.ipynb` → `cross_sample_alignment_breast_cancer_alignment_nb.ipynb` |
-| Transformation uncertainty | `cross_sample_uncertainty_report.ipynb` after the MERFISH workflow |
-| ST to Allen CCF | `clustering/clustering_single_nb.ipynb` → `cross_modal_atlas_alignment_nb.ipynb` |
-| UI-curated ST to Allen CCF | `cross_modality/interactive_region_pairing_nb.ipynb` → `cross_modality/ui_paired_atlas_alignment_nb.ipynb` |
-| ST to histology image | `cross_modality/st_he_feature_extraction_nb.ipynb` → `st_he_feature_clustering_nb.ipynb` → `st_he_alignment_nb.ipynb` |
-| Spatial ATAC to ST | `cross_modality/atac_st_single_clustering_nb.ipynb` → `atac_st_alignment_nb.ipynb` |
-| Post-alignment inference | `post_alignment_inference_nb.ipynb` after kidney alignment |
+| MERFISH mouse-brain cross-sample | `source_notebooks/clustering/clustering_joint_nb.ipynb` → `source_notebooks/cross_sample_alignment_nb.ipynb` |
+| Mouse-kidney cross-sample | `source_notebooks/cross_sample_alignment_mouse_kidney_clustering_nb.ipynb` → `source_notebooks/cross_sample_alignment_mouse_kidney_alignment_nb.ipynb` |
+| Breast-cancer cross-sample | `source_notebooks/cross_sample_alignment_breast_cancer_clustering_nb.ipynb` → `source_notebooks/cross_sample_alignment_breast_cancer_alignment_nb.ipynb` |
+| Transformation uncertainty | `source_notebooks/cross_sample_uncertainty_report.ipynb` after the MERFISH workflow |
+| ST to Allen CCF | `source_notebooks/clustering/clustering_single_nb.ipynb` → `source_notebooks/cross_modal_atlas_alignment_nb.ipynb` |
+| UI-curated ST to Allen CCF | `source_notebooks/cross_modality/interactive_region_pairing_nb.ipynb` → `source_notebooks/cross_modality/ui_paired_atlas_alignment_nb.ipynb` |
+| ST to histology image | `source_notebooks/cross_modality/st_he_feature_extraction_nb.ipynb` → `source_notebooks/cross_modality/st_he_feature_clustering_nb.ipynb` → `source_notebooks/cross_modality/st_he_alignment_nb.ipynb` |
+| Spatial ATAC to ST | `source_notebooks/cross_modality/atac_st_single_clustering_nb.ipynb` → `source_notebooks/cross_modality/atac_st_alignment_nb.ipynb` |
+| Post-alignment inference | `source_notebooks/post_alignment_inference_nb.ipynb` after kidney alignment |
 
 Single-sample input can be AnnData/H5AD or one metadata/expression CSV pair.
 Cross-sample input can be a combined AnnData/H5AD object or a directory of
@@ -142,16 +150,24 @@ data source and defines the required environment variables. In particular:
 ```bash
 python -m pytest -q
 python tools/audit_source_notebooks.py source_notebooks
+python tools/audit_public_references.py
+jupyter nbconvert --to notebook --execute source_notebooks/quickstart_nb.ipynb \
+  --output /tmp/spAlignDE-quickstart.ipynb --ExecutePreprocessor.timeout=300
 sphinx-build -W --keep-going -b html docs/source docs/build/html
 python tools/audit_built_html.py docs/build/html
 ```
 
-These checks validate the package contracts, notebook portability and saved
-execution state, strict Sphinx construction, and every generated local link,
-fragment and image reference.
+These checks validate package contracts, notebook portability and saved
+execution state, public notebook paths and mirrors, a real CPU notebook run,
+strict Sphinx construction, and every generated local link, fragment and image
+reference.
 
 ## Citation
 
 GitHub renders the repository's [CITATION.cff](CITATION.cff) as **Cite this
 repository**. Add the journal/DOI metadata there when the associated manuscript
 is published.
+
+## License
+
+spAlignDE is released under the [MIT License](LICENSE).

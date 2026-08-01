@@ -15,7 +15,8 @@ current package API.
 
 .. note::
 
-   This project is under active development.
+   This project is under active development and is distributed under the
+   :doc:`MIT License <license>`.
 
 Contents
 --------
@@ -27,3 +28,4 @@ Contents
    tutorial
    source_notebooks
    api
+   license

@@ -10,6 +10,7 @@ from urllib.parse import unquote, urlsplit
 
 
 SKIPPED_SCHEMES = {"data", "ftp", "http", "https", "javascript", "mailto", "tel"}
+GENERATED_PAGES = {Path("genindex.html"), Path("py-modindex.html"), Path("search.html")}
 
 
 class ReferenceParser(HTMLParser):
@@ -66,6 +67,19 @@ def main() -> int:
     checked_references = 0
     checked_fragments = 0
 
+    source_root = Path(__file__).resolve().parents[1] / "docs" / "source"
+    expected_pages = {
+        source.relative_to(source_root).with_suffix(".html")
+        for pattern in ("*.rst", "*.ipynb")
+        for source in source_root.rglob(pattern)
+    }
+    for html_path in html_files:
+        relative = html_path.relative_to(build_root)
+        if relative not in expected_pages and relative not in GENERATED_PAGES:
+            failures.append(
+                f"stale or unexpected HTML page without a documentation source: {relative}"
+            )
+
     for source, document in parsed_pages.items():
         for attribute, raw_url in document.references:
             resolved = resolve_target(build_root, source, raw_url)
@@ -91,6 +105,7 @@ def main() -> int:
                     )
 
     print(f"HTML pages: {len(html_files)}")
+    print(f"Expected source pages: {len(expected_pages)}")
     print(f"Local references checked: {checked_references}")
     print(f"HTML fragments checked: {checked_fragments}")
     if failures:

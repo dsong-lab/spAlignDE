@@ -6,6 +6,7 @@ from pathlib import Path
 from unittest import mock
 
 import anndata as ad
+import matplotlib.pyplot as plt
 import numpy as np
 
 import spAlignDE
@@ -219,6 +220,10 @@ class CrossSampleAlignmentTests(unittest.TestCase):
         self.assertIsInstance(result, spAlignDE.CrossSampleAlignmentResult)
         self.assertEqual(result.query_sample, "query")
         self.assertEqual(result.reference_sample, "reference")
+
+        figure, axes = spAlignDE.plot_alignment_result(result)
+        self.assertEqual(len(axes), 2)
+        plt.close(figure)
 
 
 if __name__ == "__main__":

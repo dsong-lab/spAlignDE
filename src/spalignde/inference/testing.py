@@ -16,7 +16,7 @@ def fit_local_de(
     alpha: float = 0.05,
     mismatch_aware: bool = True,
     technical_adjustment: bool = True,
-    cell_type_adjustment: bool = True,
+    cell_type_adjustment: bool = False,
     global_offset: bool = True,
     region_cleanup: bool = False,
     n_jobs: int = 1,
@@ -30,7 +30,9 @@ def fit_local_de(
     predecessor. The BH adjustment is applied separately within each gene and
     sample contrast across valid grid locations.
 
-    When `cell_type_adjustment=True`, the fitted kernel uses its
+    Cell-type adjustment is disabled by default because many public spatial
+    inputs do not contain complete cell-type annotations. When
+    `cell_type_adjustment=True`, the fitted kernel uses its
     `sampling_gap_adjust` path. It builds local shared cell-type coverage from
     smoothed cell-type proportions and type-specific effective support, then
     multiplies the precision weight by the resulting support precision. Because

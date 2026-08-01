@@ -27,6 +27,9 @@ If ``obsm["spatial"]`` is absent in an H5AD file,
 Paired CSV
 ^^^^^^^^^^
 
+Conversion to H5AD is optional. A metadata/expression CSV pair can be loaded
+directly after it has been normalized to the column contract below.
+
 The metadata CSV requires:
 
 .. list-table:: Metadata table
@@ -47,7 +50,9 @@ The metadata CSV requires:
 The expression CSV contains the same unique ``cell_id`` values followed by
 one or more numeric, finite, non-negative gene columns. Row order may differ;
 spAlignDE reorders the expression table by ``cell_id`` and rejects missing or
-extra identifiers instead of silently taking an intersection.
+extra identifiers instead of silently taking an intersection. Export from
+vendor-specific containers such as Seurat RDS is upstream preprocessing and
+is outside the spAlignDE input interface.
 
 .. code-block:: python
 

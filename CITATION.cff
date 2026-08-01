@@ -3,6 +3,7 @@ message: "If you use spAlignDE, please cite the software and the associated manu
 type: software
 title: "spAlignDE"
 version: 0.1.0
+license: MIT
 repository-code: "https://github.com/dsong-lab/spAlignDE"
 authors:
   - family-names: Xu

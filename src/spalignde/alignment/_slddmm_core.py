@@ -1122,6 +1122,7 @@ def plot_alignment_overlays(
         a.set_aspect("equal", adjustable="box")
 
     plt.show()
+    return fig, ax
 
 
 def plot_cluster_overlay_before_after(
@@ -1172,6 +1173,7 @@ def plot_cluster_overlay_before_after(
     ax[1].legend(markerscale=6, loc="lower left")
 
     plt.show()
+    return fig, ax
 
 
 def build_source_output_table(df_src, src_pre_xy, src_ldd_xy):

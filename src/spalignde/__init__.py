@@ -1,5 +1,12 @@
 """spAlignDE public Python interface."""
 
+from __future__ import annotations
+
+from pathlib import Path
+from typing import Any
+
+import anndata as ad
+
 __version__ = "0.1.0"
 
 from .alignment import (
@@ -80,6 +87,7 @@ from .io import (
     validate_cross_sample_anndata,
     validate_single_sample_anndata,
 )
+from .clustering import JointClusteringConfig, SingleClusteringConfig
 from .inference import (
     LocalDEResult,
     PreparedInference,
@@ -90,15 +98,41 @@ from .inference import (
     plot_local_result,
     prepare_inference,
 )
-from .datasets import VisiumInferenceInput, build_visium_inference_table
+from .datasets import (
+    VisiumInferenceInput,
+    build_visium_inference_table,
+    canonical_visium_barcodes,
+    make_cross_sample_example,
+)
 from . import uncertainty
 
 
-def cluster_joint(*args, **kwargs):
-    """Lazily import the optional BANKSY/Harmony clustering workflow."""
+def cluster_joint(
+    adata: ad.AnnData,
+    *,
+    config: JointClusteringConfig | None = None,
+    sample_key: str = "sample_id",
+    spatial_key: str = "spatial",
+    cluster_key: str = "cluster",
+    cell_id_key: str = "cell_id",
+    layer: str | None = None,
+    copy: bool = True,
+    return_details: bool = False,
+) -> ad.AnnData | tuple[ad.AnnData, dict[str, Any]]:
+    """Run the optional BANKSY/Harmony joint-clustering workflow."""
     from .clustering import cluster_joint as implementation
 
-    return implementation(*args, **kwargs)
+    return implementation(
+        adata,
+        config=config,
+        sample_key=sample_key,
+        spatial_key=spatial_key,
+        cluster_key=cluster_key,
+        cell_id_key=cell_id_key,
+        layer=layer,
+        copy=copy,
+        return_details=return_details,
+    )
 
 
 def plot_joint_cluster_refinement(*args, **kwargs):
@@ -108,11 +142,28 @@ def plot_joint_cluster_refinement(*args, **kwargs):
     return implementation(*args, **kwargs)
 
 
-def cluster_single(*args, **kwargs):
-    """Lazily import the optional single-sample BANKSY workflow."""
+def cluster_single(
+    adata: ad.AnnData,
+    *,
+    config: SingleClusteringConfig | None = None,
+    spatial_key: str = "spatial",
+    cluster_key: str = "cluster",
+    copy: bool = True,
+    banksy_output_dir: str | Path | None = None,
+    return_details: bool = False,
+) -> ad.AnnData | tuple[ad.AnnData, dict[str, Any]]:
+    """Run the optional single-sample BANKSY clustering workflow."""
     from .clustering import cluster_single as implementation
 
-    return implementation(*args, **kwargs)
+    return implementation(
+        adata,
+        config=config,
+        spatial_key=spatial_key,
+        cluster_key=cluster_key,
+        copy=copy,
+        banksy_output_dir=banksy_output_dir,
+        return_details=return_details,
+    )
 
 
 def plot_single_cluster_refinement(*args, **kwargs):
@@ -120,18 +171,6 @@ def plot_single_cluster_refinement(*args, **kwargs):
     from .clustering import plot_single_cluster_refinement as implementation
 
     return implementation(*args, **kwargs)
-
-
-def __getattr__(name):
-    if name == "JointClusteringConfig":
-        from .clustering import JointClusteringConfig
-
-        return JointClusteringConfig
-    if name == "SingleClusteringConfig":
-        from .clustering import SingleClusteringConfig
-
-        return SingleClusteringConfig
-    raise AttributeError(name)
 
 
 __all__ = [
@@ -181,6 +220,7 @@ __all__ = [
     "apply_similarity_transform",
     "build_st_cluster_hierarchy",
     "build_visium_inference_table",
+    "canonical_visium_barcodes",
     "interactive_manual_prealignment",
     "interactive_histology_prealignment",
     "load_allen_ccf_reference",
@@ -190,6 +230,7 @@ __all__ = [
     "load_ui_atlas_pairing",
     "load_histology_clustering",
     "load_histology_features",
+    "make_cross_sample_example",
     "cluster_joint",
     "cluster_single",
     "cluster_trajectories",
