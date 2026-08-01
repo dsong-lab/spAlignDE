@@ -47,13 +47,43 @@
     });
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function () {
-      moveLabLogoToSidebarBottom();
-      removeLegacyHeNisselLinks();
-    });
-  } else {
+  function lockSidebarShellAtTop() {
+    var sidebar = document.querySelector('.wy-side-scroll');
+    if (!sidebar) {
+      return;
+    }
+
+    function resetShellScroll() {
+      if (sidebar.scrollTop !== 0) {
+        sidebar.scrollTop = 0;
+      }
+      if (sidebar.scrollLeft !== 0) {
+        sidebar.scrollLeft = 0;
+      }
+    }
+
+    if (!sidebar.dataset.spaligndeScrollLock) {
+      sidebar.dataset.spaligndeScrollLock = 'true';
+      sidebar.addEventListener('scroll', resetShellScroll, { passive: true });
+      window.addEventListener('load', resetShellScroll);
+      window.addEventListener('pageshow', resetShellScroll);
+    }
+
+    resetShellScroll();
+    window.requestAnimationFrame(resetShellScroll);
+    window.setTimeout(resetShellScroll, 0);
+    window.setTimeout(resetShellScroll, 100);
+  }
+
+  function initializeSidebar() {
     moveLabLogoToSidebarBottom();
     removeLegacyHeNisselLinks();
+    lockSidebarShellAtTop();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeSidebar);
+  } else {
+    initializeSidebar();
   }
 })();
