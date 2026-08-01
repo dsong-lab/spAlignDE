@@ -25,6 +25,7 @@ html_static_path = ["_static"]
 html_css_files = ["custom.css"]
 html_js_files = ["custom.js"]
 html_title = "spAlignDE documentation"
+html_baseurl = "https://dsong-lab.github.io/spAlignDE/"
 
 epub_show_urls = "footnote"
 

@@ -32,7 +32,7 @@ Issues = "https://github.com/dsong-lab/spAlignDE/issues"
 
 [project.optional-dependencies]
 clustering = [
-  "banksy @ git+https://github.com/prabhakarlab/Banksy_py.git",
+  "pybanksy @ git+https://github.com/prabhakarlab/Banksy_py.git@9278996c39e376277d57ef95278000447ba6c57c",
   "harmonypy>=0.0.9",
   "scanpy>=1.10",
   "scikit-image>=0.22",

@@ -11,6 +11,10 @@ standardized CSV inputs and covers:
 - interactive many-to-many region pairing and refinement; and
 - post-alignment local differential-expression inference.
 
+- **Documentation:** https://dsong-lab.github.io/spAlignDE/
+- **Tutorials:** https://dsong-lab.github.io/spAlignDE/tutorial.html
+- **Executable notebooks:** https://dsong-lab.github.io/spAlignDE/source_notebooks.html
+
 The public import is case preserving:
 
 ```python
@@ -94,7 +98,12 @@ optimization and label transfer.
 
 ## Documentation website
 
-The Sphinx website source is versioned under [`docs/source/`](docs/source/).
+The complete Sphinx website is published at
+**https://dsong-lab.github.io/spAlignDE/**. Start with the
+[tutorial index](https://dsong-lab.github.io/spAlignDE/tutorial.html), then open
+the [executable source notebooks](https://dsong-lab.github.io/spAlignDE/source_notebooks.html)
+for the corresponding end-to-end workflows. The website source is versioned
+under [`docs/source/`](docs/source/).
 Build it locally with:
 
 ```bash
@@ -107,8 +116,8 @@ Open `docs/build/html/index.html` after the build. The repository contains both
 `.readthedocs.yaml` and a GitHub Pages workflow:
 
 - Read the Docs detects `.readthedocs.yaml` after the repository is imported.
-- For GitHub Pages, choose **Settings → Pages → Source: GitHub Actions**. A push
-  to `main` builds and deploys the website.
+- GitHub Pages builds, audits and deploys the website after every push to
+  `main` once **Settings → Pages → Source: GitHub Actions** is enabled.
 
 The [Parameter Tuning Guide](docs/source/tutorials/parameter_tuning.rst)
 explains coordinate units, clustering/refinement, pre-alignment, the three
