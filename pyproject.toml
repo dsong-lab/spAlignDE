@@ -7,6 +7,7 @@ name = "spAlignDE"
 version = "0.1.0"
 description = "Structure-guided spatial alignment and mismatch-aware local differential expression"
 readme = "README.md"
+license = {file = "LICENSE"}
 requires-python = ">=3.10"
 authors = [
   {name = "Su Xu"},
@@ -15,6 +16,12 @@ authors = [
   {name = "Aarya Dalal"},
   {name = "Yuxin Yin"},
   {name = "Dongyuan Song"},
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
 ]
 dependencies = [
   "anndata>=0.10",
@@ -27,12 +34,13 @@ dependencies = [
 ]
 
 [project.urls]
+Documentation = "https://dsong-lab.github.io/spAlignDE/"
 Repository = "https://github.com/dsong-lab/spAlignDE"
 Issues = "https://github.com/dsong-lab/spAlignDE/issues"
 
 [project.optional-dependencies]
 clustering = [
-  "pybanksy @ git+https://github.com/prabhakarlab/Banksy_py.git@9278996c39e376277d57ef95278000447ba6c57c",
+  "pybanksy @ git+https://github.com/prabhakarlab/Banksy_py.git@43e2d692db6705c0195039764194473912e4cfc2",
   "harmonypy>=0.0.9",
   "scanpy>=1.10",
   "scikit-image>=0.22",

@@ -20,6 +20,7 @@ the required quality-control sequence.
    :maxdepth: 1
    :caption: Executable Notebooks
 
+   source_notebooks/quickstart_nb
    source_notebooks/clustering
    source_notebooks/cross_sample_alignment
    source_notebooks/cross_modality_alignment
@@ -28,6 +29,7 @@ the required quality-control sequence.
 Workflow Categories
 -------------------
 
+- :doc:`CPU Quickstart <source_notebooks/quickstart_nb>`
 - :doc:`Clustering <source_notebooks/clustering>`
 - :doc:`Cross-Sample Alignment <source_notebooks/cross_sample_alignment>`
 - :doc:`Cross-Modality Alignment <source_notebooks/cross_modality_alignment>`

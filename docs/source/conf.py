@@ -1,6 +1,6 @@
 project = "spAlignDE"
-author = "spAlignDE team"
-copyright = "2026, spAlignDE team"
+author = "Dongyuan Song Lab"
+copyright = "2026, Dongyuan Song Lab"
 
 release = ""
 version = ""

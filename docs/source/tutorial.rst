@@ -12,6 +12,7 @@ environment <installation>`.
 .. toctree::
    :maxdepth: 2
 
+   tutorials/quickstart
    tutorials/cross_sample_alignment
    tutorials/cross_modality_alignment
    tutorials/parameter_tuning
