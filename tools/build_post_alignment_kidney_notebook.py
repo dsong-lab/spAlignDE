@@ -52,9 +52,9 @@ def build_notebook():
 
             Run the two kidney cross-sample notebooks first:
 
-            1. `tutorials/cross_sample/kidney/01_joint_clustering.ipynb`
-            2. `tutorials/cross_sample/kidney/02_alignment.ipynb`
-            3. this post-alignment inference notebook
+            1. `source_notebooks/cross_sample_alignment_mouse_kidney_clustering_nb.ipynb`
+            2. `source_notebooks/cross_sample_alignment_mouse_kidney_alignment_nb.ipynb`
+            3. `source_notebooks/post_alignment_inference_nb.ipynb`
 
             Download the NL3 and IL3 Visium count matrices from the
             [STcompare Zenodo record](https://zenodo.org/records/19486091),

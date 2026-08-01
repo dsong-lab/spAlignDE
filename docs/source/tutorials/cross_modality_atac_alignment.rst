@@ -96,6 +96,9 @@ The equivalent paired CSV input is:
 Both files must contain the same unique ``cell_id`` values. Expression rows are
 matched to metadata by identifier, not row number. A Seurat RDS is an upstream
 container and must first be exported to H5AD or this paired CSV format.
+Conversion to H5AD is optional. Exporting a vendor-specific object or deriving
+gene activity from peaks is upstream preprocessing and is not performed by
+spAlignDE.
 
 ST reference
 ~~~~~~~~~~~~

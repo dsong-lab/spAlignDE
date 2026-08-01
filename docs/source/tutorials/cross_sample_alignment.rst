@@ -57,8 +57,9 @@ single-cell-resolution data contain 649 measured genes:
 
 The Vizgen files are not bundled with the Python package. The two sections may
 be provided as one combined file named, for example,
-``merfishS2_joint.h5ad``, or as paired metadata and expression CSV files. Point
-the first notebook to the file or CSV directory:
+``merfishS2_joint.h5ad``, or directly as paired metadata and expression CSV
+files. Conversion to H5AD is optional. Point the first notebook to either the
+H5AD file or CSV directory:
 
 .. code-block:: bash
 
@@ -66,7 +67,7 @@ the first notebook to the file or CSV directory:
    export SPALIGNDE_INPUT=/path/to/data/merfishS2_joint.h5ad
    # Alternatively:
    # export SPALIGNDE_INPUT=/path/to/data/csv_folder
-   jupyter lab tutorials/cross_sample/01_joint_clustering.ipynb
+   jupyter lab source_notebooks/clustering/clustering_joint_nb.ipynb
 
 Users may substitute any cross-sample ST dataset that satisfies either input
 contract below. Cell- and spot-resolution inputs use the same interface.
@@ -87,7 +88,9 @@ Load the directory directly:
    adata = spAlignDE.load_cross_sample_data("/path/to/data/csv_folder")
 
 The sample identifier is parsed from each filename. At least two matched file
-pairs are required for joint clustering.
+pairs are required for joint clustering. Vendor exports must be renamed to
+this file and column contract before loading; conversion from vendor-specific
+containers is upstream preprocessing and is not performed by spAlignDE.
 
 AnnData input contract
 ----------------------
@@ -211,7 +214,7 @@ Open the second notebook after the clustered H5AD file has been created:
 .. code-block:: bash
 
    cd /path/to/spAlignDE
-   jupyter lab tutorials/cross_sample/02_alignment.ipynb
+   jupyter lab source_notebooks/cross_sample_alignment_nb.ipynb
 
 To use a clustered file in another location:
 
@@ -333,7 +336,7 @@ are
 
 Here :math:`Q_{0.99}` is the pooled 99th percentile of log density from both
 samples. The S-LDDMM image contains one composition channel per shared cluster
-plus the density channel. In the executed MERFISH tutorial, 25 shared cluster
+plus the density channel. In the executed MERFISH tutorial, 26 shared cluster
 channels and one density channel are represented on a ``331 × 331`` grid.
 
 S-LDDMM refinement
@@ -443,9 +446,9 @@ Validation result
 -----------------
 
 Both notebooks were executed from start to finish on the full MERFISH example.
-The final run used CUDA, retained 25 shared clusters and improved
-nearest-neighbor cluster agreement from ``0.4626`` after global pre-alignment
-to ``0.8178`` after S-LDDMM. The tutorial also verifies programmatically that
+The final run used CUDA, retained 26 shared clusters and improved
+nearest-neighbor cluster agreement from ``0.4341`` after global pre-alignment
+to ``0.7836`` after S-LDDMM. The tutorial also verifies programmatically that
 the S2R2 reference coordinates remain unchanged.
 
 The executed alignment notebook includes the original visual quality-control
