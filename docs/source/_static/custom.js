@@ -85,11 +85,44 @@
     window.setTimeout(resetShellScroll, 100);
   }
 
+  function constrainSidebarScrollIntoView() {
+    if (!window.Element || !window.Element.prototype.scrollIntoView) {
+      return;
+    }
+
+    var elementPrototype = window.Element.prototype;
+    if (elementPrototype.spaligndeNativeScrollIntoView) {
+      return;
+    }
+
+    var nativeScrollIntoView = elementPrototype.scrollIntoView;
+    elementPrototype.spaligndeNativeScrollIntoView = nativeScrollIntoView;
+    elementPrototype.scrollIntoView = function () {
+      var menu = this.closest ? this.closest('.wy-menu-vertical') : null;
+      if (!menu) {
+        return nativeScrollIntoView.apply(this, arguments);
+      }
+
+      var menuRect = menu.getBoundingClientRect();
+      var itemRect = this.getBoundingClientRect();
+      var padding = 16;
+
+      if (itemRect.top < menuRect.top + padding) {
+        menu.scrollTop += itemRect.top - menuRect.top - padding;
+      } else if (itemRect.bottom > menuRect.bottom - padding) {
+        menu.scrollTop += itemRect.bottom - menuRect.bottom + padding;
+      }
+    };
+  }
+
   function initializeSidebar() {
     moveLabLogoToSidebarBottom();
     removeLegacyHeNisselLinks();
     lockSidebarShellsAtTop();
   }
+
+  /* Install before the theme calls scrollIntoView() for the active page. */
+  constrainSidebarScrollIntoView();
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initializeSidebar);
