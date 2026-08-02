@@ -61,7 +61,7 @@ The requested kidney S-LDDMM settings are used exactly:
 
 Coordinates are multiplied by 50 internally, rasterized with grid spacing 30,
 and returned in the original coordinate scale. The executed alignment improves
-nearest-neighbor cluster agreement from 0.659 to 0.742.
+nearest-neighbor cluster agreement from 0.663 to 0.744.
 
 Here ``a`` controls deformation smoothness and ``grid_step`` controls velocity
 field resolution. Increasing either makes the warp more global/coarse;
