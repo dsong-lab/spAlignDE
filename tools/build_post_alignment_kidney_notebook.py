@@ -9,12 +9,22 @@ import nbformat as nbf
 
 
 DOCS_ROOT = Path(__file__).resolve().parents[1]
-TARGETS = (
-    DOCS_ROOT / "source_notebooks/post_alignment_inference_nb.ipynb",
-    DOCS_ROOT
-    / "Post_alignment_inference/tutorials/mouse_kidney_from_aligned_coordinates.ipynb",
-    DOCS_ROOT / "docs/source/source_notebooks/post_alignment_inference_nb.ipynb",
+WEBSITE_SOURCE = (
+    DOCS_ROOT / "docs/source"
+    if (DOCS_ROOT / "docs/source").is_dir()
+    else DOCS_ROOT.parents[2] / "readdoc/docs/source"
 )
+TARGETS = [
+    DOCS_ROOT / "source_notebooks/post_alignment_inference_nb.ipynb",
+    WEBSITE_SOURCE / "source_notebooks/post_alignment_inference_nb.ipynb",
+]
+if (DOCS_ROOT / "Post_alignment_inference").is_dir():
+    TARGETS.insert(
+        1,
+        DOCS_ROOT
+        / "Post_alignment_inference/tutorials/mouse_kidney_from_aligned_coordinates.ipynb",
+    )
+TARGETS = tuple(TARGETS)
 
 
 def markdown(source: str):
@@ -52,9 +62,9 @@ def build_notebook():
 
             Run the two kidney cross-sample notebooks first:
 
-            1. `source_notebooks/cross_sample_alignment_mouse_kidney_clustering_nb.ipynb`
-            2. `source_notebooks/cross_sample_alignment_mouse_kidney_alignment_nb.ipynb`
-            3. `source_notebooks/post_alignment_inference_nb.ipynb`
+            1. `tutorials/cross_sample/kidney/01_joint_clustering.ipynb`
+            2. `tutorials/cross_sample/kidney/02_alignment.ipynb`
+            3. this post-alignment inference notebook
 
             Download the NL3 and IL3 Visium count matrices from the
             [STcompare Zenodo record](https://zenodo.org/records/19486091),
@@ -99,6 +109,7 @@ def build_notebook():
 
             from pathlib import Path
             import os
+            import warnings
 
             import matplotlib.pyplot as plt
             import numpy as np
@@ -106,6 +117,11 @@ def build_notebook():
             from scipy.stats import t as student_t
             from IPython.display import display
 
+            warnings.filterwarnings(
+                "ignore",
+                message="pkg_resources is deprecated as an API.*",
+                category=UserWarning,
+            )
             import spAlignDE
 
             repository_candidates = (Path.cwd(), *Path.cwd().parents)
@@ -173,7 +189,7 @@ def build_notebook():
         ),
         code(
             """
-            genes_to_test = ["Cbr1", "Cd44", "Slc5a2"]
+            genes_to_test = ["Cbr1", "Cd44", "Myo5a"]
             visium_input = spAlignDE.build_visium_inference_table(
                 ALIGNED_H5AD,
                 {
@@ -290,14 +306,23 @@ def build_notebook():
 
             `prepare_inference` constructs the fixed testing grid, local
             neighborhoods, density summaries, and stable-gene distributional
-            mismatch risk. The density channel contributes 0.25 of the risk
-            energy in this recorded analysis. The grid spacing and mapping
-            radius are resolved automatically from the aligned coordinate
-            scale.
+            mismatch risk. The density channel contributes 0.75 of the risk
+            energy in this recorded kidney analysis because local sampling-density
+            mismatch is an important reliability signal for these aligned sections.
+            This is a dataset-specific recorded setting, not a universal default.
+            By default, the R-driven grid
+            resolution is retained when the actual number of tissue-valid
+            locations lies between the median per-sample spot count,
+            $N_{typ}$, and $2N_{typ}$. Otherwise, the resolution is moved
+            toward the nearest bound using the same tissue mask that defines
+            the final grid. Set `GRID_N` only when an explicit resolution is
+            scientifically justified.
             """
         ),
         code(
             """
+            GRID_N = None  # integer >= 2 overrides automatic grid resolution
+
             prepared = spAlignDE.prepare_inference(
                 inference_data,
                 reference=REFERENCE,
@@ -305,8 +330,9 @@ def build_notebook():
                 risk_genes=risk_genes,
                 aligned_coordinate_key=("x_aligned", "y_aligned"),
                 cell_type_key=None,
-                density_energy_share=0.25,
+                density_energy_share=0.75,
                 library_size=TARGET_LIBRARY_SIZE,
+                grid_n=GRID_N,
                 n_jobs=1,
                 random_state=1,
             )
@@ -316,6 +342,12 @@ def build_notebook():
                     "value": {
                         "reference": prepared.reference,
                         "query": ", ".join(prepared.shared["time_ids"]),
+                        "grid resolution (n x n)": prepared.metadata["grid_n"],
+                        "grid resolution source": prepared.metadata["grid_n_source"],
+                        "median spots per sample (N_typ)": prepared.metadata["n_typ"],
+                        "target tissue-valid locations": prepared.metadata[
+                            "target_grid_locations"
+                        ],
                         "shared grid locations": len(prepared.shared["grid_eval"]),
                         "grid spacing": prepared.metadata["shared_grid_spacing"],
                         "risk-map radius": prepared.metadata["risk_map_radius"],
@@ -336,6 +368,32 @@ def build_notebook():
             axis.set_axis_off()
             figure.colorbar(artist, ax=axis, label="normalized mismatch risk")
             plt.show()
+            """
+        ),
+        markdown(
+            """
+            ### How to adapt the inference settings
+
+            - Keep `risk_genes` broad and independent of the genes being tested;
+              do not estimate residual mismatch from only a few target genes.
+            - Increase `min_detected_spots` or `min_total_counts` when extremely
+              sparse genes make the risk map unstable.
+            - `density_energy_share` must be between zero and one. Increase it
+              only when sampling-density discordance is a meaningful reliability
+              signal; it must not be used to conceal poor alignment.
+            - Leave `GRID_N=None` for the sample-size-aware automatic rule. An
+              explicit `grid_n` is the number of Cartesian points per axis, not
+              the number of retained tissue locations. Higher values improve
+              spatial resolution but increase runtime and memory.
+            - Enable cell-type adjustment only when complete, validated
+              annotations exist for every sample. Record whether
+              `region_cleanup` is enabled because it changes connected
+              significant regions. The recorded kidney analysis leaves it disabled
+              so the displayed significance masks are the direct FDR results.
+
+            Inspect aligned geometry, local support, grid resolution, and
+            mismatch risk together before interpreting differential-expression
+            maps.
             """
         ),
         markdown(
@@ -361,7 +419,7 @@ def build_notebook():
                 technical_adjustment=True,
                 cell_type_adjustment=False,
                 global_offset=False,
-                region_cleanup=True,
+                region_cleanup=False,
                 n_jobs=1,
                 random_state=1,
                 verbose=True,
@@ -375,8 +433,11 @@ def build_notebook():
             Each output row represents one shared-grid location. A positive
             statistic indicates higher adjusted local expression in IL3 than
             NL3; a negative statistic indicates the reverse. Red contours in
-            the figures enclose connected FDR-significant regions after region
-            cleanup.
+            the figures enclose FDR-significant grid locations with region cleanup
+            disabled. The gene-level ACAT P value combines dependent local P
+            values over valid grid locations. It is an omnibus P value for a
+            spatial change somewhere on the grid, not a local P value or a
+            genome-wide FDR-adjusted gene-discovery value.
             """
         ),
         code(
@@ -384,6 +445,7 @@ def build_notebook():
             summary_rows = []
             grid_table = prepared.shared["grid_eval"][["x", "y"]].reset_index(drop=True)
             for gene, fit in result.fits.items():
+                gene_acat_pvalue = spAlignDE.gene_level_acat_pvalue(result, gene)
                 terrain = fit["terrain_data"]
                 statistic = np.asarray(terrain["stat_by_time"][QUERY], dtype=float)
                 degrees_of_freedom = np.asarray(
@@ -400,6 +462,7 @@ def build_notebook():
                     {
                         "gene": gene,
                         "contrast": f"{QUERY} - {REFERENCE}",
+                        "gene-level ACAT P value": gene_acat_pvalue,
                         "significant grid locations": int(significant.sum()),
                         "minimum q-value": float(np.nanmin(q_value)),
                         "median |t|": float(np.nanmedian(np.abs(statistic))),
@@ -440,14 +503,15 @@ def build_notebook():
             (`prepared`) and fitted `LocalDEResult` (`result`). It also writes
             one compressed grid table per gene with `x`, `y`, `statistic`,
             `p_value`, `q_value`, and `significant`, plus
-            `kidney_local_de_summary.csv`.
+            `kidney_local_de_summary.csv`, which also records the gene-level
+            ACAT omnibus P value.
 
             This is a matched-section IL3-versus-NL3 analysis, not
             replicate-level population inference. The representative genes
             reproduce the same principal spatial conclusions as the previous
             kidney coordinate workflow. For multiple query samples, reuse the
             prepared shared-grid design and summarize gene-level evidence or
-            ordered trajectories with `acat_pvalue` and
+            ordered trajectories with `gene_level_acat_pvalue` and
             `cluster_trajectories`.
             """
         ),

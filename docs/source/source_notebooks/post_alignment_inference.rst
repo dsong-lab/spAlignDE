@@ -5,7 +5,9 @@ This section continues from the Visium kidney cross-sample workflow. The
 notebook reads the final ``kidney_IL3_to_NL3_aligned.h5ad`` output, joins raw
 NL3 and IL3 10x counts by barcode, estimates post-alignment mismatch risk and
 fits Mismatch-aware local differential-expression tests for ``Cbr1``,
-``Cd44`` and ``Slc5a2``.
+``Cd44`` and ``Myo5a``. It uses the sample-size- and tissue-mask-aware automatic
+grid rule and reports both local q-value maps and gene-level ACAT omnibus P
+values.
 
 The H5AD/raw-count handoff is implemented by the public
 ``spAlignDE.build_visium_inference_table`` function; the notebook contains no
@@ -30,7 +32,9 @@ Source notebook
 
 The saved notebook is fully executed. It shows the original and aligned
 geometry, the mismatch-risk map, grid-level result summary, and the expression
-and local-statistic panels for all three representative genes.
+and local-statistic panels for all three representative genes. The preparation
+summary records the selected ``grid_n``, its automatic/manual source,
+``N_typ``, target location interval and final tissue-valid grid count.
 
 Tune inference only after geometric QC passes. Risk genes should be broad and
 selected independently of the tested genes; cell-type adjustment requires

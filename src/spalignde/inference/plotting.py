@@ -8,6 +8,7 @@ import pandas as pd
 from matplotlib.colors import TwoSlopeNorm
 
 from ._types import LocalDEResult
+from .summaries import gene_level_acat_pvalue
 
 
 def _scatter_map(ax, xy, values, *, cmap, vmin=None, vmax=None):
@@ -327,5 +328,13 @@ def plot_local_result(
             axes[row, column].invert_yaxis()
         figure.colorbar(artist, ax=axes[row, column], fraction=0.046, pad=0.02)
 
-    figure.suptitle(f"{gene}: local spatial differential expression")
+    gene_pvalue = gene_level_acat_pvalue(result, gene)
+    pvalue_label = (
+        f"{gene_pvalue:.2e}" if np.isfinite(gene_pvalue) and gene_pvalue < 0.001
+        else f"{gene_pvalue:.4f}"
+    )
+    figure.suptitle(
+        f"{gene}: local spatial differential expression\n"
+        f"gene-level ACAT P value = {pvalue_label}"
+    )
     return figure
