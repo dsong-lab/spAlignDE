@@ -111,6 +111,15 @@ without a structure-specific matching rule.
        cluster_key="cluster",
    )
 
+.. figure:: ../_static/tutorial_figures/single_clustering_tab20.png
+   :alt: Single-sample BANKSY clustering for MERFISH S2R1
+   :width: 100%
+   :align: center
+
+   Raw and boundary-refined MERFISH S2R1 structures used to initialize the ST
+   hierarchy. Colors are fixed across panels; cluster integers are identifiers,
+   not Allen labels.
+
 Whole-tissue pre-alignment
 --------------------------
 
@@ -245,6 +254,44 @@ validated analysis notebook even when cluster numbering or matched-pair order
 changes. Unmatched atlas regions are light gray and unmatched ST cells are
 dark gray.
 
+Paired-feature overlap quality control
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Inspect the binary masks accepted by the final matching stage before
+interpreting the deformation. Blue is the moving ST feature, orange is its
+Allen target and purple is their intersection. Dice measures area overlap,
+whereas ASD remains sensitive to displaced boundaries and width differences in
+thin structures. The panel shows the six pairs with the highest global gated
+score; the notebook displays the complete 17-pair table. This is a global
+score-based display rule and does not give any anatomical region special
+priority.
+
+.. figure:: ../_static/tutorial_figures/atlas_paired_feature_masks.png
+   :alt: Binary masks and overlaps for representative ST and Allen feature pairs
+   :width: 100%
+   :align: center
+
+   Moving ST mask (blue), Allen target mask (orange) and intersection (purple)
+   for the six highest-scoring accepted pairs. The reported gated score, Dice
+   and ASD are calculated from these same matching masks.
+
+The shared-color point overlay provides the complementary whole-section audit.
+In the left panel, verify that every pre-aligned ST feature occupies the
+intended Allen structure with compatible position, width and boundary shape.
+The right panel shows the deformation driven by those same accepted channels.
+A good post-alignment outline must not be used to rescue a pair that was
+anatomically implausible before deformation.
+
+.. figure:: ../_static/tutorial_figures/atlas_alignment_structures.png
+   :alt: MERFISH structures aligned to matched Allen CCF structures
+   :width: 100%
+   :align: center
+
+   Paired-feature overlap before (left) and after (right) hierarchical
+   S-LDDMM. Each selected ST/Allen feature pair shares one color, making
+   incorrect width, position, or boundary correspondence visible before label
+   transfer.
+
 Atlas label transfer
 --------------------
 
@@ -270,6 +317,15 @@ region.
 
 The atlas panel and transferred-label panel use exactly the same fixed color
 for every annotation ID; label 0 remains white.
+
+.. figure:: ../_static/tutorial_figures/atlas_label_transfer.png
+   :alt: Allen CCF annotation and transferred labels on aligned MERFISH cells
+   :width: 100%
+   :align: center
+
+   Allen annotation slice 675 (left) and labels sampled at the final aligned
+   MERFISH coordinates (right). Identical label colors allow a direct visual
+   audit of transfer coverage and background cells.
 
 In the freshly executed four-level run, the primary alignment stages accept
 2, 5, 10 and 15 structure pairs. Continuation increases the final partition

@@ -137,6 +137,24 @@ paper ATAC-to-ST workflow uses ``cluster_raw`` as its structure partition and
 retains refined labels for boundary QC. This avoids making the alignment
 dependent on an additional local-voting decision.
 
+.. figure:: ../_static/tutorial_figures/atac_single_clustering_tab20.png
+   :alt: Raw and boundary-refined BANKSY clusters for the P22 spatial ATAC assay
+   :width: 100%
+   :align: center
+
+   Independent single-sample clustering of the ATAC query. Raw and refined
+   panels use the same classic ``tab20`` mapping so boundary changes do not
+   masquerade as cluster-identity changes.
+
+.. figure:: ../_static/tutorial_figures/atac_independent_structures.png
+   :alt: Independently inferred ST and spatial ATAC structures
+   :width: 92%
+   :align: center
+
+   Independently inferred structures before correspondence selection. Their
+   integer labels and colors are modality-specific at this checkpoint; only
+   geometry is used to identify candidate cross-modality pairs.
+
 Stage 2: global pre-alignment
 -----------------------------
 
@@ -172,6 +190,15 @@ Tune ``reference_crop_axis``, ``reference_crop_side`` and
 same partial anatomy in view. ``raster_scale`` controls canvas resolution: a
 larger value retains more detail and costs more memory, while distance-based
 parameters are then interpreted in the new canvas units.
+
+.. figure:: ../_static/tutorial_figures/atac_prealignment_fov.png
+   :alt: ATAC-to-ST global pre-alignment and selected reference field of view
+   :width: 100%
+   :align: center
+
+   Global similarity transforms place both assays in one frame and the
+   matching half-brain field of view is retained. Verify this crop before
+   tuning pair scores or deformation parameters.
 
 Stage 3: masks and automatic structure pairing
 -----------------------------------------------
@@ -244,6 +271,49 @@ the cropped raster canvas. See :doc:`Parameter Tuning Guide
        st_cluster_key="cluster",
        output_dir="tutorials/cross_modality/atac/output/alignment",
    )
+
+Paired-feature overlap quality control
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Review every accepted binary-mask pair before interpreting the final
+deformation. Blue is the moving ATAC feature, orange is the fixed ST feature
+and purple is their intersection. The pair score combines the global matching
+terms; Dice measures area overlap, whereas Chamfer distance remains sensitive
+to displaced boundaries. These are the exact masks stacked into the S-LDDMM
+source and target channels.
+
+.. figure:: ../_static/tutorial_figures/atac_paired_feature_masks.png
+   :alt: Binary masks and overlaps for all accepted spatial ATAC and ST feature pairs
+   :width: 100%
+   :align: center
+
+   Moving ATAC mask (blue), fixed ST mask (orange) and intersection (purple)
+   for all five accepted feature pairs, with score, Dice and Chamfer distance.
+
+The shared-color point panels then show the independently inferred structures
+and their correspondence before and after S-LDDMM. Shared colors indicate
+accepted pairs, whereas gray points were not used as matched channels. A
+convincing whole-tissue outline is not a substitute for compatible
+paired-feature geometry.
+
+.. figure:: ../_static/tutorial_figures/atac_matched_structures.png
+   :alt: Selected ATAC and ST structure pairs before and after S-LDDMM
+   :width: 100%
+   :align: center
+
+   Selected ST structures, their paired ATAC structures, and paired-feature
+   overlaps before and after deformation. Pair colors are assigned only after
+   automatic geometric matching and expose which features actually drive
+   S-LDDMM.
+
+.. figure:: ../_static/tutorial_figures/atac_alignment_before_after.png
+   :alt: Spatial ATAC alignment before and after structure-guided S-LDDMM
+   :width: 92%
+   :align: center
+
+   Global pre-alignment (left) versus the final structure-guided alignment
+   (right). All ATAC observations are displayed, including observations not
+   used in a matched-mask channel.
 
 Outputs
 -------

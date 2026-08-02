@@ -11,6 +11,12 @@ documentation framework as cross-sample alignment: explicit input contracts,
 package functions, ordered executable notebooks, standard coordinate outputs,
 visual QC and reproducible provenance.
 
+Every workflow now exposes **paired-feature overlap** as a required QC
+checkpoint. The individual query/reference structures and their shared-color
+overlay show exactly which spatial evidence enters S-LDDMM. Review this panel
+before tuning deformation parameters: whole-tissue overlap alone cannot verify
+that the selected internal correspondence is correct.
+
 Cross-modality workflows add modality-specific choices for hierarchy depth,
 mask construction, geometric pairing, image resolution and partial
 field-of-view selection. See :doc:`Parameter Tuning Guide <parameter_tuning>`

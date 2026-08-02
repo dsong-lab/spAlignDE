@@ -203,6 +203,15 @@ example; BANKSY-expanded features are used internally and do not replace
 ``adata.X``. The raw, refined, and selected final labels are stored as
 ``cluster_raw``, ``cluster_refined``, and ``cluster`` in ``adata.obs``.
 
+.. figure:: ../_static/tutorial_figures/joint_clustering_tab20.png
+   :alt: Joint clustering results for MERFISH S2R2 and S2R3
+   :width: 100%
+   :align: center
+
+   Raw joint clusters (top) and boundary-refined clusters (bottom) in both
+   sections. One ``tab20`` label map is used across all panels; matching
+   colors therefore represent the same shared structure identity.
+
 Notebook 2: alignment
 ---------------------
 
@@ -244,6 +253,15 @@ shared structure :math:`r`. spAlignDE estimates scale :math:`s`, rotation
 Scaling is enabled and reflection is disabled by default. The fitted
 transformation is applied to every query observation and written to
 ``x_prealigned`` and ``y_prealigned``.
+
+.. figure:: ../_static/tutorial_figures/cross_sample_prealignment.png
+   :alt: MERFISH samples before and after cluster-correspondence pre-alignment
+   :width: 100%
+   :align: center
+
+   Query and reference cells and their shared-cluster centroids before and
+   after the global similarity transform. Centroid correspondence should be
+   anatomically plausible before rasterization or S-LDDMM is attempted.
 
 Optional interactive manual pre-alignment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -303,6 +321,16 @@ The notebook uses ``PREALIGNMENT_MODE = "manual"`` to select the interactive
 result for downstream rasterization and S-LDDMM. A static, non-widget preview
 is available through ``spAlignDE.plot_manual_prealignment_preview``.
 
+.. figure:: ../_static/tutorial_figures/cross_sample_manual_prealignment.png
+   :alt: Static preview of interactive manual cross-sample pre-alignment
+   :width: 92%
+   :align: center
+
+   The notebook keeps a static preview of the widget state so scale, rotation,
+   and translation can be reviewed in the rendered documentation. The query
+   outline should cover the same anatomy as the fixed reference without local
+   warping at this stage.
+
 The transformation follows
 ``aligned = scale * query @ R.T + t``. It is stored in
 ``adata.uns["spAlignDE"]["prealignment"]`` and written to
@@ -338,6 +366,15 @@ Here :math:`Q_{0.99}` is the pooled 99th percentile of log density from both
 samples. The S-LDDMM image contains one composition channel per shared cluster
 plus the density channel. In the executed MERFISH tutorial, 26 shared cluster
 channels and one density channel are represented on a ``331 × 331`` grid.
+
+.. figure:: ../_static/tutorial_figures/cross_sample_raster_fields.png
+   :alt: Query and reference cluster-composition and density raster fields
+   :width: 92%
+   :align: center
+
+   RGB previews of shared-cluster composition (top) and the corresponding
+   density channels (bottom). These fields—not the display RGB image—form the
+   multichannel inputs to S-LDDMM.
 
 S-LDDMM refinement
 ~~~~~~~~~~~~~~~~~~
@@ -394,6 +431,24 @@ For routine use, the same three stages can be called at once:
 
 To use a fixed manual transform with the one-call interface, pass
 ``manual_prealignment_config=manual``.
+
+.. figure:: ../_static/tutorial_figures/cross_sample_alignment_plain.png
+   :alt: MERFISH sample overlap before and after S-LDDMM
+   :width: 100%
+   :align: center
+
+   Cell-level overlap after global pre-alignment (left) and after S-LDDMM
+   (right), shown without cluster colors to make tissue-outline agreement easy
+   to inspect.
+
+.. figure:: ../_static/tutorial_figures/cross_sample_alignment_clusters.png
+   :alt: Shared-cluster overlap before and after S-LDDMM
+   :width: 100%
+   :align: center
+
+   The same comparison colored by shared cluster identity. Inspect both outer
+   geometry and internal structures; a visually improved outline alone does
+   not establish a correct local alignment.
 
 Adapting S-LDDMM to another coordinate system
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

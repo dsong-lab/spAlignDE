@@ -98,6 +98,15 @@ The paper image produces a 1,288 × 980 feature grid. Every feature location
 corresponds to one 16 × 16-pixel image region, and no expression matrix or
 spatial-transcriptomic coordinates are stored in the feature pickle.
 
+.. figure:: ../_static/tutorial_figures/histology_prepared_image.png
+   :alt: Prepared H and E image supplied to HIPT feature extraction
+   :width: 48%
+   :align: center
+
+   Prepared H&E image after physical-resolution handling and padding. This is
+   the exact RGB image supplied to HIPT; the manifest records every resize and
+   padding operation needed to map feature-grid coordinates back to pixels.
+
 `UNI <https://github.com/mahmoodlab/UNI>`_ and its `gated Hugging Face weights
 <https://huggingface.co/MahmoodLab/UNI>`_ provide an optional fine-grained
 pathology representation. The canonical spAlignDE H&E result here uses
@@ -118,6 +127,68 @@ merging, and removes small disconnected islands. The validated
 ``coordinate_weight=0.05``, ``random_state=0``, and produces 24 cleaned image
 structures. These image labels do not represent cell types or atlas regions.
 
+The complete image-only construction is:
+
+1. separate tissue from slide background with a two-group brightness-supported
+   mask and retain the main tissue support;
+2. standardize the HIPT context, local, and RGB feature blocks independently;
+3. concatenate HIPT features, RGB weighted by ``0.25``, and normalized x/y
+   coordinates weighted by ``0.05``;
+4. run deterministic K-means to obtain 30 initial tissue regions;
+5. fill internal holes and merge regions supported by feature-centroid
+   similarity;
+6. accept at most two layout-aware reflection merges when overlap, feature
+   cosine similarity, centroid distance, and symmetry-score gain pass their
+   gates; and
+7. remove disconnected islands smaller than 250 feature-grid pixels, keeping
+   background encoded as −1.
+
+Image orientation and symmetry axis
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The prepared benchmark image contains **two coronal sections stacked
+vertically** and is displayed exactly as stored with an upper-left image
+origin. The paper setting ``symmetry_axis="ud"`` therefore compares
+corresponding features between the upper and lower sections. It does not assume
+that one section is anatomically symmetric along its dorsal--ventral axis.
+
+For a single upright bilateral section with the two hemispheres arranged
+left-to-right, use ``symmetry_axis="lr"``. Select the axis from the prepared
+``he.jpg`` after all resizing, rotation, and cropping—not from the scanner's
+original orientation. Partial or strongly asymmetric tissue requires direct
+review of reflected-mask candidates before any symmetry-driven merge.
+
+.. code-block:: python
+
+   cluster_config = spAlignDE.HistologyClusteringConfig(
+       background_clusters=2,
+       image_clusters=30,
+       merged_clusters=30,
+       rgb_weight=0.25,
+       coordinate_weight=0.05,
+       cleanup_min_size=250,
+       symmetry_axis="ud",  # benchmark: two sections stacked vertically
+       symmetry_max_merges=2,
+       random_state=0,
+   )
+
+   histology = spAlignDE.cluster_histology_features(
+       features,
+       "tutorials/cross_modality/histology/output/histology_clustering",
+       config=cluster_config,
+   )
+
+.. figure:: ../_static/tutorial_figures/histology_feature_clustering.png
+   :alt: Histology feature clustering and cleanup stages
+   :width: 82%
+   :align: center
+
+   Image-to-structure quality-control sequence: prepared H&E, initial
+   HIPT/RGB/coordinate feature clusters, symmetry-aware merging, and the final
+   24 cleaned structures. The vertical arrangement is intentional for this
+   two-section benchmark. Compare every stage with the prepared image before
+   using the labels as alignment features.
+
 3. ST structures, pre-alignment, pairing and S-LDDMM
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -129,6 +200,18 @@ from the original BANKSY partition. With five levels and 75% retained gene
 variance, this example produces k7, k13, k20, and k26 partitions and selects
 k7 for histology correspondence.
 
+.. figure:: ../_static/tutorial_figures/histology_st_hierarchy.png
+   :alt: Coarse-to-fine Xenium spatial structure hierarchy
+   :width: 100%
+   :align: center
+
+   Original BANKSY labels and expression-derived coarse-to-fine partitions.
+   The k7 level is selected for H&E correspondence; the remaining panels show
+   how anatomical detail changes with hierarchy resolution. The raw Xenium
+   hierarchy is displayed with a lower-origin y axis so the dorsal cortex and
+   hippocampal structures match the validated paper orientation; stored
+   coordinates are unchanged.
+
 Global pre-alignment uses whole-tissue mask overlap by default. It estimates
 rotation, isotropic scale, and translation while disabling reflection. The
 overlay must be inspected before deformation. Mask overlap can be unreliable
@@ -139,12 +222,49 @@ AnnData metadata. The recorded paper initialization is scale 0.12, rotation
 85°, x translation 787.84018089, and y translation −9.30873160 in the
 feature-grid coordinate frame.
 
+.. figure:: ../_static/tutorial_figures/histology_prealignment.png
+   :alt: Xenium-to-histology global pre-alignment
+   :width: 84%
+   :align: center
+
+   Tissue-mask initialization before local deformation. The blue Xenium
+   outline should cover the same H&E anatomy; if it does not, use the
+   interactive manual controls before changing structure-pair thresholds.
+
 After pre-alignment, ST and H&E structures are converted to binary masks on a
 shared grid. Candidate correspondences are scored using signed-distance,
 Chamfer, Dice, area, and average-surface-distance similarities with weights
 0.20, 0.25, 0.15, 0.25, and 0.15. Pairs must have score at least 0.40 and ASD
 at most 30 pixels. Accepted pairs become continuous signed-distance channels
 for S-LDDMM.
+
+Paired-feature overlap quality control
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Inspect the exact binary masks selected as S-LDDMM channels before interpreting
+the deformation. The individual ST and H&E masks reveal whether a high score
+comes from the intended morphology; the overlay separates ST-only area, H&E-only
+area, and their intersection. Dice measures overlap, whereas ASD remains
+sensitive to boundary displacement even for thin structures.
+
+.. figure:: ../_static/tutorial_figures/histology_paired_feature_overlap.png
+   :alt: Accepted Xenium and H&E feature masks with paired overlaps
+   :width: 100%
+   :align: center
+
+   The two accepted k7/H&E feature pairs used by the documented S-LDDMM run.
+   Blue is the pre-aligned ST mask, orange is the H&E structure mask, and
+   purple is their intersection. Scores beneath each pair are calculated
+   before deformation and provide direct QC of the selected alignment evidence.
+
+.. figure:: ../_static/tutorial_figures/histology_alignment_before_after.png
+   :alt: Xenium coordinates before and after histology-guided S-LDDMM
+   :width: 100%
+   :align: center
+
+   Xenium cells overlaid on the reference H&E after global pre-alignment
+   (left) and after structure-guided S-LDDMM (right). Review internal landmarks
+   as well as the outer tissue contour.
 
 Parameter adaptation
 --------------------

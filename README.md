@@ -61,13 +61,8 @@ python -m pip install -e ".[clustering,atlas,histology,ui,tutorial]"
 
 Run notebooks in workflow order. The canonical, executed copies are under
 [`source_notebooks/`](source_notebooks/); the documentation contains the same
-saved outputs.
-
-For a self-contained CPU installation check with generated example data, run:
-
-```bash
-jupyter lab source_notebooks/quickstart_nb.ipynb
-```
+saved outputs. The public notebook collection contains only the full data
+analysis workflows listed below.
 
 | Workflow | Notebook order |
 |---|---|
@@ -151,16 +146,14 @@ data source and defines the required environment variables. In particular:
 python -m pytest -q
 python tools/audit_source_notebooks.py source_notebooks
 python tools/audit_public_references.py
-jupyter nbconvert --to notebook --execute source_notebooks/quickstart_nb.ipynb \
-  --output /tmp/spAlignDE-quickstart.ipynb --ExecutePreprocessor.timeout=300
 sphinx-build -W --keep-going -b html docs/source docs/build/html
 python tools/audit_built_html.py docs/build/html
 ```
 
-These checks validate package contracts, notebook portability and saved
-execution state, public notebook paths and mirrors, a real CPU notebook run,
-strict Sphinx construction, and every generated local link, fragment and image
-reference.
+These checks validate package contracts, the CPU alignment implementation,
+notebook portability and saved execution state, public notebook paths and
+mirrors, strict Sphinx construction, and every generated local link, fragment
+and image reference.
 
 ## Citation
 

@@ -88,6 +88,15 @@ Clustering and refinement
 
    spAlignDE.plot_single_cluster_refinement(clustered)
 
+.. figure:: ../_static/tutorial_figures/single_clustering_tab20.png
+   :alt: Raw and boundary-refined BANKSY clusters in MERFISH S2R1
+   :width: 100%
+   :align: center
+
+   Raw and boundary-refined spatial structures for MERFISH S2R1. The classic
+   ``tab20`` mapping is shared between panels, so each cluster retains the
+   same color before and after boundary refinement.
+
 The boundary-aware step uses a smaller spatial neighborhood near the tissue
 edge than in the tissue interior. A label changes only when the current label
 has weak local support and the proposed label exceeds its location-specific

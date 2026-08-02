@@ -36,14 +36,5 @@ jobs:
         run: python tools/audit_source_notebooks.py source_notebooks
       - name: Audit public paths, notebook mirrors and pins
         run: python tools/audit_public_references.py
-      - name: Execute the CPU quickstart notebook
-        env:
-          PYTHONNOUSERSITE: "1"
-          MPLCONFIGDIR: /tmp/spalignde-matplotlib
-        run: >-
-          jupyter nbconvert --to notebook --execute
-          source_notebooks/quickstart_nb.ipynb
-          --output /tmp/spAlignDE-quickstart.ipynb
-          --ExecutePreprocessor.timeout=300
       - name: Compile the UI entry point
         run: python -m py_compile ui/app.py
