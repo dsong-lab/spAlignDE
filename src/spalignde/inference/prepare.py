@@ -85,6 +85,7 @@ def prepare_inference(
     alignment_uncertainty_key: str | None = None,
     density_energy_share: float = 0.25,
     library_size: float | None = None,
+    grid_n: int | None = None,
     n_jobs: int = 1,
     random_state: int | None = None,
 ) -> PreparedInference:
@@ -116,6 +117,13 @@ def prepare_inference(
     density_energy_share
         Relative contribution of the density channel to estimated mismatch risk.
         The current validated kernel accepts values in `(0, 1)`.
+    grid_n
+        Explicit Cartesian grid resolution. By default, the R-driven candidate
+        is retained when its actual number of tissue-valid locations lies
+        between the median per-sample observation count and twice that count;
+        otherwise resolution is adjusted toward the corresponding bound after
+        accounting for tissue-mask occupancy. An explicit value takes priority
+        over this automatic location-count rule.
     cell_type_key
         Cell-type annotation column. The column may be absent when downstream
         fitting uses `cell_type_adjustment=False`. A fitted cell-type support
@@ -128,6 +136,10 @@ def prepare_inference(
         raise ValueError("genes must contain at least one expression column.")
     if library_size is not None and float(library_size) <= 0:
         raise ValueError("library_size must be None or a positive number.")
+    if grid_n is not None:
+        if isinstance(grid_n, bool) or int(grid_n) != grid_n or int(grid_n) < 2:
+            raise ValueError("grid_n must be None or an integer of at least 2.")
+        grid_n = int(grid_n)
     density_energy_share = validate_density_energy_share(density_energy_share)
     n_jobs = max(int(n_jobs), 1)
 
@@ -188,6 +200,7 @@ def prepare_inference(
         use_libsize_norm=library_size is not None,
         target_total=1.0 if library_size is None else float(library_size),
         gene_cols_hint=inferred_risk_genes,
+        grid_n=grid_n,
     )
     return PreparedInference(
         shared=shared,
@@ -208,5 +221,12 @@ def prepare_inference(
             "risk_map_grid_multiplier": float(
                 shared["PARAMS"]["uncert"]["R_map_grid_multiplier"]
             ),
+            "grid_n": int(shared["PARAMS"]["grid_n"]),
+            "grid_n_source": shared["auto_geometry"]["diagnostics"]["selection"],
+            "n_typ": float(shared["auto_geometry"]["diagnostics"]["n_typ"]),
+            "target_grid_locations": tuple(
+                shared["auto_geometry"]["diagnostics"]["target_grid_locations"]
+            ),
+            "shared_grid_locations": int(len(shared["grid_eval"])),
         },
     )

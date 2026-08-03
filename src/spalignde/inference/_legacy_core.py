@@ -428,6 +428,150 @@ def make_grid_inside(poly, n=300):
     return pd.DataFrame(pts, columns=["x", "y"])
 
 
+def _typical_sample_size(combined, sample_col="sample_id", x_col="x", y_col="y"):
+    """Median valid observation count across samples."""
+
+    frame = combined[[sample_col, x_col, y_col]].copy()
+    valid = (
+        frame[sample_col].notna()
+        & np.isfinite(pd.to_numeric(frame[x_col], errors="coerce"))
+        & np.isfinite(pd.to_numeric(frame[y_col], errors="coerce"))
+    )
+    sample_sizes = (
+        frame.loc[valid]
+        .groupby(sample_col, sort=False)
+        .size()
+        .to_numpy(dtype=float)
+    )
+    if sample_sizes.size == 0:
+        raise ValueError("No samples contain valid spatial coordinates.")
+    return float(np.nanmedian(sample_sizes))
+
+
+def _resolve_grid_n_for_tissue(
+    grid_n_raw,
+    n_typ,
+    tissue_occupancy,
+    *,
+    multiplier_bounds=(1.0, 2.0),
+    explicit_grid_n=None,
+):
+    """Apply the notebook's occupancy-aware shared-grid size rule."""
+
+    occupancy = float(tissue_occupancy)
+    if not np.isfinite(occupancy) or occupancy <= 0:
+        raise ValueError("tissue_occupancy must be a positive finite number.")
+    occupancy = min(max(occupancy, 1e-6), 1.0)
+    n_typ = float(n_typ)
+    if not np.isfinite(n_typ) or n_typ <= 0:
+        raise ValueError("n_typ must be a positive finite number.")
+    mult_lo, mult_hi = map(float, multiplier_bounds)
+    if not (np.isfinite(mult_lo) and np.isfinite(mult_hi) and 0 < mult_lo <= mult_hi):
+        raise ValueError("multiplier_bounds must contain positive finite values in increasing order.")
+
+    target_lo = max(1.0, mult_lo * n_typ)
+    target_hi = max(target_lo, mult_hi * n_typ)
+    grid_n_lo = max(2, int(math.ceil(math.sqrt(target_lo / occupancy))))
+    grid_n_hi = max(grid_n_lo, int(math.floor(math.sqrt(target_hi / occupancy))))
+    grid_n_raw = int(grid_n_raw)
+
+    if explicit_grid_n is None:
+        grid_n = int(min(max(grid_n_raw, grid_n_lo), grid_n_hi))
+        selection = "r_driven" if grid_n == grid_n_raw else (
+            "n_typ_lower_bound" if grid_n_raw < grid_n_lo else "two_n_typ_upper_bound"
+        )
+    else:
+        grid_n = int(explicit_grid_n)
+        if grid_n < 2:
+            raise ValueError("grid_n must be an integer of at least 2.")
+        selection = "explicit"
+
+    return {
+        "grid_n": grid_n,
+        "grid_n_raw": grid_n_raw,
+        "grid_n_bounds": (grid_n_lo, grid_n_hi),
+        "target_grid_locations": (target_lo, target_hi),
+        "tissue_occupancy": occupancy,
+        "selection": selection,
+    }
+
+
+def _resolve_grid_n_for_tissue_exact(
+    poly,
+    grid_n_raw,
+    n_typ,
+    *,
+    multiplier_bounds=(1.0, 2.0),
+    explicit_grid_n=None,
+):
+    """Resolve grid resolution from actual retained tissue-grid locations.
+
+    The R-driven resolution is retained when its actual ``make_grid_inside``
+    count lies in the data-driven range. Otherwise a monotone integer search
+    targets the nearest applicable boundary. An explicit resolution is never
+    clamped by the automatic rule.
+    """
+
+    minx, miny, maxx, maxy = map(float, poly.bounds)
+    width, height = maxx - minx, maxy - miny
+    bbox_area = width * height
+    if not np.isfinite(bbox_area) or bbox_area <= 0:
+        raise ValueError("The tissue polygon must have a positive bounding-box area.")
+    occupancy = float(poly.area) / bbox_area
+    approximate = _resolve_grid_n_for_tissue(
+        grid_n_raw,
+        n_typ,
+        occupancy,
+        multiplier_bounds=multiplier_bounds,
+        explicit_grid_n=explicit_grid_n,
+    )
+
+    cache = {}
+
+    def retained_count(n):
+        n = max(2, int(n))
+        if n not in cache:
+            cache[n] = int(len(make_grid_inside(poly, n=n)))
+        return cache[n]
+
+    grid_n_raw = int(grid_n_raw)
+    target_lo, target_hi = approximate["target_grid_locations"]
+    raw_count = retained_count(grid_n_raw)
+
+    if explicit_grid_n is not None:
+        final_n = int(explicit_grid_n)
+        selection = "explicit"
+    elif target_lo <= raw_count <= target_hi:
+        final_n = grid_n_raw
+        selection = "r_driven"
+    else:
+        target = target_lo if raw_count < target_lo else target_hi
+        lo, hi = 2, max(4, int(approximate["grid_n"]), grid_n_raw)
+        while retained_count(hi) < target:
+            hi *= 2
+        while lo < hi:
+            mid = (lo + hi) // 2
+            if retained_count(mid) < target:
+                lo = mid + 1
+            else:
+                hi = mid
+        candidates = sorted({max(2, lo - 1), lo, lo + 1})
+        final_n = min(candidates, key=lambda n: (abs(retained_count(n) - target), n))
+        selection = "n_typ_lower_bound" if raw_count < target_lo else "two_n_typ_upper_bound"
+
+    result = dict(approximate)
+    result.update({
+        "grid_n": int(final_n),
+        "grid_n_raw": grid_n_raw,
+        "m_grid_raw": raw_count,
+        "m_grid": retained_count(final_n),
+        "selection": selection,
+        "tissue_occupancy": float(occupancy),
+        "bbox_area": float(bbox_area),
+    })
+    return result
+
+
 def nn2_knn_chunked(data_xy, query_xy, k, batch_target=2e7):
     data_xy = np.asarray(data_xy, dtype=float)
     query_xy = np.asarray(query_xy, dtype=float)
@@ -1101,11 +1245,14 @@ def batch_prepare_once_multi(
     use_libsize_norm=True,
     target_total=250,
     gene_cols_hint=None,
+    grid_n=None,
 ):
     require_pandas()
     core = max(int(core), 1)
     if seed is not None:
         np.random.seed(int(seed))
+    if grid_n is not None and int(grid_n) < 2:
+        raise ValueError("grid_n must be an integer of at least 2.")
 
     def build_fixed_PARAMS(seed=None):
         return {
@@ -1134,13 +1281,14 @@ def batch_prepare_once_multi(
                 "grids_per_R": 4.5,
                 "neff_quantile": 0.10,
                 "rrel_bounds": (0.010, 0.040),
-                "grid_bounds": (250, 350),
+                "grid_location_multiplier_bounds": (1.0, 2.0),
                 "neff_bounds": (2, 25),
                 "k_density": 5,
                 "max_k_symknn": 300,
                 "max_points_per_sample": 15000,
                 "seed": seed,
             },
+            "grid_n_explicit": None if grid_n is None else int(grid_n),
             "uncert": {
                 "R_map": None,
                 "R_map_grid_multiplier": 1.5,
@@ -1213,7 +1361,7 @@ def batch_prepare_once_multi(
         grids_per_R=4.5,
         neff_quantile=0.20,
         rrel_bounds=(0.010, 0.020),
-        grid_bounds=(250, 350),
+        grid_location_multiplier_bounds=(1.0, 2.0),
         neff_bounds=(2, 25),
         k_density=5,
         max_points_per_sample=15000,
@@ -1266,8 +1414,8 @@ def batch_prepare_once_multi(
         R_rel = min(max(R_rel, float(rrel_bounds[0])), float(rrel_bounds[1]))
         L_med = float(np.nanmedian(L_all))
         R_final = R_rel * L_med
-        grid_n = int(round(grids_per_R / R_rel))
-        grid_n = int(min(max(grid_n, int(grid_bounds[0])), int(grid_bounds[1])))
+        n_typ = _typical_sample_size(df, "sample_id", "x", "y")
+        grid_n_raw = int(round(grids_per_R / R_rel))
 
         def pass2_fun(dat):
             XY = dat[["x", "y"]].to_numpy(dtype=float)
@@ -1307,7 +1455,7 @@ def batch_prepare_once_multi(
         return {
             "params": {
                 "R_rel": round(R_rel, 4),
-                "grid_n": grid_n,
+                "grid_n": grid_n_raw,
                 "neff_min": neff_min,
                 "max_k_symknn_auto": max_k_symknn_auto,
             },
@@ -1315,6 +1463,9 @@ def batch_prepare_once_multi(
                 "L_med": L_med,
                 "R_final": R_final,
                 "Rrel_all": Rrel_all,
+                "n_typ": n_typ,
+                "grid_n_raw": grid_n_raw,
+                "grid_location_multiplier_bounds": tuple(grid_location_multiplier_bounds),
                 "q99_countR": q99_countR,
                 "countR_summary": np.nanquantile(countR_all, [0.1, 0.5, 0.9, 0.99]),
                 "neff_summary": np.nanquantile(neff_all, [0.1, 0.5, 0.9]),
@@ -1366,7 +1517,9 @@ def batch_prepare_once_multi(
             grids_per_R=or_else(ag_cfg.get("grids_per_R"), 4.5),
             neff_quantile=or_else(ag_cfg.get("neff_quantile"), 0.20),
             rrel_bounds=or_else(ag_cfg.get("rrel_bounds"), (0.010, 0.020)),
-            grid_bounds=or_else(ag_cfg.get("grid_bounds"), (250, 350)),
+            grid_location_multiplier_bounds=or_else(
+                ag_cfg.get("grid_location_multiplier_bounds"), (1.0, 2.0)
+            ),
             neff_bounds=or_else(ag_cfg.get("neff_bounds"), (2, 25)),
             k_density=or_else(ag_cfg.get("k_density"), 5),
             max_points_per_sample=or_else(ag_cfg.get("max_points_per_sample"), 15000),
@@ -1432,10 +1585,21 @@ def batch_prepare_once_multi(
         outer_bnd = ensure_orientation(auto["outer_bnd"], True)
         holes_mat = [ensure_orientation(h, want_ccw=False) for h in auto["holes_mat"]] if auto["holes_mat"] else []
         poly_with_holes = Polygon(close_ring(outer_bnd), holes=[close_ring(h)[:-1] for h in holes_mat])
-        grid_eval = make_grid_inside(poly_with_holes, n=PARAMS["grid_n"])
-        Q_grid = grid_eval[["x", "y"]].to_numpy(dtype=float)
         minx, miny, maxx, maxy = poly_with_holes.bounds
         L = max(maxx - minx, maxy - miny)
+        grid_resolution = _resolve_grid_n_for_tissue_exact(
+            poly_with_holes,
+            ag["diagnostics"]["grid_n_raw"],
+            ag["diagnostics"]["n_typ"],
+            multiplier_bounds=ag["diagnostics"]["grid_location_multiplier_bounds"],
+            explicit_grid_n=PARAMS.get("grid_n_explicit"),
+        )
+        PARAMS["grid_n"] = grid_resolution["grid_n"]
+        ag["params"]["grid_n"] = grid_resolution["grid_n"]
+        ag["diagnostics"].update(grid_resolution)
+        grid_eval = make_grid_inside(poly_with_holes, n=PARAMS["grid_n"])
+        Q_grid = grid_eval[["x", "y"]].to_numpy(dtype=float)
+        ag["diagnostics"]["m_grid"] = int(Q_grid.shape[0])
         R = float(PARAMS["R_rel"]) * float(L)
         grid_spacing = float(L) / max(int(PARAMS["grid_n"]) - 1, 1)
         risk_cfg = PARAMS.setdefault("uncert", {})

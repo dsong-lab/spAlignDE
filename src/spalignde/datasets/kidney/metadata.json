@@ -1,0 +1,33 @@
+{
+  "dataset": "mouse kidney injury spatial transcriptomics",
+  "samples": {
+    "NL3": {
+      "role": "reference",
+      "n_spots": 3215,
+      "source_coordinate_columns": [
+        "x_100",
+        "y_100"
+      ]
+    },
+    "IL3": {
+      "role": "query",
+      "n_spots": 2965,
+      "source_coordinate_columns": [
+        "x_aligned",
+        "y_aligned"
+      ]
+    }
+  },
+  "coordinate_version": "manuscript aligned_317",
+  "public_raw_data": {
+    "repository": "Zenodo",
+    "record": "17676992"
+  },
+  "schema": [
+    "cell_id",
+    "sample_id",
+    "x",
+    "y"
+  ],
+  "note": "These precomputed alignment coordinates are provided for the real-data tutorial. Raw expression matrices and tissue-position files remain available from the public Zenodo record."
+}

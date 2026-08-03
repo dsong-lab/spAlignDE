@@ -485,6 +485,14 @@ Inference tuning begins only after the alignment passes geometric QC.
   contributes to mismatch risk and must lie strictly between zero and one.
   Increase it when density mismatch is known to be a major reliability signal;
   do not use it to conceal poor registration.
+- Leave ``grid_n=None`` to retain the R-driven resolution when its actual
+  tissue-valid location count lies between the median per-sample observation
+  count, ``N_typ``, and ``2 * N_typ``; otherwise the automatic rule moves the
+  resolution toward the nearest boundary. An explicit integer is the number of
+  Cartesian points per axis. Larger values increase spatial resolution,
+  runtime and memory. Report ``grid_n``, ``grid_n_source``,
+  ``target_grid_locations`` and ``shared_grid_locations`` from
+  ``prepared.metadata``.
 - Enable ``cell_type_adjustment`` only when complete, validated cell-type labels
   are available in every sample.
 - ``region_cleanup`` removes isolated significant fragments. Report both the

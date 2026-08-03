@@ -76,6 +76,14 @@ analysis workflows listed below.
 | Spatial ATAC to ST | `source_notebooks/cross_modality/atac_st_single_clustering_nb.ipynb` → `source_notebooks/cross_modality/atac_st_alignment_nb.ipynb` |
 | Post-alignment inference | `source_notebooks/post_alignment_inference_nb.ipynb` after kidney alignment |
 
+The post-alignment notebook retains the standard website input handoff:
+`kidney_IL3_to_NL3_aligned.h5ad` plus the public NL3/IL3 raw 10x count
+matrices. It joins spots by terminal barcode, tests `Cbr1`, `Cd44`, and
+`Myo5a`, uses the sample-size- and tissue-mask-aware automatic shared-grid
+rule, and reports gene-level ACAT omnibus P values together with local q-value
+maps. Pass an integer `grid_n` only when an explicit Cartesian resolution is
+scientifically justified.
+
 Single-sample input can be AnnData/H5AD or one metadata/expression CSV pair.
 Cross-sample input can be a combined AnnData/H5AD object or a directory of
 per-sample CSV pairs. Alignment writes the standardized coordinate fields

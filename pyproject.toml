@@ -89,6 +89,9 @@ test = [
 [tool.setuptools]
 py-modules = ["spAlignDE"]
 
+[tool.setuptools.package-data]
+"spalignde.datasets.kidney" = ["*.csv.gz", "metadata.json"]
+
 [tool.setuptools.packages.find]
 where = ["src"]
 

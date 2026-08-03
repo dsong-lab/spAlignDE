@@ -677,11 +677,12 @@ The function never assumes that ``aligned.X`` contains raw expression.
    prepared = spAlignDE.prepare_inference(
        visium_input.data,
        reference="NL3",
-       genes=["Cbr1", "Cd44", "Slc5a2"],
+       genes=["Cbr1", "Cd44", "Myo5a"],
        risk_genes=visium_input.risk_genes,
        aligned_coordinate_key=("x_aligned", "y_aligned"),
-       density_energy_share=0.25,
+       density_energy_share=0.75,
        library_size=10_000,
+       grid_n=None,
        cell_type_key=None,
        random_state=1,
    )
@@ -691,7 +692,12 @@ coordinates, batch identity and non-negative expression columns. It builds the
 fixed shared grid, sample-specific local neighborhoods, technical
 quality-control profiles, stable-gene/density mismatch-risk maps and optional
 cell-type support maps. The returned ``PreparedInference`` is reusable across
-genes and Naive/Mismatch-aware fits.
+genes and Naive/Mismatch-aware fits. With ``grid_n=None``, the R-driven
+resolution is retained when the actual tissue-valid location count lies
+between ``N_typ`` and ``2 * N_typ``; otherwise it is adjusted toward the
+nearest bound. An explicit integer ``grid_n`` overrides this automatic rule.
+The selected resolution, source, target interval and final location count are
+stored in ``prepared.metadata``.
 
 ``fit_local_de``
 ~~~~~~~~~~~~~~~~
@@ -714,7 +720,7 @@ Signature::
        technical_adjustment=True,
        cell_type_adjustment=False,
        global_offset=False,
-       region_cleanup=True,
+       region_cleanup=False,
        random_state=1,
    )
 
@@ -743,13 +749,19 @@ the originating ``PreparedInference``. ``plot_local_result`` displays aligned
 reference/query expression beside the local statistic and FDR-significant
 region contour.
 
-``acat_pvalue`` and ``cluster_trajectories``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+``gene_level_acat_pvalue``, ``acat_pvalue`` and ``cluster_trajectories``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-``acat_pvalue`` combines dependent local P values when a gene-level summary is
-needed. ``cluster_trajectories`` groups shared-grid locations with related
+``gene_level_acat_pvalue(result, gene)`` is the public result-aware helper. It
+combines dependent local P values within each contrast and, for multi-query
+results, combines contrast-level evidence using valid-grid counts as weights.
+It also supports compact results from earlier package versions by
+reconstructing local P values from their stored statistic and degrees of
+freedom. ``acat_pvalue`` is the lower-level array utility.
+``cluster_trajectories`` groups shared-grid locations with related
 adjusted-expression trajectories across ordered query samples. These are
-downstream summaries and do not replace the location-level q-value maps.
+downstream summaries and do not replace the location-level q-value maps or
+genome-wide gene-level multiple-testing control.
 
 Visualization
 -------------

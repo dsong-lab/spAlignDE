@@ -13,8 +13,8 @@ The workflow has four stages:
 1. validate the standardized alignment output and extract its final
    ``x_aligned`` and ``y_aligned`` coordinates;
 2. join raw 10x Visium counts to aligned spots by terminal barcode;
-3. construct a shared testing grid and estimate stable-gene/density mismatch
-   risk; and
+3. construct a sample-size- and tissue-mask-aware shared testing grid and
+   estimate stable-gene/density mismatch risk; and
 4. fit Mismatch-aware local differential-expression tests and report one
    statistic, P value, q-value and significance call per valid grid location.
 
@@ -127,7 +127,7 @@ code:
            "NL3": "/path/to/NL3_filtered_feature_bc_matrix.h5",
            "IL3": "/path/to/IL3_filtered_feature_bc_matrix.h5",
        },
-       genes=["Cbr1", "Cd44", "Slc5a2"],
+       genes=["Cbr1", "Cd44", "Myo5a"],
        min_detected_spots=10,
        min_total_counts=10,
        batch="kidney_pair",
@@ -141,6 +141,14 @@ genes, per-sample spot counts and number of genes shared by the raw matrices.
 
 Shared grid and local target
 ----------------------------
+
+The default R-driven Cartesian resolution is retained when the *actual*
+number of tissue-valid grid locations lies between the median per-sample spot
+count, :math:`N_{typ}`, and :math:`2N_{typ}`. Otherwise spAlignDE moves the
+resolution toward the nearest boundary using the same tissue mask that defines
+the final grid. Passing an integer ``grid_n`` explicitly overrides this rule;
+``grid_n`` is the number of Cartesian points per axis, not the number of
+retained tissue locations.
 
 Let :math:`\boldsymbol{\xi}_i` denote a retained location of the shared grid.
 Nearby aligned spots from each sample form Gaussian kernel-weighted
@@ -172,7 +180,10 @@ A broad stable-gene candidate pool is formed from genes detected in at least
 10 spots with at least 10 total counts across the pair. Differences in local
 expression magnitude, overdispersion and excess sparsity are combined with
 sampling-density discordance to create a contrast-specific mismatch-risk map.
-The density channel contributes 0.25 of the risk energy in this tutorial.
+The density channel contributes 0.75 of the risk energy in this recorded kidney
+analysis. This dataset-specific value reflects the importance of local
+sampling-density mismatch in the aligned sections and is not a universal
+default.
 
 The risk score changes uncertainty, not the fitted local contrast. With
 cell-type adjustment available, the final variance is
@@ -204,12 +215,13 @@ Then prepare the reusable geometry and risk object once:
    prepared = spAlignDE.prepare_inference(
        inference_data,
        reference="NL3",
-       genes=["Cbr1", "Cd44", "Slc5a2"],
+       genes=["Cbr1", "Cd44", "Myo5a"],
        risk_genes=risk_genes,
        aligned_coordinate_key=("x_aligned", "y_aligned"),
        cell_type_key=None,
-       density_energy_share=0.25,
+       density_energy_share=0.75,
        library_size=10_000,
+       grid_n=None,
        random_state=1,
    )
 
@@ -223,7 +235,7 @@ Fit the Mismatch-aware local tests:
        technical_adjustment=True,
        cell_type_adjustment=False,
        global_offset=False,
-       region_cleanup=True,
+       region_cleanup=False,
        random_state=1,
    )
 
@@ -239,6 +251,14 @@ broad set with adequate detection. ``min_detected_spots`` and
 ``min_total_counts`` remove extremely sparse candidates before risk
 estimation. ``density_energy_share`` must lie between zero and one; increase it
 only when local sampling-density mismatch is a meaningful reliability signal.
+The recorded kidney analysis uses ``0.75`` because sampling-density mismatch is
+important for these aligned sections; this is a dataset-specific setting, not a
+universal default. ``region_cleanup=False`` reports the direct FDR masks without
+topological post-processing.
+Leave ``grid_n=None`` for the sample-size-aware automatic rule. Increasing an
+explicit ``grid_n`` improves spatial resolution but increases runtime and
+memory; decreasing it coarsens small structures. Always report the selected
+resolution, its source, and the final tissue-valid location count.
 Enable cell-type adjustment only with complete, validated annotations in every
 sample. Region cleanup changes the topology of reported significant regions,
 so save and report this choice. See :doc:`Parameter Tuning Guide
@@ -247,29 +267,34 @@ so save and report this choice. See :doc:`Parameter Tuning Guide
 Recorded result
 ---------------
 
-The fully executed notebook constructs 52,877 shared-grid locations and uses
-16,446 risk genes. It reports:
+The fully executed notebook uses 16,446 risk genes. The automatic rule selects
+an 86-by-86 Cartesian resolution and retains 6,187 tissue-valid grid locations
+(``N_typ = 3,090``; target interval 3,090--6,180). It reports:
 
 .. list-table::
    :header-rows: 1
-   :widths: 20 30 25 25
+   :widths: 17 23 22 19 19
 
    * - Gene
+     - Gene-level ACAT P value
      - Significant grid locations
      - Minimum q-value
      - Median absolute statistic
    * - ``Cbr1``
-     - 31,743
-     - :math:`1.05\times10^{-41}`
-     - 2.755
+     - :math:`1.48\times10^{-14}`
+     - 3,482
+     - :math:`1.21\times10^{-31}`
+     - 3.222
    * - ``Cd44``
-     - 14,608
-     - :math:`9.88\times10^{-6}`
-     - 1.812
-   * - ``Slc5a2``
-     - 19,502
-     - :math:`3.70\times10^{-8}`
-     - 1.429
+     - :math:`2.48\times10^{-6}`
+     - 1,629
+     - :math:`7.68\times10^{-6}`
+     - 1.802
+   * - ``Myo5a``
+     - :math:`5.28\times10^{-14}`
+     - 2,996
+     - :math:`7.08\times10^{-21}`
+     - 2.408
 
 The notebook displays the alignment handoff, mismatch-risk map and one
 reference-expression, query-expression and local-statistic panel for each
@@ -291,22 +316,22 @@ The in-memory outputs are a ``PreparedInference`` object and a
      - Grid ``x``/``y``, statistic, two-sided P value, BH q-value and final
        significance flag.
    * - ``kidney_local_de_summary.csv``
-     - One-row-per-gene summary of significant locations and statistic/q-value
-       diagnostics.
+     - One-row-per-gene summary of the gene-level ACAT omnibus P value,
+       significant locations and statistic/q-value diagnostics.
    * - ``result.fits[gene]["terrain_data"]``
      - In-memory contrast-specific local maps and region-cleanup metadata.
 
-Validation against the previous kidney workflow
------------------------------------------------
+Gene-level summary
+------------------
 
-The new H5AD handoff was compared with the coordinate set that produced the
-backup notebook. Sample counts, raw counts, filtering and model settings were
-held fixed. The shared-grid size changed by 0.44% (52,877 versus 53,110).
-Nearest-grid statistic-map correlations were 0.918 for ``Cbr1``, 0.980 for
-``Cd44`` and 0.834 for ``Slc5a2``. Significant-region Dice overlaps were
-0.976, 0.959 and 0.930, respectively, and statistic signs agreed at 98--99% of
-matched grid locations. The updated handoff therefore preserves the previous
-spatial conclusions while using the current website-generated alignment.
+``spAlignDE.gene_level_acat_pvalue(result, gene)`` combines dependent local P
+values across valid grid locations within each contrast. For multi-query
+results, contrast-level ACAT P values are combined again with weights
+proportional to the number of valid local tests. Compact results from earlier
+package versions are supported by reconstructing two-sided local P values from
+the stored statistic and degrees of freedom. The returned value is an omnibus
+P value for a spatial change somewhere on the tested grid; it is neither a
+local P value nor a genome-wide FDR-adjusted gene-discovery value.
 
 Interpretation and limitations
 ------------------------------
