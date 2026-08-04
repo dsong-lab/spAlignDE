@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 import spAlignDE
+from spAlignDE.alignment import _slddmm_core
 
 from ._data import make_cross_sample_adata
 
@@ -144,6 +145,7 @@ class CrossSampleAlignmentTests(unittest.TestCase):
     def test_stepwise_alignment_and_h5ad_roundtrip(self):
         adata = make_cross_sample_adata()
         original_spatial = np.asarray(adata.obsm["spatial"]).copy()
+        self.assertTrue(spAlignDE.SLDDMMConfig().restore_best_checkpoint)
 
         prealignment = spAlignDE.prealign_cross_sample(
             adata,
@@ -157,21 +159,34 @@ class CrossSampleAlignmentTests(unittest.TestCase):
             reference_sample="reference",
             config=spAlignDE.RasterizationConfig(grid_spacing=0.25),
         )
-        result = spAlignDE.run_slddmm_alignment(
-            prealignment.adata,
-            fields,
-            config=spAlignDE.SLDDMMConfig(
-                iterations=2,
-                kernel_scale=1.0,
-                velocity_grid_spacing=0.5,
-                momentum_lr=1.0,
-                minimum_momentum_lr=1.0,
-                sigma_regularization=100.0,
-            ),
-            device="cpu",
-            verbose=False,
-            prealignment=prealignment,
+        config = spAlignDE.SLDDMMConfig(
+            iterations=2,
+            kernel_scale=1.0,
+            velocity_grid_spacing=0.5,
+            momentum_lr=1.0,
+            minimum_momentum_lr=1.0,
+            sigma_regularization=100.0,
+            restore_best_checkpoint=False,
         )
+        target = "spAlignDE.alignment.cross_sample.lddmm_core.LDDMM_shooting"
+        with mock.patch(
+            target,
+            wraps=_slddmm_core.LDDMM_shooting,
+        ) as shooting:
+            result = spAlignDE.run_slddmm_alignment(
+                prealignment.adata,
+                fields,
+                config=config,
+                device="cpu",
+                verbose=False,
+                prealignment=prealignment,
+            )
+
+        self.assertFalse(shooting.call_args.kwargs["optim_cfg"]["restore_best"])
+        slddmm_metadata = result.adata.uns["spAlignDE"]["cross_sample_alignment"][
+            "slddmm"
+        ]
+        self.assertFalse(slddmm_metadata["restore_best_checkpoint"])
 
         self.assertTrue(np.array_equal(adata.obsm["spatial"], original_spatial))
         self.assertFalse(any(column in adata.obs for column in spAlignDE.REQUIRED_OUTPUT_COLUMNS))

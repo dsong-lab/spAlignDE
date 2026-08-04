@@ -88,6 +88,10 @@ class SLDDMMConfig:
     ``sigma_regularization`` appears in the denominator of the deformation
     penalty. Larger values therefore weaken regularization and allow stronger
     warps; smaller values strengthen regularization.
+
+    ``restore_best_checkpoint`` restores the lowest-energy optimizer state at
+    the end of a run. Set it to ``False`` when EM intensity updates change the
+    objective scale and the final-iteration transformation is required.
     """
 
     kernel_scale: float = 300.0
@@ -104,6 +108,7 @@ class SLDDMMConfig:
     affine_slowdown: float = 10.0
     momentum_gradient_clip: float | None = None
     momentum_lr_decay: float = 1.0
+    restore_best_checkpoint: bool = True
     em_update_every: int = 5
     em_start: int = 50
     sigma_match: float = 1.0
@@ -646,6 +651,7 @@ def run_slddmm_alignment(
         "affine_slowdown": config.affine_slowdown,
         "grad_clip_m0": config.momentum_gradient_clip,
         "lrM_decay": config.momentum_lr_decay,
+        "restore_best": config.restore_best_checkpoint,
     }
     em_cfg = {
         "update_every": config.em_update_every,
