@@ -53,12 +53,6 @@ contains 10 shared Leiden clusters and does not introduce an HVG subset.
 Rep2-to-Rep1 alignment
 ----------------------
 
-The alignment notebook first audits automatic weighted shared-cluster-centroid
-pre-alignment. That fit estimates scale 0.944 and rotation 12.6 degrees, but
-different section coverage shifts broad cluster centroids and produces
-incorrect local placement. Its nearest-neighbor cluster agreement is 0.241,
-so it is retained as a diagnostic rather than used for S-LDDMM.
-
 The selected orientation-preserving manual initialization uses scale 1,
 rotation 2 degrees, x translation -250 micrometers and y translation 1750
 micrometers. It raises nearest-neighbor cluster agreement to 0.495. An optional
@@ -86,6 +80,6 @@ H5AD additionally stores ``x_prealigned``, ``y_prealigned``, ``x_aligned`` and
 ``obsm["spatial"]`` and all Rep1 coordinates.
 
 Manual-transform and S-LDDMM distances use Xenium coordinate units. Inspect
-the centroid fit, manual initialization, raster fields, energy history and
-final local structures before transferring these values to another dataset;
-see :doc:`../tutorials/parameter_tuning` for the tuning order.
+the manual initialization, raster fields, energy history and final local
+structures before transferring these values to another dataset; see
+:doc:`../tutorials/parameter_tuning` for the tuning order.
