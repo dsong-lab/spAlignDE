@@ -4,11 +4,12 @@ from __future__ import annotations
 
 
 def validate_density_energy_share(value: float) -> float:
-    """Validate the density-channel share used by the current risk kernel.
+    """Validate the density-channel feature-energy share used by the risk kernel.
 
-    The notebook implementation requires a value strictly between zero and
-    one. A later refactor may support zero as an explicit density-channel-off
-    setting, but that is not part of the validated implementation yet.
+    The value controls the target share of standardized feature-vector energy
+    assigned to the density channel. It is not a direct linear weight on the
+    final mismatch-risk map or its variance multiplier. The notebook
+    implementation requires a value strictly between zero and one.
     """
 
     value = float(value)

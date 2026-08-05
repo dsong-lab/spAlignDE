@@ -1,7 +1,8 @@
 """Legacy computational kernel extracted from the research notebook.
 
 This module is intentionally private. Public APIs live in the sibling modules.
-It is a mechanical extraction from final muti spatial code.ipynb; do not hand-edit it.
+It remains notebook-derived, while focused components shared with tests are
+maintained in dedicated private helpers.
 """
 
 import copy
@@ -9,7 +10,6 @@ import math
 import re
 import time
 import os
-import re
 import warnings
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -21,6 +21,8 @@ from scipy import sparse, stats
 from scipy.interpolate import BSpline
 from scipy.sparse.linalg import spsolve
 from scipy.spatial import cKDTree
+
+from ._calibration import calibrate_mismatch_variance
 
 try:
     import pandas as pd
@@ -1086,7 +1088,7 @@ def calibrate_lambdas_empnull_scale(
     bins=10,
     min_bin_n=200,
     trim_abs_q=0.95,
-    p_grid=(2, 4),
+    p_grid=2.0,
     tau_anchor_q=0.80,
     slack=1,
     g_floor=0.25,
@@ -1095,144 +1097,31 @@ def calibrate_lambdas_empnull_scale(
     eps=1e-12,
     verbose=True,
 ):
-    tvec = np.asarray(tvec, dtype=float)
-    use_mask = np.asarray(use_mask, dtype=bool)
-    r01 = np.asarray(r01, dtype=float)
-    if not (tvec.shape[0] == use_mask.shape[0] == r01.shape[0]):
-        raise ValueError("tvec, use_mask, and r01 must have the same length.")
-    df = float(df)
-    if not np.isfinite(df) or df < 5:
-        df = 30.0
+    """Compatibility wrapper for the private MAD-null1-A0 calibration.
 
-    ok = use_mask & np.isfinite(tvec) & np.isfinite(r01)
-    if np.sum(ok) < max(500, int(bins) * int(min_bin_n)):
-        return {
-            "tau_hat": 0.0,
-            "lambda_local_hat": 0.0,
-            "lambda_global_hat": 0.0,
-            "global_score": global_score,
-            "diag": {"msg": "too few ok points", "n_ok": int(np.sum(ok)), "df": df},
-        }
+    The trim_abs_q, g_floor and lam_global_cap arguments are retained in this
+    private signature so notebook-derived callers and serialized settings can
+    still be read. They do not affect the promoted local-only calibration.
+    """
 
-    alpha_trim = 1 - float(trim_abs_q)
-    cut_t = stats.t.ppf(1 - alpha_trim / 2, df=df)
-    ok0 = ok & (np.abs(tvec) <= cut_t)
-    if np.sum(ok0) < max(300, int(bins) * int(min_bin_n)):
-        ok0 = ok
-
-    r_use = r01[ok0]
-    brks = np.unique(np.nanquantile(r_use, np.linspace(0, 1, int(bins) + 1)))
-    if brks.size <= 3:
-        return {
-            "tau_hat": 0.0,
-            "lambda_local_hat": 0.0,
-            "lambda_global_hat": 0.0,
-            "global_score": global_score,
-            "diag": {"msg": "too few unique r01 breaks", "n_ok0": int(np.sum(ok0)), "df": df},
-        }
-
-    bin_id = np.digitize(r01, brks[1:-1], right=True)
-    iqr0 = float(stats.t.ppf(0.75, df=df) - stats.t.ppf(0.25, df=df))
-    mad0 = float(stats.t.ppf(0.75, df=df))
-    if not np.isfinite(iqr0) or iqr0 <= 0:
-        iqr0 = 1.0
-    if not np.isfinite(mad0) or mad0 <= 0:
-        mad0 = 1.0
-
-    def get_scale2(x):
-        x = np.asarray(x, dtype=float)
-        x = x[np.isfinite(x)]
-        if x.size < 50:
-            return np.nan
-        iqr = float(np.nanquantile(x, 0.75) - np.nanquantile(x, 0.25))
-        s = iqr / iqr0
-        if not np.isfinite(s) or s <= 0:
-            ctr = float(np.nanmedian(x))
-            madv = mad(x, center=ctr, constant=1.0)
-            s = madv / mad0
-        if not np.isfinite(s) or s <= 0:
-            return np.nan
-        return s ** 2
-
-    rows = []
-    for bl in np.unique(bin_id):
-        idx = ok0 & (bin_id == bl)
-        n = int(np.sum(idx))
-        if n < int(min_bin_n):
-            continue
-        r_mid = float(np.nanmedian(r01[idx]))
-        s2 = get_scale2(tvec[idx])
-        if np.isfinite(r_mid) and np.isfinite(s2):
-            rows.append({"bin": int(bl), "n": n, "r_mid": r_mid, "s2": float(s2)})
-
-    if len(rows) < max(4, int(math.floor(int(bins) * 0.6))):
-        return {
-            "tau_hat": 0.0,
-            "lambda_local_hat": 0.0,
-            "lambda_global_hat": 0.0,
-            "global_score": global_score,
-            "diag": {"msg": "too few bins kept", "n_bins": len(rows), "df": df},
-        }
-
-    r_mid = np.asarray([row["r_mid"] for row in rows], dtype=float)
-    s2 = np.asarray([row["s2"] for row in rows], dtype=float)
-    w = np.asarray([row["n"] for row in rows], dtype=float)
-
-    def fit_one_p(p):
-        x = np.maximum(r_mid, 0) ** float(p)
-        y = np.maximum(s2 - 1, 0)
-        X = np.column_stack([np.ones_like(x), x])
-        XtW = X.T * w
-        try:
-            beta = np.linalg.solve(XtW @ X + np.eye(2) * eps, XtW @ y)
-        except np.linalg.LinAlgError:
-            beta = np.zeros(2, dtype=float)
-        A = max(0.0, float(beta[0]))
-        B = max(0.0, float(beta[1]))
-        s2_hat = np.maximum(1 + A + B * x, eps)
-        loss = float(np.sum(w * (np.log(s2 + eps) - np.log(s2_hat)) ** 2))
-        return {"p": float(p), "A": A, "B": B, "loss": loss}
-
-    fits = [fit_one_p(p) for p in np.atleast_1d(p_grid)]
-    best = min(fits, key=lambda z: z["loss"])
-    p_best = float(best["p"])
-    A_eff = min(float(best["A"]), 1e6)
-    B_eff = min(float(best["B"]), 1e6)
-
-    r_anchor = float(np.nanquantile(r_mid, tau_anchor_q))
-    j = int(np.argmin(np.abs(r_mid - r_anchor)))
-    s2_anchor = float(s2[j])
-    r_anchor = float(r_mid[j])
-    denom = A_eff + B_eff * (max(r_anchor, 0.0) ** p_best)
-    if not np.isfinite(denom) or denom <= 0 or not np.isfinite(s2_anchor):
-        tau_hat = 0.0
-    else:
-        tau_hat = (s2_anchor - 1) / denom
-        if not np.isfinite(tau_hat):
-            tau_hat = 0.0
-        tau_hat = max(0.0, tau_hat) / max(float(slack), 1.0)
-        tau_hat = min(tau_hat, 1.0)
-
-    g_eff = max(float(global_score), float(g_floor))
-    lambda_g = (tau_hat * A_eff) / (g_eff ** p_best) if g_eff > 0 else 0.0
-    lambda_l = tau_hat * B_eff
-    lambda_g = min(max(lambda_g, 0.0), float(lam_global_cap))
-    lambda_l = min(max(lambda_l, 0.0), float(lam_local_cap))
-
-    if verbose:
-        print(
-            "[empnull-scale-t] bins_kept={} | df={:.1f} | p={} | A={:.6g} | B={:.6g} | tau={:.6g} | g={:.4f} | lam_g={:.6g} | lam_l={:.6g}".format(
-                len(rows), df, p_best, A_eff, B_eff, tau_hat, global_score, lambda_g, lambda_l
-            )
-        )
-
-    return {
-        "tau_hat": tau_hat,
-        "lambda_local_hat": lambda_l,
-        "lambda_global_hat": lambda_g,
-        "global_score": global_score,
-        "diag": {"df": df, "p_best": p_best, "bins_kept": len(rows)},
-    }
+    return calibrate_mismatch_variance(
+        tvec=tvec,
+        use_mask=use_mask,
+        r01=r01,
+        global_score=global_score,
+        df=df,
+        bins=bins,
+        min_bin_n=min_bin_n,
+        p_grid=p_grid,
+        tau_anchor_q=tau_anchor_q,
+        slack=slack,
+        lam_local_cap=lam_local_cap,
+        eps=eps,
+        verbose=verbose,
+        trim_abs_q=trim_abs_q,
+        g_floor=g_floor,
+        lam_global_cap=lam_global_cap,
+    )
 
 def batch_prepare_once_multi(
     combined,
@@ -1326,11 +1215,8 @@ def batch_prepare_once_multi(
                     "anchor_time_id": None,
                     "bins": 10,
                     "min_bin_n": 200,
-                    "trim_abs_q": 0.95,
                     "tau_anchor_q": 0.80,
                     "slack": 1,
-                    "g_floor": 0.5,
-                    "lam_global_cap": 5e4,
                     "lam_local_cap": 5e4,
                 },
             },
@@ -2374,307 +2260,6 @@ def batch_run_one_gene_and_save_multi_conditional(
         raise ValueError("Genes not found in shared['combined']: " + ", ".join(miss_gene))
 
 
-    def _tail_alpha_grid_for_risk(trim_abs_q):
-        alpha0 = 1.0 - float(trim_abs_q)
-        if not np.isfinite(alpha0) or alpha0 <= 0 or alpha0 >= 0.5:
-            alpha0 = 0.05
-        vals = [min(0.25, 2.0 * alpha0), alpha0, max(0.0025, 0.5 * alpha0)]
-        vals = sorted({round(float(v), 10) for v in vals if np.isfinite(v) and 0 < v < 0.5}, reverse=True)
-        return vals or [0.10, 0.05, 0.025]
-
-    def _pava_increasing_for_risk(y, w):
-        y = np.asarray(y, dtype=float).ravel()
-        w = np.asarray(w, dtype=float).ravel()
-        n = len(y)
-        if n == 0:
-            return y.copy()
-        w = np.where(np.isfinite(w) & (w > 0), w, 1.0)
-        y = np.where(np.isfinite(y), y, 0.0)
-        levels = []
-        weights = []
-        starts = []
-        ends = []
-        for i in range(n):
-            levels.append(float(y[i]))
-            weights.append(float(w[i]))
-            starts.append(i)
-            ends.append(i)
-            while len(levels) >= 2 and levels[-2] > levels[-1]:
-                w_new = weights[-2] + weights[-1]
-                lev_new = (levels[-2] * weights[-2] + levels[-1] * weights[-1]) / w_new
-                start_new = starts[-2]
-                end_new = ends[-1]
-                levels[-2:] = [lev_new]
-                weights[-2:] = [w_new]
-                starts[-2:] = [start_new]
-                ends[-2:] = [end_new]
-        out = np.zeros(n, dtype=float)
-        for lev, s, e in zip(levels, starts, ends):
-            out[s:e + 1] = lev
-        return out
-
-    def _zero_positive_bin_rows_for_risk(tvec, r01, ok_mask, bins=10, min_bin_n=200):
-        tvec = np.asarray(tvec, dtype=float)
-        r01 = np.asarray(r01, dtype=float)
-        ok_mask = np.asarray(ok_mask, dtype=bool)
-        bins = max(int(bins), 2)
-        min_bin_n = max(int(min_bin_n), 1)
-        rows = []
-        ok_zero = ok_mask & (r01 <= 1e-12)
-        if int(np.sum(ok_zero)) >= min_bin_n:
-            rows.append({
-                "bin": "zero",
-                "n": int(np.sum(ok_zero)),
-                "r_mid": 0.0,
-                "r_min": 0.0,
-                "r_max": 0.0,
-                "idx": ok_zero.copy(),
-            })
-        ok_pos = ok_mask & (r01 > 1e-12)
-        n_pos = int(np.sum(ok_pos))
-        if n_pos >= min_bin_n:
-            n_pos_bins = min(max(bins - len(rows), 1), max(1, n_pos // min_bin_n))
-            breaks = np.unique(np.nanquantile(r01[ok_pos], np.linspace(0, 1, n_pos_bins + 1)))
-            if breaks.size >= 2:
-                for j in range(breaks.size - 1):
-                    lo, hi = float(breaks[j]), float(breaks[j + 1])
-                    if j == breaks.size - 2:
-                        idx = ok_pos & (r01 >= lo) & (r01 <= hi)
-                    else:
-                        idx = ok_pos & (r01 >= lo) & (r01 < hi)
-                    if int(np.sum(idx)) < min_bin_n:
-                        continue
-                    rows.append({
-                        "bin": f"pos{j + 1}",
-                        "n": int(np.sum(idx)),
-                        "r_mid": float(np.nanmedian(r01[idx])),
-                        "r_min": lo,
-                        "r_max": hi,
-                        "idx": idx.copy(),
-                    })
-        return sorted(rows, key=lambda z: z["r_mid"])
-
-    def _tail_s2_from_rate_for_risk(rate, cutoff, df, stats_mod, eps=1e-9):
-        p_rate = float(np.clip(rate, eps, 1.0 - eps))
-        q = float(stats_mod.t.ppf(1.0 - p_rate / 2.0, df=df))
-        if not np.isfinite(q) or q <= 0 or not np.isfinite(cutoff) or cutoff <= 0:
-            return np.nan
-        return float((cutoff / q) ** 2)
-
-    def _add_tail_targets_for_risk(rows, tvec, df, tail_alpha_grid, stats_mod):
-        if not rows:
-            return []
-        t_abs = np.abs(np.asarray(tvec, dtype=float).ravel())
-        cutoffs = []
-        for alpha_i in tail_alpha_grid:
-            c = float(stats_mod.t.ppf(1.0 - float(alpha_i) / 2.0, df=df))
-            if np.isfinite(c) and c > 0:
-                cutoffs.append((float(alpha_i), c))
-        if not cutoffs:
-            return []
-        base_i = int(np.argmin([r["r_mid"] for r in rows]))
-        base_idx = rows[base_i]["idx"]
-        base_s2 = []
-        base_rates = []
-        for _, c in cutoffs:
-            n0 = int(np.sum(base_idx))
-            e0 = int(np.sum(t_abs[base_idx] > c))
-            p0 = (e0 + 0.5) / (n0 + 1.0)
-            base_s2.append(_tail_s2_from_rate_for_risk(p0, c, df=df, stats_mod=stats_mod))
-            base_rates.append(p0)
-        base_s2 = np.asarray(base_s2, dtype=float)
-        if not np.any(np.isfinite(base_s2) & (base_s2 > 0)):
-            return []
-        out = []
-        for r in rows:
-            idx = r["idx"]
-            n = int(np.sum(idx))
-            s2_rel_by_alpha = []
-            rates = []
-            excess_rates = []
-            for k, (_, c) in enumerate(cutoffs):
-                e = int(np.sum(t_abs[idx] > c))
-                p_hat = (e + 0.5) / (n + 1.0)
-                s2_abs = _tail_s2_from_rate_for_risk(p_hat, c, df=df, stats_mod=stats_mod)
-                s2_base_k = base_s2[k]
-                if np.isfinite(s2_abs) and np.isfinite(s2_base_k) and s2_base_k > 0:
-                    s2_rel_by_alpha.append(s2_abs / s2_base_k)
-                else:
-                    s2_rel_by_alpha.append(np.nan)
-                rates.append(p_hat)
-                excess_rates.append(max(0.0, p_hat - base_rates[k]))
-            rel = np.asarray(s2_rel_by_alpha, dtype=float)
-            ok_rel = np.isfinite(rel) & (rel > 0)
-            if not np.any(ok_rel):
-                continue
-            tail_s2_rel = float(np.exp(np.mean(np.log(rel[ok_rel]))))
-            rr = dict(r)
-            rr.pop("idx", None)
-            rr.update({
-                "tail_s2_rel": tail_s2_rel,
-                "tail_excess_raw": max(0.0, tail_s2_rel - 1.0),
-                "tail_rate_mean": float(np.mean(rates)),
-                "tail_excess_rate_mean": float(np.mean(excess_rates)),
-                "tail_alpha_grid": tuple(float(a) for a, _ in cutoffs),
-                "base_tail_rate_mean": float(np.mean(base_rates)),
-                "base_tail_s2_mean": float(np.nanmean(base_s2)),
-            })
-            out.append(rr)
-        return out
-
-    def _calibrate_lambdas_empnull_scale(
-        tvec,
-        use_mask,
-        r01,
-        global_score,
-        df,
-        bins=10,
-        min_bin_n=200,
-        trim_abs_q=0.95,
-        p_grid=2.0,
-        tau_anchor_q=0.80,
-        slack=1.0,
-        g_floor=0.25,
-        lam_global_cap=5e4,
-        lam_local_cap=5e4,
-        eps=1e-12,
-        verbose=False,
-    ):
-        try:
-            stats_mod = stats
-        except NameError:
-            try:
-                from scipy import stats as stats_mod
-            except Exception:
-                stats_mod = None
-        tvec = np.asarray(tvec, dtype=float).ravel()
-        use_mask = np.asarray(use_mask, dtype=bool).ravel()
-        r01 = np.asarray(r01, dtype=float).ravel()
-        n = min(len(tvec), len(use_mask), len(r01))
-        tvec = tvec[:n]
-        use_mask = use_mask[:n]
-        r01 = np.clip(r01[:n], 0, 1)
-        df = float(df)
-        if not np.isfinite(df) or df < 5:
-            df = 30.0
-        bins = int(bins)
-        min_bin_n = int(min_bin_n)
-        min_bins_required = 4
-        ok = use_mask & np.isfinite(tvec) & np.isfinite(r01)
-        n_ok = int(np.sum(ok))
-        if stats_mod is None:
-            return {
-                "tau_hat": 0.0,
-                "lambda_local_hat": 0.0,
-                "lambda_global_hat": 0.0,
-                "global_score": global_score,
-                "p_best": np.nan,
-                "diag": {"mode": "tail_calibration_no_scipy", "msg": "scipy is required for tail calibration", "n_ok": n_ok, "df": df},
-            }
-        if n_ok < max(500, min_bins_required * min_bin_n):
-            return {
-                "tau_hat": 0.0,
-                "lambda_local_hat": 0.0,
-                "lambda_global_hat": 0.0,
-                "global_score": global_score,
-                "p_best": np.nan,
-                "diag": {"mode": "tail_calibration_too_few_ok", "msg": "too few ok points", "n_ok": n_ok, "df": df},
-            }
-        tail_alpha_grid = _tail_alpha_grid_for_risk(trim_abs_q)
-        rows0 = _zero_positive_bin_rows_for_risk(tvec, r01, ok, bins=bins, min_bin_n=min_bin_n)
-        rows = _add_tail_targets_for_risk(rows0, tvec=tvec, df=df, tail_alpha_grid=tail_alpha_grid, stats_mod=stats_mod)
-        if len(rows) < min_bins_required:
-            return {
-                "tau_hat": 0.0,
-                "lambda_local_hat": 0.0,
-                "lambda_global_hat": 0.0,
-                "global_score": global_score,
-                "p_best": np.nan,
-                "diag": {
-                    "mode": "tail_calibration_too_few_bins",
-                    "msg": "too few bins kept",
-                    "n_bins": int(len(rows)),
-                    "bins_kept": int(len(rows)),
-                    "df": df,
-                    "tail_alpha_grid": tail_alpha_grid,
-                    "df_bin": pd.DataFrame(rows),
-                },
-            }
-        df_bin = pd.DataFrame(rows).sort_values("r_mid").reset_index(drop=True)
-        r_mid = df_bin["r_mid"].to_numpy(dtype=float)
-        y_raw = np.maximum(df_bin["tail_excess_raw"].to_numpy(dtype=float), 0.0)
-        w = np.maximum(df_bin["n"].to_numpy(dtype=float), 1.0)
-        y_iso = _pava_increasing_for_risk(y_raw, w)
-        df_bin["tail_excess_iso"] = y_iso
-
-        def fit_one_p(p):
-            p = float(p)
-            x = np.maximum(r_mid, 0.0) ** p
-            X = np.column_stack([np.ones_like(x), x])
-            XtW = X.T * w
-            try:
-                beta = np.linalg.solve(XtW @ X + np.eye(2) * eps, XtW @ y_iso)
-            except np.linalg.LinAlgError:
-                beta = np.zeros(2, dtype=float)
-            A = max(0.0, float(beta[0]))
-            B = max(0.0, float(beta[1]))
-            y_hat = np.maximum(A + B * x, 0.0)
-            loss = float(np.sum(w * (np.log1p(y_iso) - np.log1p(y_hat)) ** 2))
-            return {"p": p, "A": A, "B": B, "loss": loss}
-
-        fits = [fit_one_p(p) for p in np.atleast_1d(p_grid)]
-        best = min(fits, key=lambda z: z["loss"])
-        p_best = float(best["p"])
-        A_eff = min(float(best["A"]), 1e6)
-        B_eff = min(float(best["B"]), 1e6)
-        r_anchor = float(np.nanquantile(r_mid, float(tau_anchor_q)))
-        j = int(np.argmin(np.abs(r_mid - r_anchor)))
-        y_anchor = float(y_iso[j])
-        r_anchor = float(r_mid[j])
-        denom = A_eff + B_eff * (max(r_anchor, 0.0) ** p_best)
-        if not np.isfinite(denom) or denom <= 0 or not np.isfinite(y_anchor):
-            tau_hat = 0.0
-        else:
-            tau_hat = y_anchor / denom
-            if not np.isfinite(tau_hat):
-                tau_hat = 0.0
-            tau_hat = max(0.0, tau_hat) / max(float(slack), 1.0)
-            tau_hat = min(tau_hat, 1.0)
-        g_eff = max(float(global_score), float(g_floor))
-        lambda_g = (tau_hat * A_eff) / (g_eff ** p_best) if g_eff > 0 else 0.0
-        lambda_l = tau_hat * B_eff
-        lambda_g = min(max(lambda_g, 0.0), float(lam_global_cap))
-        lambda_l = min(max(lambda_l, 0.0), float(lam_local_cap))
-        diag = {
-            "mode": "tail_excess_zero_positive_bins_isotonic",
-            "df": df,
-            "p_best": p_best,
-            "A": A_eff,
-            "B": B_eff,
-            "tau": tau_hat,
-            "r_anchor": r_anchor,
-            "s2_anchor": 1.0 + y_anchor,
-            "tail_excess_anchor": y_anchor,
-            "tail_alpha_grid": tuple(float(a) for a in tail_alpha_grid),
-            "bins_kept": int(len(df_bin)),
-            "df_bin": df_bin,
-        }
-        if verbose:
-            print(
-                "[risk-calib] bins={} df={:.1f} p={} A={:.6g} B={:.6g} tau={:.6g} "
-                "g={:.4f} lam_g={:.6g} lam_l={:.6g}".format(
-                    len(df_bin), df, p_best, A_eff, B_eff, tau_hat, global_score, lambda_g, lambda_l
-                )
-            )
-        return {
-            "tau_hat": tau_hat,
-            "lambda_local_hat": lambda_l,
-            "lambda_global_hat": lambda_g,
-            "global_score": global_score,
-            "p_best": p_best,
-            "diag": diag,
-        }
-
     def compact_terrain_data_for_return(td):
         keep_nm = [
             "time_ids",
@@ -2690,6 +2275,7 @@ def batch_run_one_gene_and_save_multi_conditional(
             "sampling_gap_info",
             "auto_geometry",
             "stat_by_time",
+            "p_by_time",
             "q_by_time",
             "sig_mask_by_time",
             "frac_support_by_time",
@@ -3177,7 +2763,7 @@ def batch_run_one_gene_and_save_multi_conditional(
                     global_thr=risk_global_thr,
                     global_cap=risk_global_cap,
                 )
-                emp = _calibrate_lambdas_empnull_scale(
+                emp = calibrate_lambdas_empnull_scale(
                     tvec=off_info["t"],
                     use_mask=off_info["use"],
                     r01=rr["r01"],
@@ -3185,16 +2771,18 @@ def batch_run_one_gene_and_save_multi_conditional(
                     df=off_info["df"],
                     bins=int(or_else(risk_auto_cfg.get("bins"), 10)),
                     min_bin_n=int(or_else(risk_auto_cfg.get("min_bin_n"), 200)),
-                    trim_abs_q=float(or_else(risk_auto_cfg.get("trim_abs_q"), 0.95)),
                     p_grid=risk_power_fixed,
                     tau_anchor_q=float(or_else(risk_auto_cfg.get("tau_anchor_q"), 0.80)),
                     slack=float(or_else(risk_auto_cfg.get("slack"), 1)),
-                    g_floor=float(or_else(risk_auto_cfg.get("g_floor"), 0.25)),
-                    lam_global_cap=float(or_else(risk_auto_cfg.get("lam_global_cap"), 5e4)),
                     lam_local_cap=float(or_else(risk_auto_cfg.get("lam_local_cap"), 5e4)),
                 )
                 risk_local_lambda = float(or_else(emp.get("lambda_local_hat"), 0.0))
-                risk_global_lambda = float(or_else(emp.get("lambda_global_hat"), 0.0))
+                calibrated_global = float(or_else(emp.get("lambda_global_hat"), 0.0))
+                if not np.isclose(calibrated_global, 0.0):
+                    raise RuntimeError(
+                        "The promoted mismatch calibration requires lambda_global_hat=0."
+                    )
+                risk_global_lambda = 0.0
                 risk_calibration = {
                     "time_id_anchor": time_id_anchor,
                     "time_id_risk": time_id_risk,
@@ -3202,6 +2790,8 @@ def batch_run_one_gene_and_save_multi_conditional(
                     "lambda_global_hat": risk_global_lambda,
                     "r_cap": rr.get("r_cap", np.nan),
                     "global_score": rr.get("global_score", np.nan),
+                    "calibration": emp,
+                    # Backward-compatible key used by older notebook payloads.
                     "empnull": emp,
                 }
             else:
@@ -3212,6 +2802,7 @@ def batch_run_one_gene_and_save_multi_conditional(
                     "lambda_global_hat": 0.0,
                     "r_cap": np.nan,
                     "global_score": np.nan,
+                    "calibration": None,
                     "empnull": None,
                 }
 
@@ -3345,7 +2936,9 @@ def batch_run_one_gene_and_save_multi_conditional(
                     global_cap=risk_global_cap,
                 )
                 infl_local = 1 + risk_local_lambda * (np.maximum(rr_t["r01"], 0) ** risk_power_fixed)
-                infl_global = 1 + risk_global_lambda * (max(rr_t["global_score"], 0) ** risk_power_fixed)
+                # The promoted A=0 calibration is local-only. The comparison-level
+                # global score is retained for provenance but does not inflate variance.
+                infl_global = 1.0
                 v_risk = v_base * infl_local * infl_global
                 v_floor_base = np.nanmedian(v_risk[use & np.isfinite(v_risk)]) if np.any(use & np.isfinite(v_risk)) else np.nan
                 v_floor2 = max(risk_wv_min, risk_wv_floor_frac * v_floor_base) if np.isfinite(v_floor_base) else risk_wv_min
@@ -3773,7 +3366,10 @@ def batch_run_one_gene_and_save_multi_conditional(
             terrain_data["sig_raw_by_time"] = sig_raw_list
 
         if not _skip_risk_autocalib:
-            for nm in ["muA_by_time", "muB_by_time", "y_by_time", "neff_by_time", "Wv_by_time", "use_by_time", "p_by_time"]:
+            # Local P values are part of the public compact result because the
+            # gene-level ACAT summary combines them after fitting. The larger
+            # intermediate moment/weight arrays can still be discarded.
+            for nm in ["muA_by_time", "muB_by_time", "y_by_time", "neff_by_time", "Wv_by_time", "use_by_time"]:
                 if nm in terrain_data:
                     terrain_data[nm] = None
             terrain_data = compact_terrain_data_for_return(terrain_data)

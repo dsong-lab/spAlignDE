@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 from . import _legacy_core
+from ._calibration import MISMATCH_CALIBRATION_MODE
 from ._types import LocalDEResult, PreparedInference
 
 
@@ -16,7 +17,7 @@ def fit_local_de(
     alpha: float = 0.05,
     mismatch_aware: bool = True,
     technical_adjustment: bool = True,
-    cell_type_adjustment: bool = False,
+    cell_type_adjustment: bool = True,
     global_offset: bool = True,
     region_cleanup: bool = False,
     n_jobs: int = 1,
@@ -30,14 +31,24 @@ def fit_local_de(
     predecessor. The BH adjustment is applied separately within each gene and
     sample contrast across valid grid locations.
 
-    Cell-type adjustment is disabled by default because many public spatial
-    inputs do not contain complete cell-type annotations. When
-    `cell_type_adjustment=True`, the fitted kernel uses its
+    When `cell_type_adjustment=True`, the fitted kernel uses its
     `sampling_gap_adjust` path. It builds local shared cell-type coverage from
     smoothed cell-type proportions and type-specific effective support, then
     multiplies the precision weight by the resulting support precision. Because
     the weight is inverse variance, this is equivalent to variance inflation by
     the reciprocal support precision at low-support locations.
+
+    When `mismatch_aware=True`, each gene is first fitted without alignment-risk
+    inflation. Its local statistics are binned by normalized local risk; each
+    bin is median-centered, and its MAD is standardized by the Student-t null
+    MAD. Nonnegative excess variance is constrained to be nondecreasing with
+    risk, and a weighted quadratic calibration through the origin is boundedly
+    rescaled at the risk bin nearest the 80th percentile to estimate the
+    gene-specific local coefficient. The origin constraint fixes the
+    gene-specific global mismatch coefficient at zero. Cell-type support is a
+    separate precision adjustment. With multiple query samples, the first
+    available contrast is the calibration anchor and its gene-specific
+    coefficient is reused across the remaining contrasts.
 
     When `region_cleanup=True`, isolated calls and unsupported fragments are
     removed from the reported significant-region mask after grid-level testing.
@@ -81,6 +92,37 @@ def fit_local_de(
     # requested, and a gene-to-fit mapping otherwise. Normalize both forms.
     if not isinstance(fits, dict) or "gene" in fits:
         fits = {gene_list[0]: fits}
+
+    calibration_modes: dict[str, str] = {}
+    lambda_local_by_gene: dict[str, float] = {}
+    lambda_global_by_gene: dict[str, float] = {}
+    for gene, fit in fits.items():
+        terrain = fit.get("terrain_data", {}) if isinstance(fit, dict) else {}
+        risk_calibration = (
+            terrain.get("risk_calibration") if isinstance(terrain, dict) else None
+        )
+        if not mismatch_aware:
+            calibration_modes[gene] = "none"
+            lambda_local_by_gene[gene] = 0.0
+            lambda_global_by_gene[gene] = 0.0
+            continue
+        if not isinstance(risk_calibration, dict):
+            calibration_modes[gene] = "unavailable"
+            lambda_local_by_gene[gene] = 0.0
+            lambda_global_by_gene[gene] = 0.0
+            continue
+        detail = risk_calibration.get("calibration")
+        if not isinstance(detail, dict):
+            detail = risk_calibration.get("empnull")
+        diag = detail.get("diag", {}) if isinstance(detail, dict) else {}
+        calibration_modes[gene] = str(diag.get("mode", "unavailable"))
+        lambda_local_by_gene[gene] = float(
+            risk_calibration.get("lambda_local_hat", 0.0)
+        )
+        lambda_global_by_gene[gene] = float(
+            risk_calibration.get("lambda_global_hat", 0.0)
+        )
+
     return LocalDEResult(
         fits=fits,
         prepared=prepared,
@@ -93,5 +135,11 @@ def fit_local_de(
             "global_offset": bool(global_offset),
             "region_cleanup": bool(region_cleanup),
             "n_jobs": max(int(n_jobs), 1),
+            "mismatch_calibration": (
+                MISMATCH_CALIBRATION_MODE if mismatch_aware else "none"
+            ),
+            "mismatch_calibration_by_gene": calibration_modes,
+            "mismatch_lambda_local_by_gene": lambda_local_by_gene,
+            "mismatch_lambda_global_by_gene": lambda_global_by_gene,
         },
     )

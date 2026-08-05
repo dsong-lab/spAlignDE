@@ -2,25 +2,21 @@ Post-Alignment Inference - Injured Mouse Kidney
 ================================================
 
 This section continues from the Visium kidney cross-sample workflow. The
-notebook reads the final ``kidney_IL3_to_NL3_aligned.h5ad`` output, joins raw
-NL3 and IL3 10x counts by barcode, estimates post-alignment mismatch risk and
-fits Mismatch-aware local differential-expression tests for ``Cbr1``,
-``Cd44`` and ``Myo5a``. It uses the sample-size- and tissue-mask-aware automatic
-grid rule and reports both local q-value maps and gene-level ACAT omnibus P
-values.
-
-The H5AD/raw-count handoff is implemented by the public
-``spAlignDE.build_visium_inference_table`` function; the notebook contains no
-dataset-specific reader, barcode-matching or risk-gene-filtering function.
+notebook joins the packaged manuscript ``aligned_317`` coordinates to raw NL3
+and IL3 10x counts by terminal barcode, estimates post-alignment mismatch risk,
+and fits local tests for ``Cbr1``, ``Cd44`` and ``Myo5a``. Users can replace the
+packaged coordinates with their own alignment output through
+``SPALIGNDE_ALIGNMENT_DIR``.
 
 Input data
 ----------
 
-The NL3 and IL3 count matrices are available from the `STcompare Zenodo record
-<https://zenodo.org/records/19486091>`_. Run the kidney clustering and
-alignment notebooks first; the alignment notebook produces the standardized
-H5AD consumed here. The complete input/output contract and statistical model
-are documented in :doc:`../tutorials/post_alignment_inference`.
+The NL3 and IL3 count matrices and tissue-position tables are available from
+`Zenodo record 17676992 <https://zenodo.org/records/17676992>`_. The packaged
+coordinate files contain identifiers and aligned coordinates only; no raw
+expression or precomputed local-inference result is bundled. The complete
+input/output contract and statistical model are documented in
+:doc:`../tutorials/post_alignment_inference`.
 
 Source notebook
 ---------------
@@ -30,11 +26,12 @@ Source notebook
 
    post_alignment_inference_nb
 
-The saved notebook is fully executed. It shows the original and aligned
-geometry, the mismatch-risk map, grid-level result summary, and the expression
-and local-statistic panels for all three representative genes. The preparation
-summary records the selected ``grid_n``, its automatic/manual source,
-``N_typ``, target location interval and final tissue-valid grid count.
+The saved notebook is fully executed. For every representative gene it shows
+NL3 expression, IL3 expression, the zero-centered Mismatch-aware local
+statistic, and red contours directly tracing the ``q < 0.05`` grid mask. It
+also reports the gene-level ACAT P value computed from retained raw local P
+values. The notebook uses ``region_cleanup=False`` so the displayed regions
+match the manuscript plotting logic.
 
 Tune inference only after geometric QC passes. Risk genes should be broad and
 selected independently of the tested genes; cell-type adjustment requires

@@ -202,9 +202,12 @@ def plot_local_result(
     One row is drawn for each query-reference contrast. When
     ``show_expression=True``, the first two columns contain spot-level
     expression in the reference and query samples on their aligned coordinates.
-    The final column shows the shared-grid local statistic, with the boundary
-    of FDR-significant locations drawn as a red contour. Set ``invert_y=True``
-    for image-style coordinates whose row values increase from top to bottom.
+    The final column shows the shared-grid local statistic. The red contour
+    follows the reported significant-region mask. When region cleanup was
+    enabled during fitting, this mask is the cleaned subset of BH-significant
+    locations; local statistics and q-values are unchanged. Set
+    ``invert_y=True`` for image-style coordinates whose row values increase
+    from top to bottom.
     """
 
     if not isinstance(result, LocalDEResult):
@@ -321,8 +324,13 @@ def plot_local_result(
             shared=result.prepared.shared,
             statistic_limit=statistic_limit,
         )
+        contour_label = (
+            "cleaned FDR-significant region"
+            if bool(result.metadata.get("region_cleanup", False))
+            else "FDR-significant region"
+        )
         axes[row, column].set_title(
-            f"{time_id}: local statistic\nred = FDR-significant region"
+            f"{time_id}: local statistic\nred = {contour_label}"
         )
         if invert_y:
             axes[row, column].invert_yaxis()

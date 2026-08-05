@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "spAlignDE"
-version = "0.1.0"
+version = "0.2.0"
 description = "Structure-guided spatial alignment and mismatch-aware local differential expression"
 readme = "README.md"
 license = {file = "LICENSE"}
@@ -90,6 +90,7 @@ test = [
 py-modules = ["spAlignDE"]
 
 [tool.setuptools.package-data]
+"spalignde.datasets" = ["*.csv.gz", "*.json"]
 "spalignde.datasets.kidney" = ["*.csv.gz", "metadata.json"]
 
 [tool.setuptools.packages.find]

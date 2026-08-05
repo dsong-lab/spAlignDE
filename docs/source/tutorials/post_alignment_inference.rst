@@ -1,214 +1,128 @@
 Post-Alignment Inference - Injured Mouse Kidney
 ================================================
 
-spAlignDE continues from a completed cross-sample alignment to test
-location-resolved expression differences in the common coordinate frame. The
-public example compares an injured mouse-kidney Visium section (``IL3``, query)
-with a normal section (``NL3``, reference). It uses the exact aligned AnnData
-written by the kidney alignment tutorial rather than a separate coordinate
-cache.
+spAlignDE tests location-resolved expression differences after samples have
+been transformed into a common coordinate frame. The real-data example uses a
+normal mouse-kidney Visium section (``NL3``) as reference and an injured
+section (``IL3``) as query. It reports local results for ``Cbr1``, ``Cd44`` and
+``Myo5a`` together with one gene-level ACAT omnibus P value per gene.
 
-The workflow has four stages:
+The fully executed notebook uses the packaged manuscript ``aligned_317``
+coordinates. These files contain spot identifiers and aligned coordinates
+only. Raw expression and tissue-position tables remain external public inputs,
+and users can substitute coordinates from their own spAlignDE run.
 
-1. validate the standardized alignment output and extract its final
-   ``x_aligned`` and ``y_aligned`` coordinates;
-2. join raw 10x Visium counts to aligned spots by terminal barcode;
-3. construct a sample-size- and tissue-mask-aware shared testing grid and
-   estimate stable-gene/density mismatch risk; and
-4. fit Mismatch-aware local differential-expression tests and report one
-   statistic, P value, q-value and significance call per valid grid location.
-
-Installation
-------------
+Installation and data
+---------------------
 
 Install the integrated package and tutorial dependencies from the repository
 root:
 
 .. code-block:: bash
 
-   cd /path/to/spAlignDE
    python -m pip install -e ".[tutorial]"
 
-``prepare_inference``, ``fit_local_de`` and ``plot_local_result`` are part of
-the main ``spAlignDE`` package; no second inference package or private module
-path is required.
+Download these files from `Zenodo record 17676992
+<https://zenodo.org/records/17676992>`_:
 
-Example data and execution order
---------------------------------
+- ``NL3_filtered_feature_bc_matrix.h5``;
+- ``IL3_filtered_feature_bc_matrix.h5``;
+- ``NL3_tissue_positions.csv``; and
+- ``IL3_tissue_positions.csv``.
 
-The NL3 and IL3 Visium data are publicly available from the `STcompare Zenodo
-record <https://zenodo.org/records/19486091>`_, the source listed in the
-manuscript Data Availability section. The recorded pair contains 6,180 spots:
-
-.. list-table::
-   :header-rows: 1
-   :widths: 20 20 20 40
-
-   * - Sample
-     - Role
-     - Spots
-     - Description
-   * - ``NL3``
-     - Reference
-     - 3,215
-     - Normal kidney section defining the fixed coordinate frame.
-   * - ``IL3``
-     - Query
-     - 2,965
-     - Ischemia--reperfusion-injured section transformed into the NL3 frame.
-
-Run the notebooks in this order:
-
-1. :doc:`Kidney joint clustering
-   <../source_notebooks/cross_sample_alignment_mouse_kidney_clustering_nb>`
-2. :doc:`Kidney pre-alignment, rasterization and S-LDDMM
-   <../source_notebooks/cross_sample_alignment_mouse_kidney_alignment_nb>`
-3. :doc:`Kidney post-alignment local inference
-   <../source_notebooks/post_alignment_inference_nb>`
-
-The second notebook writes ``kidney_IL3_to_NL3_aligned.h5ad``. Configure the
-inference notebook with:
+Configure their directory without editing the notebook:
 
 .. code-block:: bash
 
-   export SPALIGNDE_KIDNEY_ALIGNED_H5AD=/path/to/kidney_IL3_to_NL3_aligned.h5ad
-   export SPALIGNDE_KIDNEY_RAW_DIR=/path/to/kidney/raw
-   export SPALIGNDE_POST_INFERENCE_OUTPUT_DIR=/path/to/kidney/post_alignment_output
+   export SPALIGNDE_KIDNEY_DATA_DIR=/path/to/raw_kidney_files
+   export SPALIGNDE_TUTORIAL_WORK_DIR=/path/to/tutorial_work
 
-Input contract
---------------
+To replace the packaged alignment, provide standardized coordinate files named
+``aligned_coords_NL3.csv`` and ``aligned_coords_IL3.csv``:
 
-Aligned AnnData
-~~~~~~~~~~~~~~~
+.. code-block:: bash
 
-The alignment handoff must contain one observation per retained spot and these
-finite columns in ``adata.obs``:
+   export SPALIGNDE_ALIGNMENT_DIR=/path/to/custom_alignment_output
 
-.. list-table::
-   :header-rows: 1
-   :widths: 25 75
+NL3 contributes 3,215 spots and IL3 contributes 2,965 spots. The notebook
+canonicalizes terminal 10x barcodes, rejects missing or duplicated identifiers,
+and performs a one-to-one join between raw expression, tissue positions and
+aligned coordinates. Row order is never used as identity.
 
-   * - Key
-     - Meaning
-   * - ``sample_id``
-     - Query/reference identity for every spot.
-   * - ``x``, ``y``
-     - Original spot coordinates retained for provenance and visualization.
-   * - ``x_aligned``, ``y_aligned``
-     - Final coordinates defining the shared local-inference space.
-   * - ``obs_names``
-     - Unique identifiers containing a terminal 10x barcode.
+Stable-gene candidates and density risk
+---------------------------------------
 
-The kidney H5AD also contains clustering and pre-alignment fields, but they are
-not required by local inference. The final coordinates, not
-``adata.obsm["spatial"]``, define the comparison neighborhoods.
+The three tested genes are kept separate from the broad mismatch-risk candidate
+pool. Candidates must be detected in at least 10 spots and have at least 10
+total counts across the pair. The executed analysis retains 16,446 candidates
+from 32,285 shared genes and normalizes each spot to a target library size of
+10,000.
 
-Raw expression
-~~~~~~~~~~~~~~
+``prepare_inference`` internally screens the candidate pool for stable and
+informative genes, then combines their local distributional disagreement with
+sampling-density discordance. The kidney run uses
+``density_energy_share=0.75``: density receives 75% of the standardized
+mismatch-feature energy before the combined risk map is formed. This is not a
+direct weight on the final risk map or variance multiplier, and it is a
+dataset-specific choice rather than a universal default.
 
-The raw directory requires:
+Reliable biological cell-type annotations are not included with the public
+inputs, so the recorded run uses ``cell_type_adjustment=False``. When validated
+annotations are available in every sample, cell-type support is a separate
+precision adjustment; it is not part of the gene-specific alignment-risk
+calibration.
 
-- ``NL3_filtered_feature_bc_matrix.h5``;
-- ``IL3_filtered_feature_bc_matrix.h5``.
+Shared-grid rule
+----------------
 
-The H5AD expression matrix is deliberately not treated as raw counts because
-alignment workflows may retain normalized or feature-transformed values in
-``adata.X``. The notebook reads the public 10x matrices and performs a
-validated one-to-one barcode join. Row-order matching is never used.
+Let :math:`N_{typ}` be the median observation count per sample. With
+``grid_n=None``, spAlignDE begins from the R-driven Cartesian resolution and
+counts the locations retained by the same tissue-occupancy mask used for the
+final grid. The candidate resolution is retained when the valid count lies
+between :math:`N_{typ}` and :math:`2N_{typ}`; otherwise the resolution is moved
+toward the nearest boundary.
 
-The complete handoff is a package function rather than notebook-local loading
-code:
+An explicit integer ``grid_n`` has priority over this rule. It is the number of
+Cartesian points per axis, not the number of tissue-valid locations. The
+selected value, its ``automatic`` or ``manual`` source, the target interval and
+the final valid count are recorded in ``prepared.metadata``.
 
-.. code-block:: python
+Gene-specific local-only calibration
+------------------------------------
 
-   visium_input = spAlignDE.build_visium_inference_table(
-       "/path/to/kidney_IL3_to_NL3_aligned.h5ad",
-       {
-           "NL3": "/path/to/NL3_filtered_feature_bc_matrix.h5",
-           "IL3": "/path/to/IL3_filtered_feature_bc_matrix.h5",
-       },
-       genes=["Cbr1", "Cd44", "Myo5a"],
-       min_detected_spots=10,
-       min_total_counts=10,
-       batch="kidney_pair",
-   )
+For each gene, Mismatch-aware fitting first obtains local statistics without
+mismatch inflation. Let :math:`r_i` denote normalized local risk. The
+calibration then:
 
-   inference_data = visium_input.data
-   risk_genes = list(visium_input.risk_genes)
+1. groups first-pass statistics by :math:`r_i`;
+2. subtracts the median within each risk bin;
+3. divides each raw MAD by the Student-t null MAD at the corresponding degrees
+   of freedom;
+4. truncates excess variance below at zero and constrains it to be
+   nondecreasing with risk by isotonic regression;
+5. fits a quadratic :math:`B r^2` through the origin; and
+6. applies a bounded anchor adjustment at the retained risk bin nearest the
+   80th percentile.
 
-``VisiumInferenceInput`` also exposes the validated coordinate table, tested
-genes, per-sample spot counts and number of genes shared by the raw matrices.
-
-Shared grid and local target
-----------------------------
-
-The default R-driven Cartesian resolution is retained when the *actual*
-number of tissue-valid grid locations lies between the median per-sample spot
-count, :math:`N_{typ}`, and :math:`2N_{typ}`. Otherwise spAlignDE moves the
-resolution toward the nearest boundary using the same tissue mask that defines
-the final grid. Passing an integer ``grid_n`` explicitly overrides this rule;
-``grid_n`` is the number of Cartesian points per axis, not the number of
-retained tissue locations.
-
-Let :math:`\boldsymbol{\xi}_i` denote a retained location of the shared grid.
-Nearby aligned spots from each sample form Gaussian kernel-weighted
-neighborhoods. For gene :math:`g`, the local contrast is
+The resulting mismatch factor for gene :math:`g` and location :math:`i` is
 
 .. math::
 
-   \Delta_{ig}=\mu_{\mathrm{IL3},ig}-\mu_{\mathrm{NL3},ig}.
+   \phi_{ig}^{\mathrm{align}}
+   =1+\lambda_{\mathrm{local},g}r_i^2,
+   \qquad \lambda_{\mathrm{global},g}=0.
 
-spAlignDE does not test the unadjusted null :math:`\Delta_{ig}=0`. It models a
-comparison-wide gene-specific baseline and an optional grid-varying technical
-profile:
+The comparison-level global risk score remains in metadata as provenance but
+does not create a spatially uniform variance penalty. Consequently, a location
+with zero local risk receives no mismatch inflation. This avoids the former
+failure mode in which a small number of genes were over-shrunk everywhere by a
+large gene-specific global factor.
 
-.. math::
+Public workflow
+---------------
 
-   \theta_{ig}
-   =\Delta_{ig}-\left(\gamma_g+
-   \mathbf z_i^{\mathsf T}\boldsymbol\beta_g\right),
-   \qquad H_{0,ig}:\theta_{ig}=0.
-
-Here, :math:`\mathbf z_i` is constructed from local library size and detection
-rate. In the recorded run, spot counts are normalized to a target library size
-of 10,000 and technical adjustment is enabled.
-
-Mismatch-aware uncertainty
---------------------------
-
-A broad stable-gene candidate pool is formed from genes detected in at least
-10 spots with at least 10 total counts across the pair. Differences in local
-expression magnitude, overdispersion and excess sparsity are combined with
-sampling-density discordance to create a contrast-specific mismatch-risk map.
-The density channel contributes 0.75 of the risk energy in this recorded kidney
-analysis. This dataset-specific value reflects the importance of local
-sampling-density mismatch in the aligned sections and is not a universal
-default.
-
-The risk score changes uncertainty, not the fitted local contrast. With
-cell-type adjustment available, the final variance is
-
-.. math::
-
-   V_{ig}=V_{ig}^{\mathrm{base}}
-   \phi_i^{\mathrm{align}}\phi_i^{\mathrm{cell}},
-   \qquad
-   t_{ig}=\frac{\theta_{ig}}{\sqrt{V_{ig}}}.
-
-Both inflation factors are at least one. Reliable cell-type or deconvolution
-labels are not included with the public kidney inputs, so the recorded run uses
-``cell_type_adjustment=False`` and :math:`\phi_i^{\mathrm{cell}}=1`.
-
-Public API
-----------
-
-First construct the standardized long table with
-``build_visium_inference_table`` as shown above. It accepts an aligned H5AD or
-in-memory AnnData and a mapping of sample IDs to 10x HDF5 paths or raw-count
-AnnData objects. It validates the complete handoff and selects the broad risk
-gene pool without reading expression from the aligned H5AD.
-
-Then prepare the reusable geometry and risk object once:
+After joining the inputs and constructing the broad ``risk_genes`` pool, the
+executed analysis runs:
 
 .. code-block:: python
 
@@ -225,12 +139,10 @@ Then prepare the reusable geometry and risk object once:
        random_state=1,
    )
 
-Fit the Mismatch-aware local tests:
-
-.. code-block:: python
-
    result = spAlignDE.fit_local_de(
        prepared,
+       genes=["Cbr1", "Cd44", "Myo5a"],
+       contrast="vs_reference",
        mismatch_aware=True,
        technical_adjustment=True,
        cell_type_adjustment=False,
@@ -239,37 +151,33 @@ Fit the Mismatch-aware local tests:
        random_state=1,
    )
 
-``mismatch_aware=False`` runs a Naive comparison on the same prepared grid.
-For ordered or multi-query designs, ``contrast="sequential"`` and
-``contrast="vs_reference"`` provide the two supported contrast schemes.
+``mismatch_aware=False`` runs the Naive comparison on the same prepared grid.
+For multiple queries, the first available contrast calibrates each gene's
+local coefficient, which is then reused across its remaining contrasts.
+Requested and actual calibration modes plus local/global coefficients are
+stored in ``result.metadata``.
 
-Parameter adaptation
---------------------
+Grid-level regions and gene-level ACAT
+--------------------------------------
 
-Choose ``risk_genes`` independently from the genes being tested and retain a
-broad set with adequate detection. ``min_detected_spots`` and
-``min_total_counts`` remove extremely sparse candidates before risk
-estimation. ``density_energy_share`` must lie between zero and one; increase it
-only when local sampling-density mismatch is a meaningful reliability signal.
-The recorded kidney analysis uses ``0.75`` because sampling-density mismatch is
-important for these aligned sections; this is a dataset-specific setting, not a
-universal default. ``region_cleanup=False`` reports the direct FDR masks without
-topological post-processing.
-Leave ``grid_n=None`` for the sample-size-aware automatic rule. Increasing an
-explicit ``grid_n`` improves spatial resolution but increases runtime and
-memory; decreasing it coarsens small structures. Always report the selected
-resolution, its source, and the final tissue-valid location count.
-Enable cell-type adjustment only with complete, validated annotations in every
-sample. Region cleanup changes the topology of reported significant regions,
-so save and report this choice. See :doc:`Parameter Tuning Guide
-<parameter_tuning>` for the alignment-to-inference checklist.
+BH adjustment is performed separately for every gene and contrast across valid
+grid locations. The tutorial deliberately sets ``region_cleanup=False``;
+therefore red contours directly trace connected components of the raw
+``q < 0.05`` grid mask, matching the manuscript plotting logic. Enabling cleanup
+is an optional reporting choice that can remove small or unsupported fragments
+without changing local statistics, P values or q-values.
+
+Compact fitted results now retain ``p_by_time``.
+``spAlignDE.gene_level_acat_pvalue(result, gene)`` strictly combines those raw
+local P values; q-values are never substituted. The return value is an omnibus
+P value for spatial change somewhere on the tested grid. It is neither a local
+P value nor a genome-wide FDR-adjusted gene discovery value.
 
 Recorded result
 ---------------
 
-The fully executed notebook uses 16,446 risk genes. The automatic rule selects
-an 86-by-86 Cartesian resolution and retains 6,187 tissue-valid grid locations
-(``N_typ = 3,090``; target interval 3,090--6,180). It reports:
+The executed notebook retains 6,169 tissue-valid shared-grid locations and
+reports:
 
 .. list-table::
    :header-rows: 1
@@ -281,64 +189,31 @@ an 86-by-86 Cartesian resolution and retains 6,187 tissue-valid grid locations
      - Minimum q-value
      - Median absolute statistic
    * - ``Cbr1``
-     - :math:`1.48\times10^{-14}`
-     - 3,482
-     - :math:`1.21\times10^{-31}`
-     - 3.222
+     - :math:`1.482148\times10^{-14}`
+     - 2,989
+     - :math:`5.184571\times10^{-31}`
+     - 2.456205
    * - ``Cd44``
-     - :math:`2.48\times10^{-6}`
-     - 1,629
-     - :math:`7.68\times10^{-6}`
-     - 1.802
+     - :math:`6.146148\times10^{-6}`
+     - 1,449
+     - :math:`1.764949\times10^{-5}`
+     - 1.762186
    * - ``Myo5a``
-     - :math:`5.28\times10^{-14}`
-     - 2,996
-     - :math:`7.08\times10^{-21}`
-     - 2.408
+     - :math:`8.038015\times10^{-14}`
+     - 2,438
+     - :math:`1.397810\times10^{-19}`
+     - 2.010681
 
-The notebook displays the alignment handoff, mismatch-risk map and one
-reference-expression, query-expression and local-statistic panel for each
-gene.
-
-Output contract
----------------
-
-The in-memory outputs are a ``PreparedInference`` object and a
-``LocalDEResult``. The notebook also writes:
-
-.. list-table::
-   :header-rows: 1
-   :widths: 38 62
-
-   * - Output
-     - Content
-   * - ``<gene>_IL3_vs_NL3_local_de.csv.gz``
-     - Grid ``x``/``y``, statistic, two-sided P value, BH q-value and final
-       significance flag.
-   * - ``kidney_local_de_summary.csv``
-     - One-row-per-gene summary of the gene-level ACAT omnibus P value,
-       significant locations and statistic/q-value diagnostics.
-   * - ``result.fits[gene]["terrain_data"]``
-     - In-memory contrast-specific local maps and region-cleanup metadata.
-
-Gene-level summary
-------------------
-
-``spAlignDE.gene_level_acat_pvalue(result, gene)`` combines dependent local P
-values across valid grid locations within each contrast. For multi-query
-results, contrast-level ACAT P values are combined again with weights
-proportional to the number of valid local tests. Compact results from earlier
-package versions are supported by reconstructing two-sided local P values from
-the stored statistic and degrees of freedom. The returned value is an omnibus
-P value for a spatial change somewhere on the tested grid; it is neither a
-local P value nor a genome-wide FDR-adjusted gene-discovery value.
+For each gene, the saved notebook displays NL3 expression, IL3 expression, the
+zero-centered Mismatch-aware local statistic, the red ``q < 0.05`` contours,
+and the gene-level ACAT P value. Figures are preserved as genuine execution
+outputs inside the notebook; no separate precomputed image file is required.
 
 Interpretation and limitations
 ------------------------------
 
-This example is a matched-section analysis, not replicate-level population
-inference. Mismatch risk is a diagnostic of local comparability and can be
-conservative when genuinely changing genes enter the stable-gene pool. Users
-should inspect alignment quality, risk maps and local support together, and
-should add cell-type adjustment only when complete, validated cell-type or
-spot-deconvolution annotations are available.
+This is a matched-section IL3-versus-NL3 analysis, not replicate-level
+population inference. Mismatch risk describes local comparability and does not
+replace geometric quality control. Inspect the aligned geometry, shared-grid
+occupancy, stable-gene screen, density risk and local support before assigning
+biological meaning to significant regions.

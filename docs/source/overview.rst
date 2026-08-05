@@ -111,10 +111,20 @@ therefore contribute less precise evidence instead of being interpreted as
 confident biological differential expression. This adjustment complements
 accurate registration; it is not a substitute for it.
 
-The inference workflow returns local test statistics and P values,
+Calibration is gene-specific and local-only. First-pass statistics are
+median-centered within normalized-risk bins and scaled against the Student-t
+null MAD. A monotone nonnegative excess-variance curve is fitted as a
+through-origin quadratic, giving the final factor
+:math:`1+\lambda_{\mathrm{local},g}r_i^2`. The gene-specific global coefficient
+is fixed at zero, so a location with zero local risk receives no mismatch
+inflation. Cell-type support, when available, remains a separate precision
+adjustment.
+
+The inference workflow returns local test statistics and raw P values,
 false-discovery-rate-adjusted q-values, connected local DE regions, gene-level
 ACAT summaries and inputs for spatial trajectory analysis across ordered
-samples.
+samples. ACAT combines the retained raw local P values; q-values are used only
+for grid-level FDR masks.
 
 Applications
 ------------

@@ -2,9 +2,8 @@ import unittest
 
 import numpy as np
 import pandas as pd
-from scipy.stats import t as student_t
 
-from spAlignDE import (
+from spalignde import (
     LocalDEResult,
     PreparedInference,
     acat_pvalue,
@@ -36,6 +35,12 @@ def _result(p_by_time):
 
 
 class GeneLevelAcatTests(unittest.TestCase):
+    def test_acat_uses_stable_small_p_branch_and_ignores_boundaries(self):
+        observed = acat_pvalue([1e-30, 0.20, 1.0, 0.0, np.nan])
+        expected = acat_pvalue([1e-15, 0.20])
+        self.assertTrue(np.isfinite(observed))
+        self.assertAlmostEqual(observed, expected, places=16)
+
     def test_single_contrast_combines_local_pvalues(self):
         local = np.array([0.01, 0.20, np.nan, 0.80])
         observed = gene_level_acat_pvalue(_result({"query": local}), "gene_a")
@@ -51,17 +56,6 @@ class GeneLevelAcatTests(unittest.TestCase):
             [acat_pvalue([0.01, 0.20]), acat_pvalue([0.03, 0.40, 0.80, 0.90])],
             weights=[2, 4],
         )
-        self.assertAlmostEqual(gene_level_acat_pvalue(result, "gene_a"), expected)
-
-    def test_compact_fit_reconstructs_local_pvalues_from_t_and_df(self):
-        result = _result({"query": np.array([0.25])})
-        terrain = result.fits["gene_a"]["terrain_data"]
-        terrain.pop("p_by_time")
-        terrain["stat_by_time"] = {"query": np.array([2.0, -1.0, np.nan])}
-        terrain["df_by_time"] = {"query": 12.0}
-
-        local = 2.0 * student_t.sf(np.array([2.0, 1.0]), 12.0)
-        expected = acat_pvalue(local)
         self.assertAlmostEqual(gene_level_acat_pvalue(result, "gene_a"), expected)
 
 
