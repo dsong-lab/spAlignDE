@@ -28,6 +28,24 @@ class ATACSTContractTests(unittest.TestCase):
         self.assertTrue(callable(spAlignDE.prealign_atac_to_st))
         self.assertTrue(callable(spAlignDE.plot_atac_st_alignment))
 
+    def test_pairing_weights_are_user_configurable_and_normalized(self):
+        from spAlignDE.alignment.atac import _atac_pairing_weights
+
+        default_weights = _atac_pairing_weights(spAlignDE.ATACSTAlignmentConfig())
+        self.assertEqual(
+            default_weights,
+            {
+                "sdf_corr": 0.35,
+                "chamfer_sim": 0.25,
+                "area_sim": 0.30,
+                "dice": 0.10,
+            },
+        )
+        with self.assertRaisesRegex(ValueError, "sum to 1.0"):
+            _atac_pairing_weights(
+                spAlignDE.ATACSTAlignmentConfig(sdf_weight=0.40)
+            )
+
     def test_prealignment_preserves_original_coordinates_and_standardizes_output(self):
         atac_points = np.array(
             [[0, 0], [1, 0], [0, 1], [1, 1]], dtype=float

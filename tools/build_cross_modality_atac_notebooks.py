@@ -439,7 +439,9 @@ Every cross-modality candidate pair is evaluated with one global score:
 A global logistic gate downweights candidates with large boundary distance.
 Pairs must have score ≥ 0.25 and Dice ≥ 0.01; greedy selection then enforces a
 one-to-one mapping. These weights and gates are applied identically to every
-structure—there are no region-specific labels or anatomical weights.
+structure—there are no region-specific labels or anatomical weights. For a new
+dataset, follow the [cross-modality pairing-weight tuning guide](https://dsong-lab.github.io/spAlignDE/tutorials/parameter_tuning.html#cross-modality-pairing-weights),
+change one component at a time, and renormalize all four weights to sum to one.
 """
             ),
             markdown(

@@ -72,10 +72,10 @@ MASK_PARAMS_THIN = dict(
 
 W_ALIGN = dict(
     sdf_corr=0.20,
-    chamfer_sim=0.25,
+    chamfer_sim=0.40,
     dice=0.15,
     area_sim=0.25,
-    asd_sim=0.15,
+    thick_sim=0.00,
 )
 
 LDDMM_INPUT_CFG = dict(
@@ -110,7 +110,7 @@ LDDMM_OPTIM_CFG = dict(
     affine_value_clip=5.0,
 )
 LDDMM_EM_CFG = dict(update_every=5, start_iter=50)
-LDDMM_INTENSITY_CFG = dict(sigmaM=1.0, sigmaB=2.0, sigmaA=5.0, sigmaR=5e5, sigmaP=2e1)
+LDDMM_INTENSITY_CFG = dict(sigmaM=1.0, sigmaB=2.0, sigmaA=5.0, sigmaR=5e5)
 LDDMM_RUNTIME_CFG = dict(dtype="float32")
 
 def select_genes_by_variance_fraction(X_log, frac=0.85, min_genes=50):
@@ -1246,12 +1246,6 @@ def surface_distance_metrics(mask1, mask2):
     return asd, hd
 
 
-def asd_to_sim(asd, d0=15.0):
-    if not np.isfinite(asd):
-        return 0.0
-    return float(np.exp(-asd / (d0 + 1e-8)))
-
-
 def dice_mask(a, b, eps=1e-12):
     a = a.astype(bool)
     b = b.astype(bool)
@@ -1272,6 +1266,15 @@ def area_sim_from_masks(a, b, eps=1e-9):
     aa = float(np.sum(a)) + eps
     bb = float(np.sum(b)) + eps
     return float(np.exp(-abs(np.log(aa / bb))))
+
+
+def characteristic_thickness(mask):
+    """Return the 75th percentile of the within-mask distance transform."""
+    binary = mask.astype(bool)
+    if not binary.any():
+        return 0.0
+    values = ndimage.distance_transform_edt(binary)[binary]
+    return float(np.percentile(values, 75)) if values.size else 0.0
 
 
 def sdf_corr_band(mask1, mask2, band=20, clip=None):
@@ -1331,7 +1334,11 @@ def compute_all_metrics(mask_st, mask_he):
     chamfer_sim, chamfer_dist = chamfer_similarity(mask_st, mask_he, d0=30.0)
 
     asd, hd = surface_distance_metrics(mask_st, mask_he)
-    asd_sim = asd_to_sim(asd, d0=15.0)
+    thickness_st = characteristic_thickness(mask_st)
+    thickness_he = characteristic_thickness(mask_he)
+    thickness_similarity = np.exp(
+        -abs(np.log((thickness_st + 1e-6) / (thickness_he + 1e-6)))
+    )
 
     return {
         "dice": dice_mask(mask_st, mask_he),
@@ -1340,9 +1347,11 @@ def compute_all_metrics(mask_st, mask_he):
         "sdf_corr": sdf_corr_band(mask_st, mask_he, band=20, clip=None),
         "chamfer_sim": chamfer_sim,
         "chamfer_dist": chamfer_dist,
+        "thick_st": thickness_st,
+        "thick_he": thickness_he,
+        "thick_sim": float(thickness_similarity),
         "asd": asd,
         "hd": hd,
-        "asd_sim": asd_sim,
     }
 
 
@@ -1734,6 +1743,6 @@ def _overall_he_mask_from_slide(shape=None):
     return mask.astype(np.uint8)
 
 
-def transform_points_source_to_target(xv, v, A, pointsI):
+def transform_points_source_to_target(xv, v, A, points):
     """Compatibility wrapper around shared lddmm_alignment.map_points_source_to_target."""
-    return map_points_source_to_target(xv, v, A, pointsI)
+    return map_points_source_to_target(xv, v, A, points)

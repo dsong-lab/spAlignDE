@@ -316,6 +316,90 @@ Cross-sample pre-alignment and rasterization
   reduce ``density_weight`` when spot density is imposed by an approximately
   regular capture grid, as in the kidney example.
 
+.. _cross_modality_pairing_weights:
+
+Cross-modality pairing weights
+------------------------------
+
+For query structure :math:`i` and reference structure :math:`j`, spAlignDE
+forms a composite score :math:`S_{ij}=\sum_m w_m C_{ij}^{(m)}` from
+similarities in ``[0, 1]``. Active weights must be finite, non-negative and sum
+to one. The public alignment configurations expose these weights so users can
+adapt one global pairing rule to a new dataset. Do not assign different
+weights to named anatomical regions.
+
+The empirical paper profiles are:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 18 11 13 11 11 12 24
+
+   * - Workflow
+     - SDF
+     - Chamfer
+     - Dice
+     - Area
+     - Thickness
+     - Acceptance QC
+   * - Histology--ST
+     - 0.20
+     - 0.40
+     - 0.15
+     - 0.25
+     - 0
+     - score ≥ 0.40; ASD ≤ 30
+   * - ATAC--ST
+     - 0.35
+     - 0.25
+     - 0.10
+     - 0.30
+     - 0
+     - final score ≥ 0.25; Dice ≥ 0.01
+   * - Atlas--ST
+     - 0.08
+     - 0.06
+     - 0.18
+     - 0.47
+     - 0.21
+     - final score ≥ 0.50; ASD ≤ 50
+
+ASD is not a weighted similarity in any of these composite scores. It is
+reported in pairing-raster units and is used only as an independent absolute
+boundary-distance QC threshold for histology--ST and atlas--ST. Chamfer already
+provides the weighted bidirectional boundary-proximity component.
+
+Tune the weights only after coordinate scale, field of view, global
+pre-alignment and structure masks are credible:
+
+1. Export the candidate-pair table and inspect overlays for both accepted and
+   near-threshold rejected pairs. Identify a systematic failure mode rather
+   than adjusting a single anatomy by name.
+2. Increase Dice weight when broad, compact structures with reliable
+   pre-alignment should be driven more strongly by common occupancy.
+3. Increase SDF or Chamfer weight when elongated or thin structures have
+   plausible boundary geometry but lose Dice after a small displacement. SDF
+   gives broader signed-boundary agreement; Chamfer emphasizes nearest-boundary
+   proximity.
+4. Increase area weight when structures with clearly different spatial
+   extents are being paired. Increase thickness weight when narrow atlas layers
+   are confused with broader neighbors.
+5. Change one component by a small amount, for example 0.05, redistribute the
+   difference across the other active components, and renormalize to exactly
+   one. Recompute candidate rankings and accepted masks before running
+   S-LDDMM.
+6. Adjust the minimum score or independent ASD/Dice QC gate only after the
+   relative ranking is satisfactory. A higher score threshold or lower ASD
+   threshold is stricter; the converse admits more candidates.
+
+The H&E fields are ``pairing_weight_sdf``, ``pairing_weight_chamfer``,
+``pairing_weight_dice``, ``pairing_weight_area`` and
+``pairing_weight_thickness``. ATAC--ST uses
+``sdf_weight``, ``chamfer_weight``, ``dice_weight`` and ``area_weight``.
+Atlas--ST uses the corresponding ``pairing_weight_*`` fields, including
+``pairing_weight_thickness``. If raster resolution changes, rescale the SDF
+band, Chamfer decay/gate distances and ASD thresholds before interpreting a
+weight sweep.
+
 ST-to-Allen-CCF parameters
 --------------------------
 
@@ -357,10 +441,10 @@ cross-sample ``SLDDMMConfig`` does not change Atlas alignment. Tune the exposed
 structure stages first; a custom stage schedule requires an explicit API
 extension rather than editing notebook-local constants.
 
-The Atlas weights must be non-negative and sum to one. ``area`` and
-``thickness`` distinguish narrow laminar structures from broader neighbors;
-Dice and SDF/Chamfer measure spatial agreement. Adjust these weights globally,
-never for a named anatomical region.
+The Atlas weights must be non-negative and sum to one. Start from the empirical
+profile in :ref:`cross_modality_pairing_weights`; ``area`` and ``thickness``
+distinguish narrow laminar structures from broader neighbors, whereas Dice and
+SDF/Chamfer measure spatial agreement.
 
 - Increase ``pairing_score_threshold`` for fewer, higher-confidence pairs;
   decrease it cautiously only after reviewing rejected candidate metrics.
@@ -445,6 +529,10 @@ Pre-alignment, pairing and S-LDDMM
 - Accept automatic mask-overlap pre-alignment only after inspecting the overlay.
   IoU below ``minimum_recommended_iou`` is a warning to use interactive manual
   pre-alignment, not a reason to immediately loosen pairing thresholds.
+- The empirical H&E pairing weights are SDF 0.20, Chamfer 0.40, Dice 0.15,
+  area 0.25 and thickness 0.00. Change the five ``pairing_weight_*`` fields
+  globally and keep their sum equal to one; see
+  :ref:`cross_modality_pairing_weights`.
 - Raising ``pair_score_threshold`` or lowering ``pair_asd_threshold`` makes
   structure acceptance stricter. Tune them from the candidate table, not only
   from the number of accepted pairs.

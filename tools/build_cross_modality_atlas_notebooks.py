@@ -380,7 +380,6 @@ config = spAlignDE.STAtlasAlignmentConfig(
     pairing_weight_dice=0.18,
     pairing_weight_area=0.47,
     pairing_weight_thickness=0.21,
-    pairing_weight_asd=0.0,
     pairing_dice_soft=0.25,
     device=None,  # automatically uses CUDA when available
 )
@@ -429,8 +428,11 @@ The default pairing score is
 `0.08 × SDF + 0.06 × Chamfer + 0.18 × Dice + 0.47 × area + 0.21 × thickness`.
 
 These weights sum to one. They emphasize global size and laminar thickness
-without a structure-name override; Dice, SDF, Chamfer, and the independent ASD
-gate still require spatial agreement.
+without a structure-name override; Dice, SDF, and Chamfer still require spatial
+agreement. Raw ASD is retained only as an independent QC gate. For new data,
+follow the [cross-modality pairing-weight tuning guide](https://dsong-lab.github.io/spAlignDE/tutorials/parameter_tuning.html#cross-modality-pairing-weights)
+and change the five weights globally while keeping them non-negative and
+normalized to one.
 """
             ),
             code(

@@ -404,7 +404,6 @@ def geodesic_shooting(m0, xv, nt, K, dv):
 
 def LDDMM_shooting(
     x_src, I, x_tgt, J,
-    pointsI=None, pointsJ=None,
     affine_init=None, m0_init=None, velocity_grid=None,
     model_cfg=None, optim_cfg=None, em_cfg=None, intensity_cfg=None,
     device='cpu', dtype=torch.float64, muB=None, muA=None,
@@ -422,9 +421,6 @@ def LDDMM_shooting(
         Target image grid coordinates in physical units: [y_coords, x_coords].
     J : tensor/array, shape (C, H_tgt, W_tgt)
         Target multi-channel image on ``x_tgt``.
-    pointsI, pointsJ : tensor/array or None, shape (N, 2)
-        Optional landmark correspondences in (y, x) format.
-        If provided, both must be provided.
     affine_init : tensor/array or None, shape (3,3) or (2,3)
         Initial affine transform mapping source -> target.
         If None, identity affine is used.
@@ -455,12 +451,11 @@ def LDDMM_shooting(
     intensity_cfg : dict or None
         Data-term and regularization scales:
         ``sigmaM`` (match), ``sigmaA``/``sigmaB`` (appearance classes),
-        ``sigmaR`` (deformation regularization), ``sigmaP`` (landmarks).
+        and ``sigmaR`` (deformation regularization).
         Practical guide:
         - smaller ``sigmaM`` increases matching pressure;
         - larger ``sigmaR`` weakens the deformation penalty and allows stronger
           warps;
-        - smaller ``sigmaP`` enforces landmarks more strongly.
     device : str
         Torch device (e.g., ``'cpu'`` or ``'cuda:0'``).
     dtype : torch dtype
@@ -537,7 +532,6 @@ def LDDMM_shooting(
             'sigmaB': 2.0,
             'sigmaA': 5.0,
             'sigmaR': 5e5,
-            'sigmaP': 2e1,
         },
         intensity_cfg,
     )
@@ -571,7 +565,6 @@ def LDDMM_shooting(
     sigmaB = intensity['sigmaB']
     sigmaA = intensity['sigmaA']
     sigmaR = intensity['sigmaR']
-    sigmaP = intensity['sigmaP']
 
     # Tensorize image grids + images
     x_src = [_to_tensor(x) for x in x_src]
@@ -626,16 +619,6 @@ def LDDMM_shooting(
         m0 = torch.zeros((H, W, 2), device=device, dtype=dtype, requires_grad=True)
     else:
         m0 = _to_tensor(m0_init, requires_grad=True)
-
-    # Optional landmarks
-    if (pointsI is None) ^ (pointsJ is None):
-        raise ValueError('pointsI and pointsJ must be provided together')
-    if pointsI is None:
-        pointsI = torch.zeros((0, 2), device=device, dtype=dtype)
-        pointsJ = torch.zeros((0, 2), device=device, dtype=dtype)
-    else:
-        pointsI = _to_tensor(pointsI)
-        pointsJ = _to_tensor(pointsJ)
 
     # Target mesh
     XJ = torch.stack(torch.meshgrid(*x_tgt, indexing='ij'), -1)
@@ -722,18 +705,6 @@ def LDDMM_shooting(
             E_scalar = E_scalar.sum()
         tosave = [E_scalar.detach().cpu().item(), EM.detach().cpu().item(), ER.detach().cpu().item()]
 
-        # Points term
-        if pointsI.shape[0] > 0:
-            # evolve points under flow and affine
-            pointsIt = torch.clone(pointsI)
-            for t in range(nt):
-                v_t = torch.stack((v_list[t][...,0], v_list[t][...,1]), dim=0)
-                pointsIt += sample_image_on_coords(xv, v_t, pointsIt.T[..., None])[..., 0].T/nt
-            pointsIt = (A[:2,:2] @ pointsIt.T + A[:2,-1][..., None]).T
-            EP = torch.sum((pointsIt - pointsJ)**2)/2.0/(sigmaP**2)
-            E = E + EP
-            tosave.append(EP.item())
-
         Esave.append(tosave)
 
         energy_value = float(tosave[0])
@@ -748,8 +719,6 @@ def LDDMM_shooting(
 
         if verbose and ((it % print_every == 0) or (it == niter - 1)):
             msg = f"[LDDMM] iter {it+1}/{niter} E={tosave[0]:.6e} EM={tosave[1]:.6e} ER={tosave[2]:.6e}"
-            if len(tosave) > 3:
-                msg += f" EP={tosave[3]:.6e}"
             print(msg)
 
         if (

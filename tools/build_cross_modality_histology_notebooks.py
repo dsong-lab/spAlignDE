@@ -730,10 +730,17 @@ else:
 ## 3. Structure pairing and S-LDDMM
 
 ST and H&E structures are rasterized on the shared feature grid. Candidate
-pairs use the paper weights for SDF agreement, Chamfer similarity, Dice,
-area similarity, and ASD similarity (`0.20, 0.25, 0.15, 0.25, 0.15`). Pairs
-must have score ≥ 0.40 and ASD ≤ 30 pixels. Accepted pairs become continuous
-signed-distance channels for a single-stage S-LDDMM fit.
+pairs use the paper weights for SDF agreement, Chamfer similarity, Dice, area,
+and thickness (`0.20, 0.40, 0.15, 0.25, 0.00`). ASD is not included in the
+composite score; its raw raster-space value is used only as an independent QC
+gate. Pairs must have score ≥ 0.40 and ASD ≤ 30 pixels. Accepted pairs become
+continuous signed-distance channels for a single-stage S-LDDMM fit.
+
+Users can change the five normalized weights in
+`STHistologyAlignmentConfig`. Tune them only after checking the coordinate
+scale, global pre-alignment, structure masks, and candidate-pair overlays. See
+the website [Cross-modality pairing weights](https://dsong-lab.github.io/spAlignDE/tutorials/parameter_tuning.html#cross-modality-pairing-weights)
+section for the effect of each component and a recommended tuning sequence.
 """
             ),
             code(
@@ -741,6 +748,11 @@ signed-distance channels for a single-stage S-LDDMM fit.
 result = spAlignDE.align_st_to_histology(
     prealignment,
     config=spAlignDE.STHistologyAlignmentConfig(
+        pairing_weight_sdf=0.20,
+        pairing_weight_chamfer=0.40,
+        pairing_weight_dice=0.15,
+        pairing_weight_area=0.25,
+        pairing_weight_thickness=0.00,
         pair_score_threshold=0.40,
         pair_asd_threshold=30.0,
         time_steps=5,

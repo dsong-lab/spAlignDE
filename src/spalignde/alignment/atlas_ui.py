@@ -113,7 +113,6 @@ class UIAtlasAlignmentConfig:
     background_scale: float = 2.0
     artifact_scale: float = 5.0
     regularization_scale: float = 5e5
-    landmark_scale: float = 2e1
     print_every: int = 100
     verbose: bool = True
 
@@ -603,7 +602,6 @@ def _run_lddmm(
             "sigmaB": config.background_scale,
             "sigmaA": config.artifact_scale,
             "sigmaR": config.regularization_scale,
-            "sigmaP": config.landmark_scale,
         },
         device=device,
         dtype=dtype,

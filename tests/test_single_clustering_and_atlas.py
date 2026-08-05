@@ -41,7 +41,6 @@ class SingleClusteringAndAtlasContractTests(unittest.TestCase):
             config.pairing_weight_dice,
             config.pairing_weight_area,
             config.pairing_weight_thickness,
-            config.pairing_weight_asd,
         )
         self.assertAlmostEqual(sum(pairing_weights), 1.0)
         self.assertGreater(config.pairing_weight_area, config.pairing_weight_dice)
