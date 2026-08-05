@@ -82,6 +82,10 @@ the packaged manuscript `aligned_317` coordinates plus the public NL3/IL3 raw
 barcode, tests `Cbr1`, `Cd44`, and `Myo5a`, and uses the sample-size- and
 tissue-occupancy-aware automatic shared-grid rule. Pass an integer `grid_n`
 only when an explicit Cartesian resolution is scientifically justified.
+The notebook delegates barcode matching, raw-count loading, per-gene support
+summaries, risk-gene filtering and long-table construction to
+`spAlignDE.build_visium_inference_table`; it defines no dataset-processing
+functions of its own.
 
 Mismatch-aware inference calibrates each gene from its first-pass local
 statistics. Statistics are grouped by normalized local risk, median-centered,

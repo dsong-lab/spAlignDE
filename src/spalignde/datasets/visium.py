@@ -217,8 +217,186 @@ def _read_visium_counts(
     return counts
 
 
+def summarize_raw_genes(
+    adata: ad.AnnData,
+    genes: Sequence[str] | None = None,
+) -> pd.DataFrame:
+    """Summarize raw expression support for selected genes.
+
+    Parameters
+    ----------
+    adata
+        Raw-count AnnData object with unique gene names.
+    genes
+        Genes to summarize in the requested order. ``None`` summarizes every
+        gene in ``adata.var_names``.
+
+    Returns
+    -------
+    pandas.DataFrame
+        A gene-indexed table with integer ``detected_spots`` and floating-point
+        ``total_counts`` columns.
+    """
+
+    if not isinstance(adata, ad.AnnData):
+        raise TypeError("adata must be an AnnData object.")
+    if not adata.var_names.is_unique:
+        raise ValueError("adata.var_names must be unique.")
+
+    selected = (
+        pd.Index(adata.var_names.astype(str))
+        if genes is None
+        else pd.Index([str(gene) for gene in genes])
+    )
+    if selected.empty:
+        raise ValueError("genes must contain at least one gene.")
+    if not selected.is_unique:
+        duplicates = selected[selected.duplicated()].unique().tolist()
+        raise ValueError(
+            "genes contains duplicate names: " + ", ".join(duplicates[:5])
+        )
+    missing = selected.difference(pd.Index(adata.var_names.astype(str)))
+    if len(missing):
+        raise ValueError("Genes were not found: " + ", ".join(missing[:5]))
+
+    matrix = adata[:, selected].X
+    detected = np.asarray((matrix > 0).sum(axis=0)).reshape(-1)
+    totals = np.asarray(matrix.sum(axis=0)).reshape(-1)
+    if not np.isfinite(totals).all():
+        raise ValueError("Raw expression contains non-finite gene totals.")
+    return pd.DataFrame(
+        {
+            "detected_spots": detected.astype(np.int64, copy=False),
+            "total_counts": totals.astype(np.float64, copy=False),
+        },
+        index=pd.Index(selected, name="gene"),
+    )
+
+
+def _standardize_aligned_coordinates(
+    aligned: ad.AnnData | pd.DataFrame | str | Path,
+    *,
+    sample_key: str,
+    coordinate_key: tuple[str, str],
+    aligned_coordinate_key: tuple[str, str],
+) -> pd.DataFrame:
+    """Normalize an aligned AnnData/H5AD or coordinate table."""
+
+    required = {
+        sample_key,
+        coordinate_key[0],
+        coordinate_key[1],
+        aligned_coordinate_key[0],
+        aligned_coordinate_key[1],
+    }
+    if isinstance(aligned, pd.DataFrame):
+        source = aligned.copy()
+        missing = required.difference(source.columns)
+        if missing:
+            raise ValueError(
+                "Aligned coordinate table is missing columns: "
+                + ", ".join(sorted(missing))
+            )
+        if "cell_id" in source.columns:
+            cell_ids = source["cell_id"].astype(str).reset_index(drop=True)
+        elif "barcode" in source.columns:
+            cell_ids = source["barcode"].astype(str).reset_index(drop=True)
+        else:
+            raise ValueError(
+                "Aligned coordinate table must contain 'cell_id' or 'barcode'."
+            )
+        barcode_source = source["barcode"] if "barcode" in source.columns else cell_ids
+        barcodes = canonical_visium_barcodes(
+            barcode_source,
+            source_name="aligned coordinate-table identifiers",
+        ).reset_index(drop=True)
+        if "cell_id" in source.columns and "barcode" in source.columns:
+            cell_barcodes = canonical_visium_barcodes(
+                cell_ids,
+                source_name="aligned coordinate-table cell IDs",
+            ).reset_index(drop=True)
+            if not cell_barcodes.equals(barcodes):
+                raise ValueError(
+                    "Aligned coordinate-table cell_id and barcode columns disagree."
+                )
+        values = source[
+            [
+                sample_key,
+                coordinate_key[0],
+                coordinate_key[1],
+                aligned_coordinate_key[0],
+                aligned_coordinate_key[1],
+            ]
+        ].reset_index(drop=True)
+        coordinates = values.copy()
+        coordinates.insert(0, "barcode", barcodes.to_numpy())
+        coordinates.insert(1, "cell_id", cell_ids.to_numpy())
+        source_label = "Aligned coordinate table"
+    else:
+        if not isinstance(aligned, (ad.AnnData, str, Path)):
+            raise TypeError(
+                "aligned must be an AnnData, standardized coordinate DataFrame, "
+                "or H5AD path."
+            )
+        owns_aligned = not isinstance(aligned, ad.AnnData)
+        aligned_adata = (
+            ad.read_h5ad(Path(aligned), backed="r") if owns_aligned else aligned
+        )
+        try:
+            missing = required.difference(aligned_adata.obs.columns)
+            if missing:
+                raise ValueError(
+                    "Aligned AnnData is missing .obs columns: "
+                    + ", ".join(sorted(missing))
+                )
+            coordinates = aligned_adata.obs[
+                [
+                    sample_key,
+                    coordinate_key[0],
+                    coordinate_key[1],
+                    aligned_coordinate_key[0],
+                    aligned_coordinate_key[1],
+                ]
+            ].copy()
+            coordinates.insert(
+                0,
+                "barcode",
+                canonical_visium_barcodes(
+                    aligned_adata.obs_names,
+                    source_name="aligned AnnData observation identifiers",
+                ).to_numpy(),
+            )
+            coordinates.insert(1, "cell_id", aligned_adata.obs_names.astype(str))
+        finally:
+            if owns_aligned:
+                aligned_adata.file.close()
+        source_label = "Aligned AnnData"
+
+    coordinates = coordinates.rename(
+        columns={
+            sample_key: "sample_id",
+            coordinate_key[0]: "x",
+            coordinate_key[1]: "y",
+            aligned_coordinate_key[0]: "x_aligned",
+            aligned_coordinate_key[1]: "y_aligned",
+        }
+    )
+    coordinates["sample_id"] = coordinates["sample_id"].astype(str)
+    for column in ("x", "y", "x_aligned", "y_aligned"):
+        coordinates[column] = pd.to_numeric(coordinates[column], errors="coerce")
+    finite = np.isfinite(
+        coordinates[["x", "y", "x_aligned", "y_aligned"]].to_numpy(float)
+    ).all(axis=1)
+    if not finite.all():
+        raise ValueError(
+            f"{source_label} contains {int((~finite).sum())} observations "
+            "with non-finite coordinates."
+        )
+    return coordinates.reset_index(drop=True)
+
+
 def build_visium_inference_table(
-    aligned: ad.AnnData | str | Path,
+    aligned: ad.AnnData | pd.DataFrame | str | Path,
     raw_counts: Mapping[str, ad.AnnData | str | Path],
     *,
     genes: Sequence[str],
@@ -234,13 +412,15 @@ def build_visium_inference_table(
     Parameters
     ----------
     aligned
-        Aligned AnnData object or H5AD path. Observation identifiers must
-        contain extractable 10x barcodes. The function reads sample identity,
-        original coordinates, and final aligned coordinates from ``.obs``;
-        it never treats ``aligned.X`` as raw expression.
+        Aligned AnnData object, H5AD path, or standardized coordinate DataFrame.
+        AnnData observation identifiers must contain extractable 10x barcodes.
+        A DataFrame must contain ``cell_id`` or ``barcode`` plus sample identity,
+        original coordinates and final aligned coordinates. The function never
+        treats ``aligned.X`` as raw expression.
     raw_counts
         Mapping from sample identifier to a raw 10x HDF5 path or an in-memory
-        AnnData count matrix. Samples must match ``aligned.obs[sample_key]``.
+        AnnData count matrix. Samples must match the aligned coordinate sample
+        identifiers.
     genes
         Genes intended for downstream local testing. They are always retained
         in the risk-gene set after validation.
@@ -270,78 +450,25 @@ def build_visium_inference_table(
     if len(set(sample_ids)) != len(sample_ids):
         raise ValueError("raw_counts sample IDs must be unique after string conversion.")
 
-    owns_aligned = not isinstance(aligned, ad.AnnData)
-    aligned_adata = ad.read_h5ad(Path(aligned), backed="r") if owns_aligned else aligned
-    required_obs = {
-        sample_key,
-        coordinate_key[0],
-        coordinate_key[1],
-        aligned_coordinate_key[0],
-        aligned_coordinate_key[1],
-    }
-    missing_obs = required_obs.difference(aligned_adata.obs.columns)
-    if missing_obs:
-        if owns_aligned:
-            aligned_adata.file.close()
-        raise ValueError(
-            "Aligned AnnData is missing .obs columns: "
-            + ", ".join(sorted(missing_obs))
-        )
-
-    coordinates = aligned_adata.obs[
-        [
-            sample_key,
-            coordinate_key[0],
-            coordinate_key[1],
-            aligned_coordinate_key[0],
-            aligned_coordinate_key[1],
-        ]
-    ].copy()
-    coordinates.insert(
-        0,
-        "barcode",
-        canonical_visium_barcodes(
-            aligned_adata.obs_names,
-            source_name="aligned AnnData observation identifiers",
-        ).to_numpy(),
+    coordinates = _standardize_aligned_coordinates(
+        aligned,
+        sample_key=sample_key,
+        coordinate_key=coordinate_key,
+        aligned_coordinate_key=aligned_coordinate_key,
     )
-    coordinates.insert(1, "cell_id", aligned_adata.obs_names.astype(str))
-    if owns_aligned:
-        aligned_adata.file.close()
-
-    coordinates = coordinates.rename(
-        columns={
-            sample_key: "sample_id",
-            coordinate_key[0]: "x",
-            coordinate_key[1]: "y",
-            aligned_coordinate_key[0]: "x_aligned",
-            aligned_coordinate_key[1]: "y_aligned",
-        }
-    )
-    coordinates["sample_id"] = coordinates["sample_id"].astype(str)
-    for column in ("x", "y", "x_aligned", "y_aligned"):
-        coordinates[column] = pd.to_numeric(coordinates[column], errors="coerce")
-    finite_coordinates = np.isfinite(
-        coordinates[["x", "y", "x_aligned", "y_aligned"]].to_numpy(float)
-    ).all(axis=1)
-    if not finite_coordinates.all():
-        raise ValueError(
-            f"Aligned AnnData contains {int((~finite_coordinates).sum())} "
-            "observations with non-finite coordinates."
-        )
 
     observed_samples = set(coordinates["sample_id"])
     requested_samples = set(sample_ids)
     if observed_samples != requested_samples:
         raise ValueError(
-            "Sample IDs differ between aligned AnnData and raw_counts: "
+            "Sample IDs differ between aligned coordinates and raw_counts: "
             f"aligned={sorted(observed_samples)}, raw_counts={sorted(requested_samples)}."
         )
     duplicated = coordinates.duplicated(["sample_id", "barcode"], keep=False)
     if duplicated.any():
         examples = coordinates.loc[duplicated, ["sample_id", "barcode"]].head(3)
         raise ValueError(
-            "Aligned AnnData contains duplicate sample/barcode pairs; examples: "
+            "Aligned coordinates contain duplicate sample/barcode pairs; examples: "
             + examples.astype(str).agg(":".join, axis=1).str.cat(sep=", ")
         )
 
@@ -372,9 +499,9 @@ def build_visium_inference_table(
     detected_total = np.zeros(len(common_genes), dtype=np.int64)
     count_total = np.zeros(len(common_genes), dtype=np.float64)
     for sample_id in sample_ids:
-        matrix = counts_by_sample[sample_id][:, common_genes].X
-        detected_total += np.asarray((matrix > 0).sum(axis=0)).reshape(-1)
-        count_total += np.asarray(matrix.sum(axis=0)).reshape(-1)
+        summary = summarize_raw_genes(counts_by_sample[sample_id], common_genes)
+        detected_total += summary["detected_spots"].to_numpy(np.int64)
+        count_total += summary["total_counts"].to_numpy(np.float64)
     keep = (
         (detected_total >= int(min_detected_spots))
         & (count_total >= float(min_total_counts))

@@ -19,6 +19,10 @@
   README and tutorials.
 - Updated the kidney tutorial to use the manuscript-comparable uncleaned
   `q < 0.05` region mask.
+- Promoted raw-gene support summaries to `summarize_raw_genes`, extended
+  `build_visium_inference_table` to accept standardized coordinate DataFrames,
+  and removed notebook-local data-loader and table-construction functions from
+  the executed kidney tutorial.
 
 Package publication remains a separate release action. The documentation is
 deployed by the GitHub Pages workflow after this update reaches ``main``.

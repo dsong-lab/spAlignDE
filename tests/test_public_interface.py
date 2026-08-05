@@ -18,6 +18,7 @@ class PublicInterfaceTests(unittest.TestCase):
         self.assertIs(prepare_inference, spAlignDE.prepare_inference)
         self.assertTrue(callable(spAlignDE.build_visium_inference_table))
         self.assertTrue(callable(spAlignDE.canonical_visium_barcodes))
+        self.assertTrue(callable(spAlignDE.summarize_raw_genes))
 
     def test_clustering_wrappers_publish_real_signatures(self):
         joint = inspect.signature(spAlignDE.cluster_joint)

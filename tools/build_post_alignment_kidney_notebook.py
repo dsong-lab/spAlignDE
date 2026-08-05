@@ -62,6 +62,11 @@ def build_notebook(source: Path | None = None):
 
     notebook = nbformat.read(source or _source_notebook(), as_version=4)
     notebook = copy.deepcopy(notebook)
+    notebook.metadata["kernelspec"] = {
+        "display_name": "Python 3",
+        "language": "python",
+        "name": "python3",
+    }
     for cell in notebook.cells:
         if cell.cell_type == "code":
             cell.source = cell.source.replace(

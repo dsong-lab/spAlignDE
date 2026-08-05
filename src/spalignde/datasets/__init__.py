@@ -11,6 +11,7 @@ from .visium import (
     build_visium_coordinate_table,
     build_visium_inference_table,
     canonical_visium_barcodes,
+    summarize_raw_genes,
 )
 
 __all__ = [
@@ -22,4 +23,5 @@ __all__ = [
     "kidney_alignment_metadata",
     "load_kidney_aligned_coordinates",
     "make_cross_sample_example",
+    "summarize_raw_genes",
 ]
