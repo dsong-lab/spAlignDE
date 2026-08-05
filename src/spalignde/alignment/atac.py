@@ -63,8 +63,9 @@ class ATACSTPrealignmentResult:
 class ATACSTAlignmentConfig:
     """Automatic structure pairing and S-LDDMM settings for ATAC-to-ST.
 
-    Pairing weights define one global geometric rule. Channel-area settings
-    balance narrow and broad masks without region-specific weights.
+    Pairing weights define one global geometric rule and must be finite,
+    non-negative, and sum to one. Channel-area settings balance narrow and
+    broad masks without region-specific weights.
     ``kernel_scale`` and ``velocity_grid_spacing`` are legacy ``a`` and
     ``grid_step`` in the cropped raster-canvas coordinate system.
     """
@@ -575,11 +576,27 @@ def _sdf_correlation(first: np.ndarray, second: np.ndarray) -> float:
     return float((correlation + 1.0) / 2.0)
 
 
+def _atac_pairing_weights(config: ATACSTAlignmentConfig) -> dict[str, float]:
+    """Return the normalized ATAC--ST composite-score weights."""
+    weights = {
+        "sdf_corr": float(config.sdf_weight),
+        "chamfer_sim": float(config.chamfer_weight),
+        "area_sim": float(config.area_weight),
+        "dice": float(config.dice_weight),
+    }
+    if any(not np.isfinite(value) or value < 0 for value in weights.values()):
+        raise ValueError("ATAC pairing weights must be finite and non-negative")
+    if not np.isclose(sum(weights.values()), 1.0, atol=1e-8):
+        raise ValueError("ATAC pairing weights must sum to 1.0")
+    return weights
+
+
 def _pair_structures(
     st_masks: dict[str, np.ndarray],
     atac_masks: dict[str, np.ndarray],
     config: ATACSTAlignmentConfig,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
+    weights = _atac_pairing_weights(config)
     rows = []
     for st_label, st_mask in st_masks.items():
         for atac_label, atac_mask in atac_masks.items():
@@ -588,10 +605,10 @@ def _pair_structures(
             chamfer_similarity, chamfer_distance = _chamfer(st_mask, atac_mask)
             sdf_correlation = _sdf_correlation(st_mask, atac_mask)
             base_score = (
-                config.sdf_weight * sdf_correlation
-                + config.chamfer_weight * chamfer_similarity
-                + config.area_weight * area_similarity
-                + config.dice_weight * dice
+                weights["sdf_corr"] * sdf_correlation
+                + weights["chamfer_sim"] * chamfer_similarity
+                + weights["area_sim"] * area_similarity
+                + weights["dice"] * dice
             )
             if np.isfinite(chamfer_distance):
                 exponent = np.clip(
@@ -779,7 +796,6 @@ def align_atac_to_st(
             "sigmaR": config.deformation_regularization,
             "sigmaA": 5.0,
             "sigmaB": 2.0,
-            "sigmaP": 20.0,
         },
         device=device,
         dtype=dtype,

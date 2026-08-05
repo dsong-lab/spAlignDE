@@ -50,7 +50,6 @@ class STAtlasAlignmentConfig:
     pairing_weight_dice: float = 0.18
     pairing_weight_area: float = 0.47
     pairing_weight_thickness: float = 0.21
-    pairing_weight_asd: float = 0.0
     pairing_dice_soft: float = 0.25
     pairing_sdf_soft: float = 0.55
     pairing_asd_soft: float = 50.0
@@ -345,7 +344,6 @@ def _pairing_parameters(
         "dice": float(config.pairing_weight_dice),
         "area_sim": float(config.pairing_weight_area),
         "thick_sim": float(config.pairing_weight_thickness),
-        "asd_sim": float(config.pairing_weight_asd),
     }
     if any(not np.isfinite(value) or value < 0 for value in weights.values()):
         raise ValueError("Atlas pairing weights must be finite and non-negative")

@@ -98,6 +98,10 @@ whole-tissue pre-alignment, structure masks and pairs, then deformation.
   distinguish narrow laminar structures from broad neighbors; Dice, SDF and
   Chamfer measure spatial agreement. Change weights globally, never for a
   named anatomical structure.
+- The empirical Atlas profile is SDF 0.08, Chamfer 0.06, Dice 0.18, area 0.47,
+  and thickness 0.21. Raw ASD is an independent QC gate, not a weighted score
+  component. See the website's **Cross-modality pairing weights** section for
+  a component-by-component tuning sequence.
 - Raising `pairing_score_threshold` or lowering `pairing_max_asd` makes pair
   acceptance stricter. Inspect the candidate component metrics before changing
   either gate.
@@ -164,6 +168,11 @@ before changing structure-pairing or S-LDDMM parameters.
 
 - Raising `pair_score_threshold` or lowering `pair_asd_threshold` makes pairing
   stricter. Review accepted and rejected masks, not only pair count.
+- The empirical H&E profile is SDF 0.20, Chamfer 0.40, Dice 0.15, area 0.25,
+  and thickness 0.00. Set these five `pairing_weight_*` fields globally; they
+  must be non-negative and sum to one. ASD remains a raw-distance QC criterion
+  and is not part of the composite score. See the website's **Cross-modality
+  pairing weights** section before tuning this profile.
 - `global_shape_weight` balances the whole-tissue outline against matched
   internal structures. Increase it if local pairs distort the overall outline;
   lower it when real outline differences block supported internal alignment.
@@ -204,7 +213,10 @@ ATAC_ALIGNMENT_GUIDANCE = r"""
 - Inspect structure masks after outlier filtering before tuning pair scores.
   `density_neighbors` and `density_mad_multiplier` control sparse-coordinate
   filtering; a smaller MAD multiplier is stricter.
-- SDF, Chamfer, area and Dice weights define one global pairing rule.
+- SDF, Chamfer, area and Dice weights define one global pairing rule. The
+  empirical profile is 0.35, 0.25, 0.30, and 0.10, respectively; the weights
+  must be non-negative and sum to one. See the website's **Cross-modality
+  pairing weights** section for tuning guidance.
   `pair_score_threshold` and `pair_dice_threshold` are acceptance gates. Do not
   loosen them until rejected candidate masks have been reviewed.
 - `channel_area_power` strengthens inverse-area balancing as it approaches one;

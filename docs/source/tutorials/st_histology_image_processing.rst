@@ -233,10 +233,12 @@ feature-grid coordinate frame.
 
 After pre-alignment, ST and H&E structures are converted to binary masks on a
 shared grid. Candidate correspondences are scored using signed-distance,
-Chamfer, Dice, area, and average-surface-distance similarities with weights
-0.20, 0.25, 0.15, 0.25, and 0.15. Pairs must have score at least 0.40 and ASD
-at most 30 pixels. Accepted pairs become continuous signed-distance channels
-for S-LDDMM.
+Chamfer, Dice, area and thickness similarities with empirical weights 0.20,
+0.40, 0.15, 0.25 and 0.00, respectively. The weights are configurable through
+``STHistologyAlignmentConfig`` and must be non-negative and sum to one. ASD is
+not part of the composite score; its raw value is retained only as an
+independent QC measure. Pairs must have score at least 0.40 and ASD at most 30
+pixels. Accepted pairs become continuous signed-distance channels for S-LDDMM.
 
 Paired-feature overlap quality control
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -263,8 +265,8 @@ sensitive to boundary displacement even for thin structures.
    :align: center
 
    Xenium cells overlaid on the reference H&E after global pre-alignment
-   (left) and after structure-guided S-LDDMM (right). Review internal landmarks
-   as well as the outer tissue contour.
+   (left) and after structure-guided S-LDDMM (right). Review internal
+   anatomical structures as well as the outer tissue contour.
 
 Parameter adaptation
 --------------------
@@ -279,14 +281,18 @@ pixels.
 
 For alignment, inspect the mask-overlap pre-alignment before changing pair
 thresholds. A low-IoU or anatomically incorrect overlay should be corrected
-with the interactive manual tool. ``pair_score_threshold`` and
-``pair_asd_threshold`` control accepted correspondences;
+with the interactive manual tool. ``pairing_weight_sdf``,
+``pairing_weight_chamfer``, ``pairing_weight_dice``, ``pairing_weight_area``
+and ``pairing_weight_thickness`` control the composite score; their paper
+defaults are 0.20, 0.40, 0.15, 0.25 and 0.00. ``pair_score_threshold`` and
+``pair_asd_threshold`` independently control accepted correspondences;
 ``global_shape_weight`` balances the whole-tissue outline against matched
 internal structures. The histology S-LDDMM values ``a=50`` and
 ``grid_step=6`` are expressed in original feature-grid units. ``zoom_scale``
 changes image sampling density but retains axes spanning that original grid;
-do not rescale ``a`` or ``grid_step`` by ``zoom_scale``. See
-:doc:`Parameter Tuning Guide <parameter_tuning>` before
+do not rescale ``a`` or ``grid_step`` by ``zoom_scale``. See the
+:ref:`cross-modality pairing-weight guide <cross_modality_pairing_weights>`
+and :doc:`Parameter Tuning Guide <parameter_tuning>` before
 transferring them to another image resolution.
 
 Outputs

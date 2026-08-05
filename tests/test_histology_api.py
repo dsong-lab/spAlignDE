@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 import tempfile
 import unittest
 from pathlib import Path
@@ -53,6 +54,61 @@ class HistologyContractTests(unittest.TestCase):
         self.assertTrue(callable(spAlignDE.cluster_histology_features))
         self.assertTrue(callable(spAlignDE.build_st_histology_structures))
         self.assertEqual(spAlignDE.STHistologyStructureConfig().n_levels, 5)
+
+    def test_histology_pairing_defaults_match_paper_and_exclude_asd(self):
+        from spAlignDE.alignment.histology import _histology_pairing_weights
+        from spAlignDE.alignment import _histology_alignment_core as core
+
+        config = spAlignDE.STHistologyAlignmentConfig()
+        weights = _histology_pairing_weights(config)
+        self.assertEqual(
+            weights,
+            {
+                "sdf_corr": 0.20,
+                "chamfer_sim": 0.40,
+                "dice": 0.15,
+                "area_sim": 0.25,
+                "thick_sim": 0.00,
+            },
+        )
+        self.assertAlmostEqual(sum(weights.values()), 1.0)
+        metrics = core.compute_all_metrics(
+            np.array([[1, 1], [1, 0]], dtype=np.uint8),
+            np.array([[1, 0], [1, 1]], dtype=np.uint8),
+        )
+        self.assertIn("asd", metrics)
+        self.assertNotIn("asd_sim", metrics)
+        self.assertIn("thick_sim", metrics)
+
+    def test_histology_pairing_weights_are_user_configurable_and_normalized(self):
+        from spAlignDE.alignment.histology import _histology_pairing_weights
+
+        weights = _histology_pairing_weights(
+            spAlignDE.STHistologyAlignmentConfig(
+                pairing_weight_sdf=0.25,
+                pairing_weight_chamfer=0.35,
+                pairing_weight_dice=0.20,
+                pairing_weight_area=0.15,
+                pairing_weight_thickness=0.05,
+            )
+        )
+        self.assertAlmostEqual(sum(weights.values()), 1.0)
+        with self.assertRaisesRegex(ValueError, "sum to 1.0"):
+            _histology_pairing_weights(
+                spAlignDE.STHistologyAlignmentConfig(pairing_weight_sdf=0.30)
+            )
+
+    def test_slddmm_core_has_no_landmark_arguments(self):
+        from spAlignDE.alignment import _atlas_core, _slddmm_core
+
+        for function in (
+            _slddmm_core.LDDMM_shooting,
+            _atlas_core.LDDMM_shooting,
+            _atlas_core.LDDMM_shooting_mixture,
+        ):
+            parameters = inspect.signature(function).parameters
+            self.assertNotIn("pointsI", parameters)
+            self.assertNotIn("pointsJ", parameters)
 
     def test_image_preparation_uses_only_the_image_and_records_grid(self):
         with tempfile.TemporaryDirectory() as temporary:

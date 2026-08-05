@@ -51,7 +51,7 @@ reference through five stages.
    are extracted independently from each modality.
 2. **Estimate a global pre-alignment.** A similarity transformation brings the
    query and reference into approximate agreement using shared centroids,
-   tissue masks or user-specified anatomical landmarks.
+   tissue masks or modality-specific spatial structures.
 3. **Establish structure correspondences.** Shared cluster identities guide
    cross-sample matching, whereas geometric and relative-position agreement
    guide cross-modality pairing. Expert-guided pairs can be supplied when

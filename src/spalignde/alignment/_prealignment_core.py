@@ -617,7 +617,7 @@ def estimate_weighted_procrustes(
     if allow_scaling:
         source_variance = (w * np.sum(Xc * Xc, axis=1)).sum()
         if source_variance <= np.finfo(float).eps:
-            raise ValueError("source landmarks are degenerate; cannot estimate scale")
+            raise ValueError("source point configuration is degenerate; cannot estimate scale")
         scale = float(singular_values.sum() / source_variance)
     else:
         scale = 1.0

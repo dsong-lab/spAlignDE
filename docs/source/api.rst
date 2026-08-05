@@ -572,7 +572,11 @@ continuous signed-distance channels and fits S-LDDMM. The returned
 ``STHistologyAlignmentResult`` includes aligned AnnData, accepted pairs,
 pre-alignment parameters, image structures and diagnostic fields.
 ``plot_st_histology_alignment`` compares global initialization and final
-alignment over the original color image.
+alignment over the original color image. ``STHistologyAlignmentConfig``
+exposes the normalized SDF, Chamfer, Dice, area and thickness weights. Their
+empirical defaults are 0.20, 0.40, 0.15, 0.25 and 0.00; raw ASD is excluded
+from this score and used only by ``pair_asd_threshold`` as an independent QC
+gate. See :ref:`cross_modality_pairing_weights` before changing these values.
 
 Spatial ATAC-to-ST alignment
 ----------------------------
@@ -615,7 +619,9 @@ candidate with globally shared SDF, Chamfer, area and Dice terms, selects a
 one-to-one set, and runs area-balanced signed-distance S-LDDMM. The result
 contains the aligned ATAC AnnData, fixed ST reference, accepted-pair table and
 mask/deformation diagnostics. No anatomical label or region-specific weight
-is required.
+is required. ``ATACSTAlignmentConfig`` exposes normalized empirical weights of
+0.35, 0.25, 0.30 and 0.10, respectively; see
+:ref:`cross_modality_pairing_weights` before adapting them to new data.
 
 ``plot_atac_st_prealignment`` displays the fixed ST field, transformed ATAC
 query and their initialization overlay. ``plot_atac_st_matched_structures``

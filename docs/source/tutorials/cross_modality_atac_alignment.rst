@@ -256,10 +256,12 @@ global optimization rules and do not inspect structure labels or anatomy.
 
 For a new dataset, inspect accepted and rejected masks before changing
 ``pair_score_threshold`` or ``pair_dice_threshold``. Adjust the SDF, Chamfer,
-area and Dice weights only as one global rule. ``channel_area_power`` controls
-inverse-area balancing and can give narrow masks more influence without naming
-an anatomical region. The ATAC values ``a=100`` and ``grid_step=40`` belong to
-the cropped raster canvas. See :doc:`Parameter Tuning Guide
+area and Dice weights only as one global rule and keep their sum equal to one.
+``channel_area_power`` controls inverse-area balancing and can give narrow masks
+more influence without naming an anatomical region. The ATAC values ``a=100``
+and ``grid_step=40`` belong to the cropped raster canvas. See the
+:ref:`cross-modality pairing-weight guide <cross_modality_pairing_weights>`
+for component-specific tuning and :doc:`Parameter Tuning Guide
 <parameter_tuning>` for the full dependency and failure checklist.
 
 .. code-block:: python

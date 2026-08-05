@@ -101,7 +101,6 @@ without a structure-specific matching rule.
        pairing_weight_dice=0.18,
        pairing_weight_area=0.47,
        pairing_weight_thickness=0.21,
-       pairing_weight_asd=0.0,
        pairing_dice_soft=0.25,
    )
 
@@ -380,8 +379,10 @@ coarse-to-fine deformation stages. The pairing weights must remain
 non-negative and sum to one; change them globally rather than assigning a
 special weight to a named structure. Raising ``pairing_score_threshold`` or
 lowering ``pairing_max_asd`` makes pair acceptance stricter. Detailed guidance
-for area/thickness balance, gates and failure modes is in
-:doc:`Parameter Tuning Guide <parameter_tuning>`.
+for area/thickness balance and score weights is in the
+:ref:`cross-modality pairing-weight guide <cross_modality_pairing_weights>`;
+the full gate and failure-mode checklist is in :doc:`Parameter Tuning Guide
+<parameter_tuning>`.
 
 The Atlas workflow currently uses a validated stage-specific S-LDDMM schedule
 internally, so ``STAtlasAlignmentConfig`` does not accept the single

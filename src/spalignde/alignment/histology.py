@@ -160,13 +160,19 @@ class HistologyPrealignmentResult:
 class STHistologyAlignmentConfig:
     """Structure pairing and S-LDDMM settings for ST-to-histology alignment.
 
-    Pair gates should be tuned from candidate-mask diagnostics. The S-LDDMM
+    Pairing weights must be finite, non-negative, and sum to one. Pair gates
+    should be tuned from candidate-mask diagnostics. The S-LDDMM
     ``kernel_scale``/``velocity_grid_spacing`` pair is the public equivalent of
     legacy ``a``/``grid_step`` and uses original feature-grid coordinate units.
     ``zoom_scale`` changes image sampling density while retaining axes that
     span the original feature-grid extent.
     """
 
+    pairing_weight_sdf: float = 0.20
+    pairing_weight_chamfer: float = 0.40
+    pairing_weight_dice: float = 0.15
+    pairing_weight_area: float = 0.25
+    pairing_weight_thickness: float = 0.00
     pair_score_threshold: float = 0.40
     pair_asd_threshold: float = 30.0
     maximum_pairs: int = 30
@@ -1277,6 +1283,24 @@ def _overall_st_mask(coordinates: np.ndarray, shape: tuple[int, int]) -> np.ndar
     return mask.astype(np.uint8)
 
 
+def _histology_pairing_weights(
+    config: STHistologyAlignmentConfig,
+) -> dict[str, float]:
+    """Return the normalized H&E--ST composite-score weights."""
+    weights = {
+        "sdf_corr": float(config.pairing_weight_sdf),
+        "chamfer_sim": float(config.pairing_weight_chamfer),
+        "dice": float(config.pairing_weight_dice),
+        "area_sim": float(config.pairing_weight_area),
+        "thick_sim": float(config.pairing_weight_thickness),
+    }
+    if any(not np.isfinite(value) or value < 0 for value in weights.values()):
+        raise ValueError("Histology pairing weights must be finite and non-negative")
+    if not np.isclose(sum(weights.values()), 1.0, atol=1e-8):
+        raise ValueError("Histology pairing weights must sum to 1.0")
+    return weights
+
+
 def align_st_to_histology(
     prealigned: HistologyPrealignmentResult | ad.AnnData,
     histology: HistologyClusteringResult | None = None,
@@ -1367,11 +1391,12 @@ def align_st_to_histology(
         frac_keep=0.3,
         top_k=4,
     )
+    pairing_weights = _histology_pairing_weights(config)
     pair_scores = core.all_pair_scores(
         st_masks,
         he_masks,
         min_intersection=config.minimum_intersection,
-        weights=core.W_ALIGN,
+        weights=pairing_weights,
     )
     if pair_scores.empty:
         raise RuntimeError(
@@ -1457,7 +1482,6 @@ def align_st_to_histology(
             "sigmaB": 2.0,
             "sigmaA": 5.0,
             "sigmaR": 5e5,
-            "sigmaP": 2e1,
         },
         device=device,
         dtype=dtype,
