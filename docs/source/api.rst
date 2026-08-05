@@ -635,12 +635,26 @@ Signature::
 
 Extracts terminal 10x barcodes from plain, sample-prefixed or source-file
 annotated observation identifiers. The kidney tutorial uses it to join raw
-counts to the aligned H5AD by identifier rather than row order.
+counts to aligned coordinates by identifier rather than row order.
 ``values`` accepts a sequence, Series or Index and returns a string Series in
 the same order. ``source_name`` is used in validation messages. A
 ``ValueError`` is raised when any identifier lacks a terminal 10x barcode. The
 same function is also available as
 ``spAlignDE.datasets.canonical_visium_barcodes``.
+
+``summarize_raw_genes``
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Signature::
+
+   spAlignDE.summarize_raw_genes(adata, genes=None)
+
+Computes the number of spots with positive expression and the total raw count
+for each requested gene. It accepts a raw-count AnnData object and preserves
+the requested gene order. The returned gene-indexed DataFrame contains
+``detected_spots`` and ``total_counts``. Missing or duplicate gene names are
+rejected. ``build_visium_inference_table`` uses this same implementation when
+constructing the across-sample risk-gene pool.
 
 ``build_visium_inference_table``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -648,7 +662,7 @@ same function is also available as
 .. code-block:: python
 
    visium_input = spAlignDE.build_visium_inference_table(
-       "/path/to/aligned_samples.h5ad",
+       aligned_coordinates,
        {
            "reference": "/path/to/reference_filtered_feature_bc_matrix.h5",
            "query": "/path/to/query_filtered_feature_bc_matrix.h5",
@@ -661,13 +675,17 @@ same function is also available as
 
 Provides the complete Visium alignment-to-inference handoff. It validates
 ``sample_id``, original coordinates, ``x_aligned``/``y_aligned`` and terminal
-barcodes in an aligned AnnData object; reads raw 10x HDF5 matrices; performs a
-one-to-one barcode join; filters the broad mismatch-risk gene pool; and returns
-a ``VisiumInferenceInput`` containing ``data``, ``coordinates``, ``genes``,
+barcodes in an aligned AnnData/H5AD or standardized coordinate DataFrame;
+reads raw 10x HDF5 matrices; performs a one-to-one barcode join; summarizes raw
+gene support; filters the broad mismatch-risk gene pool; and returns a
+``VisiumInferenceInput`` containing ``data``, ``coordinates``, ``genes``,
 ``risk_genes``, ``sample_sizes`` and ``n_common_genes``. Raw-count AnnData
 objects can be supplied instead of HDF5 paths for programmatic workflows.
 
-The function never assumes that ``aligned.X`` contains raw expression.
+The coordinate DataFrame route is the one used by the executed kidney
+notebook after ``build_visium_coordinate_table`` combines tissue positions with
+packaged or user-supplied aligned coordinates. The function never assumes that
+``aligned.X`` contains raw expression.
 
 ``prepare_inference``
 ~~~~~~~~~~~~~~~~~~~~~

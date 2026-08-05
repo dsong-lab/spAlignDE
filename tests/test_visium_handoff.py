@@ -3,15 +3,45 @@ import unittest
 import anndata as ad
 import numpy as np
 import pandas as pd
+from scipy import sparse
 
 from spAlignDE.datasets import (
     build_visium_coordinate_table,
     build_visium_inference_table,
     canonical_visium_barcodes,
+    summarize_raw_genes,
 )
 
 
 class VisiumHandoffTests(unittest.TestCase):
+    def test_summarize_raw_genes_preserves_requested_order(self):
+        adata = ad.AnnData(
+            X=sparse.csr_matrix(
+                np.asarray(
+                    [
+                        [1.0, 0.0, 3.0],
+                        [0.0, 2.0, 1.0],
+                    ]
+                )
+            ),
+            obs=pd.DataFrame(index=["spot_a", "spot_b"]),
+            var=pd.DataFrame(index=["gene_a", "gene_b", "gene_c"]),
+        )
+
+        observed = summarize_raw_genes(adata, ["gene_c", "gene_a"])
+
+        self.assertEqual(observed.index.tolist(), ["gene_c", "gene_a"])
+        self.assertEqual(observed["detected_spots"].tolist(), [2, 1])
+        self.assertEqual(observed["total_counts"].tolist(), [4.0, 1.0])
+
+    def test_summarize_raw_genes_rejects_missing_genes(self):
+        adata = ad.AnnData(
+            X=np.ones((2, 1), dtype=float),
+            var=pd.DataFrame(index=["gene_a"]),
+        )
+        with self.assertRaisesRegex(ValueError, "Genes were not found"):
+            summarize_raw_genes(adata, ["missing"])
+
     def test_build_visium_inference_table_uses_barcode_not_row_order(self):
         genes = [f"gene_{index}" for index in range(12)]
         aligned = ad.AnnData(
@@ -79,6 +109,51 @@ class VisiumHandoffTests(unittest.TestCase):
                 "AAACAGCTTTCAGAAG-1",
                 "AAACAGGGTCTATATT-1",
             ],
+        )
+
+    def test_build_visium_inference_table_accepts_coordinate_dataframe(self):
+        genes = [f"gene_{index}" for index in range(12)]
+        coordinates = pd.DataFrame(
+            {
+                "barcode": ["AAAA-1", "CCCC-1", "AAAA-1", "CCCC-1"],
+                "cell_id": [
+                    "NL3__AAAA-1",
+                    "NL3__CCCC-1",
+                    "IL3__AAAA-1",
+                    "IL3__CCCC-1",
+                ],
+                "sample_id": ["NL3", "NL3", "IL3", "IL3"],
+                "x": [1.0, 2.0, 1.0, 2.0],
+                "y": [3.0, 4.0, 3.0, 4.0],
+                "x_aligned": [1.0, 2.0, 1.1, 2.1],
+                "y_aligned": [3.0, 4.0, 3.1, 4.1],
+            }
+        )
+        nl3 = ad.AnnData(
+            X=np.vstack([np.full(12, 2.0), np.full(12, 1.0)]),
+            obs=pd.DataFrame(index=["CCCC-1", "AAAA-1"]),
+            var=pd.DataFrame(index=genes),
+        )
+        il3 = ad.AnnData(
+            X=np.vstack([np.full(12, 4.0), np.full(12, 3.0)]),
+            obs=pd.DataFrame(index=["CCCC-1", "AAAA-1"]),
+            var=pd.DataFrame(index=genes),
+        )
+
+        observed = build_visium_inference_table(
+            coordinates,
+            {"NL3": nl3, "IL3": il3},
+            genes=["gene_0"],
+            min_detected_spots=1,
+            min_total_counts=1,
+            batch="kidney_pair",
+        )
+
+        self.assertEqual(observed.sample_sizes, {"NL3": 2, "IL3": 2})
+        self.assertEqual(observed.data["gene_0"].tolist(), [1.0, 2.0, 3.0, 4.0])
+        self.assertEqual(
+            observed.coordinates["cell_id"].tolist(),
+            coordinates["cell_id"].tolist(),
         )
 
     def test_build_visium_coordinate_table_matches_by_barcode(self):

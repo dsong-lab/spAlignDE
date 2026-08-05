@@ -121,16 +121,29 @@ large gene-specific global factor.
 Public workflow
 ---------------
 
-After joining the inputs and constructing the broad ``risk_genes`` pool, the
-executed analysis runs:
+The package performs the complete reusable handoff. After concatenating the
+standardized outputs of ``build_visium_coordinate_table`` into
+``coordinate_data``, the executed analysis runs:
 
 .. code-block:: python
 
-   prepared = spAlignDE.prepare_inference(
-       inference_data,
-       reference="NL3",
+   visium_input = spAlignDE.build_visium_inference_table(
+       coordinate_data,
+       {
+           "NL3": "/path/to/NL3_filtered_feature_bc_matrix.h5",
+           "IL3": "/path/to/IL3_filtered_feature_bc_matrix.h5",
+       },
        genes=["Cbr1", "Cd44", "Myo5a"],
-       risk_genes=risk_genes,
+       min_detected_spots=10,
+       min_total_counts=10,
+       batch="kidney_pair",
+   )
+
+   prepared = spAlignDE.prepare_inference(
+       visium_input.data,
+       reference="NL3",
+       genes=visium_input.genes,
+       risk_genes=visium_input.risk_genes,
        aligned_coordinate_key=("x_aligned", "y_aligned"),
        cell_type_key=None,
        density_energy_share=0.75,
@@ -141,7 +154,7 @@ executed analysis runs:
 
    result = spAlignDE.fit_local_de(
        prepared,
-       genes=["Cbr1", "Cd44", "Myo5a"],
+       genes=visium_input.genes,
        contrast="vs_reference",
        mismatch_aware=True,
        technical_adjustment=True,
@@ -150,6 +163,10 @@ executed analysis runs:
        region_cleanup=False,
        random_state=1,
    )
+
+``summarize_raw_genes`` is also public for workflows that need the per-gene
+``detected_spots`` and ``total_counts`` table directly. The kidney notebook
+does not reimplement that summary or any dataset-processing helper locally.
 
 ``mismatch_aware=False`` runs the Naive comparison on the same prepared grid.
 For multiple queries, the first available contrast calibrates each gene's

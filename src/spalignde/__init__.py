@@ -107,6 +107,7 @@ from .datasets import (
     kidney_alignment_metadata,
     load_kidney_aligned_coordinates,
     make_cross_sample_example,
+    summarize_raw_genes,
 )
 from . import uncertainty
 
@@ -237,6 +238,7 @@ __all__ = [
     "load_histology_features",
     "load_kidney_aligned_coordinates",
     "make_cross_sample_example",
+    "summarize_raw_genes",
     "cluster_joint",
     "cluster_single",
     "cluster_trajectories",

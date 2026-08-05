@@ -8,6 +8,12 @@ and fits local tests for ``Cbr1``, ``Cd44`` and ``Myo5a``. Users can replace the
 packaged coordinates with their own alignment output through
 ``SPALIGNDE_ALIGNMENT_DIR``.
 
+All reusable data preparation is implemented by public package functions. The
+notebook contains no local function definitions:
+``build_visium_coordinate_table`` performs the position/alignment handoff and
+``build_visium_inference_table`` reads raw counts, summarizes gene support,
+selects the risk-gene pool and constructs the long inference table.
+
 Input data
 ----------
 
