@@ -1,0 +1,24 @@
+# Changelog
+
+## 0.2.0 — 2026-08-04
+
+- Replaced the former tail/intercept mismatch calibration with the promoted
+  gene-specific MAD-null1-A0 design: within-risk-bin median centering,
+  Student-t null MAD scaling, monotone nonnegative scale excess, and a
+  quadratic local-risk fit through the origin with bounded anchor rescaling.
+- Fixed the gene-specific global mismatch coefficient at zero. The
+  comparison-level global risk score remains available as provenance but no
+  longer applies a spatially uniform variance factor.
+- Preserved local P-value arrays in compact fitted results so
+  `gene_level_acat_pvalue` works on normal public `fit_local_de` output.
+- Matched the manuscript ACAT numerical small-P branch and made the public
+  summary strict about using raw local P values rather than adjusted q-values.
+- Added actual per-gene calibration modes and coefficients to result metadata.
+- Clarified density feature-energy weighting, stable-gene candidate screening,
+  shared-grid sizing, cell-type support, and optional region cleanup in the
+  README and tutorials.
+- Updated the kidney tutorial to use the manuscript-comparable uncleaned
+  `q < 0.05` region mask.
+
+Package publication remains a separate release action. The documentation is
+deployed by the GitHub Pages workflow after this update reaches ``main``.

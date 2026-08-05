@@ -488,9 +488,10 @@ Inference tuning begins only after the alignment passes geometric QC.
 - ``min_detected_spots`` and ``min_total_counts`` filter the candidate risk-gene
   pool. Increase them when extremely sparse genes make risk unstable.
 - ``density_energy_share`` controls how much local sampling-density discordance
-  contributes to mismatch risk and must lie strictly between zero and one.
-  Increase it when density mismatch is known to be a major reliability signal;
-  do not use it to conceal poor registration.
+  contributes to the standardized mismatch-feature energy and must lie
+  strictly between zero and one. It is not a direct weight on the final risk
+  map or variance multiplier. Increase it when density mismatch is known to be
+  a major reliability signal; do not use it to conceal poor registration.
 - Leave ``grid_n=None`` to retain the R-driven resolution when its actual
   tissue-valid location count lies between the median per-sample observation
   count, ``N_typ``, and ``2 * N_typ``; otherwise the automatic rule moves the
@@ -500,9 +501,19 @@ Inference tuning begins only after the alignment passes geometric QC.
   ``target_grid_locations`` and ``shared_grid_locations`` from
   ``prepared.metadata``.
 - Enable ``cell_type_adjustment`` only when complete, validated cell-type labels
-  are available in every sample.
-- ``region_cleanup`` removes isolated significant fragments. Report both the
-  testing settings and cleanup rule when interpreting connected regions.
+  are available in every sample. This support term is distinct from alignment
+  mismatch calibration.
+- ``region_cleanup=False`` reports connected components of the direct
+  ``q < 0.05`` grid mask. Enabling cleanup removes isolated or unsupported
+  fragments from the reported mask without changing statistics, P values or
+  q-values. Report the choice when interpreting connected regions.
+
+The gene-specific calibration has no public tuning knobs. It median-centers
+first-pass statistics within normalized-risk bins, scales each MAD by the
+Student-t null MAD, applies a monotone nonnegative excess-variance constraint,
+and fits a through-origin quadratic with a bounded anchor near 80% risk. The
+resulting factor is :math:`1+\lambda_{\mathrm{local},g}r_i^2`; the
+gene-specific global coefficient is fixed at zero.
 
 Failure-oriented checklist
 --------------------------

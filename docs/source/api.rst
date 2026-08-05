@@ -707,7 +707,7 @@ Signature::
    spAlignDE.fit_local_de(prepared, *, genes=None, contrast="vs_reference",
                           alpha=0.05, mismatch_aware=True,
                           technical_adjustment=True,
-                          cell_type_adjustment=False, global_offset=True,
+                          cell_type_adjustment=True, global_offset=True,
                           region_cleanup=False, n_jobs=1,
                           random_state=None, verbose=True)
 
@@ -732,6 +732,23 @@ Complete cell-type annotations are required before
 ``cell_type_adjustment=True`` can be used. BH adjustment is applied within
 each gene and contrast across tested grid locations.
 
+For every gene, Mismatch-aware fitting starts from first-pass local statistics,
+bins them by normalized local risk, removes each bin median, and divides the
+bin MAD by the Student-t null MAD. Nonnegative excess variance is constrained
+to be nondecreasing, fitted as a quadratic through the origin, and boundedly
+rescaled at the risk bin nearest the 80th percentile. The applied mismatch
+factor is
+
+.. math::
+
+   1+\lambda_{\mathrm{local},g}r_i^2,
+   \qquad \lambda_{\mathrm{global},g}=0.
+
+The comparison-level global risk score remains diagnostic provenance. Actual
+per-gene calibration modes and local/global coefficients are stored in result
+metadata. With multiple queries, the first available contrast calibrates the
+gene-specific local coefficient reused across the remaining contrasts.
+
 ``prepared`` must be returned by ``prepare_inference``. ``genes=None`` tests
 all genes prepared earlier. ``contrast`` is ``"vs_reference"`` or
 ``"sequential"``; ``alpha`` is strictly between zero and one.
@@ -755,9 +772,11 @@ region contour.
 ``gene_level_acat_pvalue(result, gene)`` is the public result-aware helper. It
 combines dependent local P values within each contrast and, for multi-query
 results, combines contrast-level evidence using valid-grid counts as weights.
-It also supports compact results from earlier package versions by
-reconstructing local P values from their stored statistic and degrees of
-freedom. ``acat_pvalue`` is the lower-level array utility.
+Compact fitted results retain ``p_by_time`` so the helper strictly combines raw
+local P values; adjusted q-values are never substituted. A missing raw-P map is
+reported as an invalid result rather than reconstructed from another field.
+``acat_pvalue`` is the lower-level array utility and uses a stable reciprocal
+Cauchy-tail branch for extremely small P values.
 ``cluster_trajectories`` groups shared-grid locations with related
 adjusted-expression trajectories across ordered query samples. These are
 downstream summaries and do not replace the location-level q-value maps or

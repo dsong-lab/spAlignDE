@@ -1,0 +1,63 @@
+{
+  "description": "Self-contained post-alignment toy dataset for the spAlignDE tutorial.",
+  "reference_sample": "age_3.0",
+  "query_samples": [
+    "age_9.0",
+    "age_18.0",
+    "age_30.0"
+  ],
+  "gene_groups": {
+    "stable": [
+      "stable_01",
+      "stable_02",
+      "stable_03",
+      "stable_04",
+      "stable_05",
+      "stable_06",
+      "stable_07",
+      "stable_08",
+      "stable_09",
+      "stable_10",
+      "stable_11",
+      "stable_12",
+      "stable_13",
+      "stable_14",
+      "stable_15",
+      "stable_16",
+      "stable_17",
+      "stable_18",
+      "stable_19",
+      "stable_20",
+      "stable_21",
+      "stable_22",
+      "stable_23",
+      "stable_24"
+    ],
+    "true_de": [
+      "toy_up",
+      "toy_down"
+    ],
+    "null": [
+      "null_01",
+      "null_02",
+      "null_03",
+      "null_04",
+      "null_05",
+      "null_06"
+    ]
+  },
+  "truth_note": "Truth annotations are for tutorial evaluation only and are not used by inference.",
+  "config": {
+    "seed": 20260719,
+    "n_spots_per_sample": 1000,
+    "n_stable_genes": 24,
+    "n_null_genes": 6,
+    "nb_theta": 12.0,
+    "reference_id": "age_3.0",
+    "query_ids": [
+      "age_9.0",
+      "age_18.0",
+      "age_30.0"
+    ]
+  }
+}

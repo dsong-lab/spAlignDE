@@ -5,17 +5,21 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 import numpy as np
-from scipy.stats import t as student_t
 
 from . import _legacy_core
 from ._types import LocalDEResult, TrajectoryResult
 
 
 def acat_pvalue(pvalues: Sequence[float], weights: Sequence[float] | None = None) -> float:
-    """Combine dependent P values with the Cauchy combination test."""
+    """Combine dependent P values with the Cauchy combination test.
+
+    The small-P branch uses the reciprocal Cauchy-tail approximation used by
+    the manuscript analysis. This avoids loss of precision when evaluating
+    ``tan((0.5 - p) * pi)`` very close to ``pi / 2``.
+    """
 
     p = np.asarray(pvalues, dtype=float)
-    finite = np.isfinite(p)
+    finite = np.isfinite(p) & (p > 0) & (p < 1)
     if not finite.any():
         return float("nan")
     p = np.clip(p[finite], 1e-15, 1 - 1e-15)
@@ -26,7 +30,13 @@ def acat_pvalue(pvalues: Sequence[float], weights: Sequence[float] | None = None
         if np.any(w0 < 0) or not np.isfinite(w0).all() or w0.sum() <= 0:
             raise ValueError("weights must be finite, non-negative, and sum to a positive value.")
         w = w0 / w0.sum()
-    statistic = np.sum(w * np.tan((0.5 - p) * np.pi))
+    very_small = p < 1e-12
+    statistic = float(np.sum(w[very_small] / (np.pi * p[very_small])))
+    statistic += float(
+        np.sum(w[~very_small] * np.tan((0.5 - p[~very_small]) * np.pi))
+    )
+    if statistic > 1e15:
+        return float(1.0 / (np.pi * statistic))
     return float(0.5 - np.arctan(statistic) / np.pi)
 
 
@@ -35,7 +45,8 @@ def gene_level_acat_pvalue(result: LocalDEResult, gene: str) -> float:
 
     Local P values are combined within each contrast. For results with more
     than one contrast, the contrast-level ACAT P values are combined again
-    using weights proportional to their numbers of valid local tests.
+    using weights proportional to their numbers of valid local tests. Adjusted
+    q-values are never substituted when local P values are unavailable.
     """
 
     if not isinstance(result, LocalDEResult):
@@ -46,47 +57,23 @@ def gene_level_acat_pvalue(result: LocalDEResult, gene: str) -> float:
     if not isinstance(terrain, dict):
         raise ValueError(f"The fitted result for {gene!r} has no terrain data.")
     p_by_time = terrain.get("p_by_time")
-    stat_by_time = terrain.get("stat_by_time")
-    df_by_time = terrain.get("df_by_time")
-    has_saved_pvalues = isinstance(p_by_time, dict)
-    can_reconstruct_pvalues = isinstance(stat_by_time, dict) and isinstance(
-        df_by_time, dict
-    )
-    if not has_saved_pvalues and not can_reconstruct_pvalues:
-        raise ValueError(
-            f"The fitted result for {gene!r} has neither local P values nor "
-            "the statistics and degrees of freedom needed to reconstruct them."
-        )
+    if not isinstance(p_by_time, dict):
+        raise ValueError(f"The fitted result for {gene!r} has no local P values.")
 
-    source_by_time = p_by_time if has_saved_pvalues else stat_by_time
-    time_ids = list(terrain.get("time_ids", [])) or list(source_by_time)
+    time_ids = list(terrain.get("time_ids", [])) or list(p_by_time)
     contrast_pvalues: list[float] = []
     contrast_weights: list[float] = []
     for time_id in time_ids:
-        def lookup(mapping):
-            value = mapping.get(time_id)
-            if value is not None:
-                return value
-            return next(
-                (values for key, values in mapping.items() if str(key) == str(time_id)),
+        local = p_by_time.get(time_id)
+        if local is None:
+            local = next(
+                (values for key, values in p_by_time.items() if str(key) == str(time_id)),
                 None,
             )
-
-        if has_saved_pvalues:
-            local = lookup(p_by_time)
-            if local is None:
-                continue
-        else:
-            statistic = lookup(stat_by_time)
-            degrees_of_freedom = lookup(df_by_time)
-            if statistic is None or degrees_of_freedom is None:
-                continue
-            local = 2.0 * student_t.sf(
-                np.abs(np.asarray(statistic, dtype=float)),
-                np.asarray(degrees_of_freedom, dtype=float),
-            )
+        if local is None:
+            continue
         local = np.asarray(local, dtype=float).reshape(-1)
-        valid = np.isfinite(local) & (local >= 0) & (local <= 1)
+        valid = np.isfinite(local) & (local > 0) & (local <= 1)
         if not valid.any():
             continue
         contrast_pvalues.append(acat_pvalue(local[valid]))

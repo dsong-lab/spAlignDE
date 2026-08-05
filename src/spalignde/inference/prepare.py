@@ -104,10 +104,12 @@ def prepare_inference(
         Genes intended for downstream fitting. They are retained in the public
         prepared object but do not limit mismatch-risk estimation.
     risk_genes
-        Expression columns used to estimate stable-gene mismatch risk. If
-        omitted, all eligible non-negative numeric expression columns in `data`
-        are used. Supplying only the genes being tested is usually inappropriate
-        because SWND risk estimation requires a sufficiently broad gene set.
+        Candidate expression columns for stable-gene mismatch-risk estimation.
+        If omitted, all eligible non-negative numeric expression columns in
+        `data` are candidates. The kernel screens this pool and retains up to
+        300 stable/informative markers; the input pool does not need to contain
+        300 genes. Supplying only the genes being tested is usually
+        inappropriate because risk estimation requires a broad candidate set.
     library_size
         `None` leaves input expression unchanged. A positive number rescales
         each spot/cell to this library size before local testing.
@@ -115,11 +117,13 @@ def prepare_inference(
         Optional spot-level alignment-uncertainty column. When omitted,
         mismatch risk is estimated from stable-gene profiles and local density.
     density_energy_share
-        Relative contribution of the density channel to estimated mismatch risk.
+        Target share of the standardized mismatch-feature-vector energy assigned
+        to the density channel before the comparison-level risk map is formed.
+        It is not a direct linear weight on the final risk or variance factor.
         The current validated kernel accepts values in `(0, 1)`.
     grid_n
         Explicit Cartesian grid resolution. By default, the R-driven candidate
-        is retained when its actual number of tissue-valid locations lies
+        is retained when its estimated number of tissue-valid locations lies
         between the median per-sample observation count and twice that count;
         otherwise resolution is adjusted toward the corresponding bound after
         accounting for tissue-mask occupancy. An explicit value takes priority

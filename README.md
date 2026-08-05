@@ -77,12 +77,23 @@ analysis workflows listed below.
 | Post-alignment inference | `source_notebooks/post_alignment_inference_nb.ipynb` after kidney alignment |
 
 The post-alignment notebook retains the standard website input handoff:
-`kidney_IL3_to_NL3_aligned.h5ad` plus the public NL3/IL3 raw 10x count
-matrices. It joins spots by terminal barcode, tests `Cbr1`, `Cd44`, and
-`Myo5a`, uses the sample-size- and tissue-mask-aware automatic shared-grid
-rule, and reports gene-level ACAT omnibus P values together with local q-value
-maps. Pass an integer `grid_n` only when an explicit Cartesian resolution is
-scientifically justified.
+the packaged manuscript `aligned_317` coordinates plus the public NL3/IL3 raw
+10x count matrices and tissue-position tables. It joins spots by terminal
+barcode, tests `Cbr1`, `Cd44`, and `Myo5a`, and uses the sample-size- and
+tissue-occupancy-aware automatic shared-grid rule. Pass an integer `grid_n`
+only when an explicit Cartesian resolution is scientifically justified.
+
+Mismatch-aware inference calibrates each gene from its first-pass local
+statistics. Statistics are grouped by normalized local risk, median-centered,
+and scaled by the corresponding Student-t null MAD. Nonnegative excess
+variance is constrained to increase monotonically with risk, then fitted as a
+quadratic through the origin and boundedly anchored near the 80th risk
+percentile. The final mismatch factor is `1 + lambda_local * risk**2`;
+`lambda_global` is fixed at zero, so zero-risk locations are not shrunk by a
+spatially uniform gene-specific penalty. The kidney notebook sets
+`region_cleanup=False`, making its red contours the direct connected
+components of the `q < 0.05` grid mask. Gene-level ACAT uses retained raw local
+P values, never q-values.
 
 Single-sample input can be AnnData/H5AD or one metadata/expression CSV pair.
 Cross-sample input can be a combined AnnData/H5AD object or a directory of
