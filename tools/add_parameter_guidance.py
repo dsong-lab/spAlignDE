@@ -98,8 +98,8 @@ whole-tissue pre-alignment, structure masks and pairs, then deformation.
   distinguish narrow laminar structures from broad neighbors; Dice, SDF and
   Chamfer measure spatial agreement. Change weights globally, never for a
   named anatomical structure.
-- The empirical Atlas profile is SDF 0.08, Chamfer 0.06, Dice 0.18, area 0.47,
-  and thickness 0.21. Raw ASD is an independent QC gate, not a weighted score
+- The validated Atlas profile is SDF 0.05, Chamfer 0.05, Dice 0.20, area 0.50,
+  and thickness 0.20. Raw ASD is an independent QC gate, not a weighted score
   component. See the website's **Cross-modality pairing weights** section for
   a component-by-component tuning sequence.
 - Raising `pairing_score_threshold` or lowering `pairing_max_asd` makes pair
@@ -114,7 +114,7 @@ a custom stage schedule requires an explicit API extension.
 
 If a thin region matches a broader neighbor, check hierarchy level, mask
 quality and pre-alignment first. Only then adjust the global area/thickness
-balance. The four-level example is a validated starting profile, not a rule for
+balance. The three-level example is a validated starting profile, not a rule for
 all cluster counts or atlas slices.
 """
 

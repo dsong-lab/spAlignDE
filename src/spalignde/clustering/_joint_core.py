@@ -331,11 +331,13 @@ def integrate_joint_with_harmony(
 
     banksy_adata = ad.concat(parts, join="outer")
     tmp = {decay: {selected_lambda: {"adata": banksy_adata}}}
+    # pyBANKSY's PCA helper delegates to randomized sklearn PCA without
+    # exposing random_state. Seed immediately before that PCA call.
+    np.random.seed(random_state)
+    sc.settings.seed = random_state
     pca_umap(tmp, pca_dims=list(pca_dims), add_umap=False, plt_remaining_var=False)
     banksy_adata = tmp[decay][selected_lambda]["adata"]
 
-    np.random.seed(random_state)
-    sc.settings.seed = random_state
     pca_key = f"reduced_pc_{list(pca_dims)[0]}"
     harmony = hm.run_harmony(
         banksy_adata.obsm[pca_key],
@@ -386,6 +388,8 @@ def run_harmony_snn_leiden(
     k: int,
     resolution: float,
     random_state: int = 1000,
+    flavor: str = "leidenalg",
+    n_iterations: int = -1,
     key_added: str = "leiden_harmony",
 ) -> ad.AnnData:
     """Build an SNN graph on Harmony BANKSY features and run Leiden clustering."""
@@ -421,9 +425,10 @@ def run_harmony_snn_leiden(
     sc.tl.leiden(
         banksy_adata,
         resolution=resolution,
-        n_iterations=-1,
+        n_iterations=n_iterations,
         random_state=random_state,
         directed=False,
+        flavor=flavor,
         key_added=key_added,
     )
     return banksy_adata

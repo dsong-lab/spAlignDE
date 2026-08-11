@@ -34,6 +34,11 @@ was re-estimated independently for each replicate:
 5. rasterization into structure-composition and tissue-density pseudo-images;
 6. S-LDDMM registration.
 
+Every replicate uses seed ``1000`` with fixed observation ordering. Discrete
+inputs and labels are exact-repeat targets; transformation coordinates are
+summarized as empirical variability rather than described as bitwise
+deterministic CUDA output.
+
 The executable notebook starts from the replicate-specific pseudo-images and
 prealigned coordinates produced by steps 1--5. It runs or loads S-LDDMM,
 validates all ten replicate alignments, and regenerates the pointwise

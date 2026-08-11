@@ -126,6 +126,14 @@ def build_notebook(artifacts: Path):
             import pandas as pd
             from IPython.display import Image, display
 
+            import spAlignDE
+
+            WORKFLOW_SEED = 1000
+            seed_controls = spAlignDE.set_random_seed(
+                WORKFLOW_SEED,
+                deterministic_torch=True,
+            )
+
 
             def locate_repository(start: Path) -> Path:
                 for candidate in (start.resolve(), *start.resolve().parents):
@@ -176,6 +184,7 @@ def build_notebook(artifacts: Path):
                     "--source-dir", str(SOURCE_DIR),
                     "--output-dir", str(OUTPUT_DIR),
                     "--lambdas", "0", "0.2", "0.5", "0.8", "1",
+                    "--seed", str(WORKFLOW_SEED),
                 ]
                 subprocess.run(command, check=True)
 
@@ -309,7 +318,7 @@ def build_notebook(artifacts: Path):
             """
             palette = dict(zip(sorted(adata.obs["cluster"].astype(str).unique()), plt.cm.tab10.colors))
             fig, axes = plt.subplots(1, 2, figsize=(7.2, 3.2), constrained_layout=True)
-            rng = np.random.default_rng(1000)
+            rng = np.random.default_rng(WORKFLOW_SEED)
             for ax, sample_id in zip(axes, ["Rep1", "Rep2"]):
                 mask = adata.obs["sample_id"].astype(str).eq(sample_id).to_numpy()
                 positions = np.flatnonzero(mask)

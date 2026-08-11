@@ -13,6 +13,10 @@ raster-canvas units. See :doc:`../tutorials/cross_modality_atac_alignment` for
 the data/output contract and :doc:`../tutorials/parameter_tuning` for failure-
 oriented tuning.
 
+Both notebooks use seed ``1234``. The fixed result contains 17 ATAC
+structures and five accepted ATAC-to-ST pairs; discrete labels and pair tables
+were exact in two fresh processes.
+
 .. toctree::
    :maxdepth: 1
    :titlesonly:

@@ -11,6 +11,11 @@ environment <installation>`. The downloadable environment file pins the
 Python, PyTorch/CUDA, clustering, image-processing and Jupyter dependencies
 used by these workflows.
 
+Start Jupyter with the launch-time controls and use the workflow seeds listed
+in :doc:`Reproducibility and fixed random seeds
+<tutorials/reproducibility>`. Every computational notebook resets its numeric
+random generators before the first stochastic operation.
+
 When adapting an example rather than reproducing it unchanged, read the
 :doc:`Parameter Tuning Guide <tutorials/parameter_tuning>` first. It explains
 coordinate-dependent settings, legacy S-LDDMM symbols, parameter coupling and

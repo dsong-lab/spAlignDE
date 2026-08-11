@@ -12,6 +12,7 @@ import numpy as np
 import pandas as pd
 
 from ..io import spatial_coordinates, validate_single_sample_anndata
+from ..random import set_random_seed
 
 
 @dataclass(frozen=True)
@@ -155,6 +156,10 @@ def cluster_single(
             partition_seed=config.random_state,
         )
 
+    # pyBANKSY 1.3.4 constructs sklearn PCA without random_state. Seed the
+    # global NumPy generator before feature generation so randomized SVD is
+    # controlled in addition to the graph partition seed passed above.
+    seed_controls = set_random_seed(config.random_state)
     if banksy_output_dir is None:
         with TemporaryDirectory(prefix="spAlignDE_banksy_") as temporary_dir:
             results = run_banksy(Path(temporary_dir))
@@ -213,6 +218,7 @@ def cluster_single(
         ),
         "n_clusters": int(output.obs[cluster_key].nunique()),
         "selected_parameters": str(selected_parameters),
+        "seed_controls": seed_controls,
     }
 
     details = {

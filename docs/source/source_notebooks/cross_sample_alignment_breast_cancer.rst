@@ -49,6 +49,11 @@ expression-only control. ``lambda=0.2`` is selected because it preserves a
 modest spatial contribution while maintaining good mixing; larger spatial
 weights leave progressively stronger sample structure. The selected result
 contains 10 shared Leiden clusters and does not introduce an HVG subset.
+The complete fixed-seed workflow uses seed ``1000``; randomized PCA, Harmony,
+UMAP and Leiden receive this seed explicitly. The dedicated Xenium runner pins
+Scanpy Leiden to ``flavor="igraph"`` with ``n_iterations=2``; it does not fall
+back silently to another partition backend when an optional dependency is
+missing.
 
 Rep2-to-Rep1 alignment
 ----------------------

@@ -65,6 +65,11 @@ The ST data are available from the `Vizgen Mouse Brain Receptor Map
 
    import spAlignDE
 
+   seed_controls = spAlignDE.set_random_seed(
+       1234,
+       deterministic_torch=True,
+   )
+
    adata = spAlignDE.load_single_sample_data(
        "tutorials/cross_modality/atlas/output/merfish_S2R1_single_clustered.h5ad"
    )
@@ -82,25 +87,28 @@ The finest partition is ``adata.obs["cluster"]``. To build coarser levels,
 spAlignDE log-transforms expression, retains genes accounting for a chosen
 cumulative fraction of gene-wise variance, computes standardized
 cluster-average profiles and applies Ward linkage. With 25 final S2R1
-clusters and four levels in the documented environment, the automatic
-hierarchy contains 7, 13, 19 and 25 structures. The coarsest level retains at
+clusters and three levels in the documented environment, the automatic
+hierarchy contains 7, 16 and 25 structures. The coarsest level retains at
 least seven structures so the initial deformation is supported by multiple
-anatomical anchors. The additional intermediate partitions make deformation
-more gradual and stabilize thin hippocampal structures, including CA3sp,
-without a structure-specific matching rule.
+anatomical anchors. These are ST-only levels: Allen hierarchy candidates from
+depths 2–10 remain eligible at every stage. There is no stage-specific Atlas
+depth restriction and no structure-specific matching rule.
 
 .. code-block:: python
 
    config = spAlignDE.STAtlasAlignmentConfig(
-       n_levels=4,
+       n_levels=3,
        minimum_coarse_structures=7,
        variance_fraction=0.8,
        min_genes=50,
-       pairing_weight_sdf=0.08,
-       pairing_weight_chamfer=0.06,
-       pairing_weight_dice=0.18,
-       pairing_weight_area=0.47,
-       pairing_weight_thickness=0.21,
+       pairing_weight_sdf=0.05,
+       pairing_weight_chamfer=0.05,
+       pairing_weight_dice=0.20,
+       pairing_weight_area=0.50,
+       pairing_weight_thickness=0.20,
+       continuation_kernel_scale=200,
+       continuation_velocity_grid_spacing=50,
+       continuation_restore_best_checkpoint=False,
        pairing_dice_soft=0.25,
    )
 
@@ -149,11 +157,11 @@ score is
 .. math::
 
    S(C,A) =
-   0.08S_{\mathrm{SDF}} +
-   0.06S_{\mathrm{Chamfer}} +
-   0.18D_{\mathrm{Dice}} +
-   0.47S_{\mathrm{area}} +
-   0.21S_{\mathrm{thickness}}.
+   0.05S_{\mathrm{SDF}} +
+   0.05S_{\mathrm{Chamfer}} +
+   0.20D_{\mathrm{Dice}} +
+   0.50S_{\mathrm{area}} +
+   0.20S_{\mathrm{thickness}}.
 
 The five weights sum to one. Area and thickness are intentionally treated as
 first-class shape evidence so a narrow laminar ST structure is not assigned to
@@ -326,19 +334,17 @@ for every annotation ID; label 0 remains white.
    MERFISH coordinates (right). Identical label colors allow a direct visual
    audit of transfer coverage and background cells.
 
-In the freshly executed four-level run, the primary alignment stages accept
-2, 5, 10 and 15 structure pairs. Continuation increases the final partition
-from 16 to 17 pairs in the first iteration and stops after the second remains
-at 17. The hippocampal correspondences include CA3sp, DG-sg and CA1sp. For the
-final CA3sp pair, alignment score is 0.886, Dice is 0.835, area similarity is
-0.843 and thickness similarity is 0.970. At the same final coordinates, the
-broader CA3sr alternative scores 0.536, with area similarity 0.680 and
-thickness similarity 0.615.
+In the fixed-seed three-stage run, the scheduled stages accept 3, 7 and 15
+structure pairs. Continuation re-scores 15 pairs before its first deformation,
+increases the set to 17, and runs one stopping cycle that remains at 17. The
+completed stopping-cycle transform is retained; continuation does not restore
+an earlier energy checkpoint. The hippocampal correspondences include CA3sp,
+DG-sg and CA1sp.
 
-The run transfers non-background Allen labels to 83,035 of 83,546 cells;
-511 cells (0.61%) remain background/unlabeled. Core alignment takes 16.2
-minutes with 0.789 GiB peak CUDA memory allocation in the documented
-environment.
+The complete fixed run retains all 83,546 cells and takes 13.7 minutes with
+0.839 GiB peak CUDA allocation in the documented environment. Exact label
+coverage is reported by the freshly executed notebook rather than copied from
+an earlier uncontrolled result.
 
 Output contract
 ---------------
@@ -372,7 +378,7 @@ Parameter adaptation
 --------------------
 
 Tune Atlas alignment in this order: confirm slice/orientation, inspect the
-single-cluster map, validate the four-level hierarchy, check whole-tissue
+single-cluster map, validate the three-level hierarchy, check whole-tissue
 pre-alignment, review component metrics for every accepted/rejected pair, and
 only then adjust deformation settings. ``n_levels`` changes the number of
 coarse-to-fine deformation stages. The pairing weights must remain
@@ -397,7 +403,7 @@ Troubleshooting
   before pair thresholds.
 - If no pair survives, inspect ST/Allen masks and candidate component metrics.
   Relaxing the final score gate cannot recover a missing or fragmented mask.
-- If a narrow layer maps to a broad neighbor, inspect the four hierarchy
+- If a narrow layer maps to a broad neighbor, inspect the three hierarchy
   levels and global area/thickness terms. Do not add a structure-name-specific
   weight.
 - For UI pairs, validate ``atlas_z_slice``, ``group_id`` unions and exact ST

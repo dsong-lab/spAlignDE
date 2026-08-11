@@ -356,11 +356,11 @@ The empirical paper profiles are:
      - 0
      - final score ≥ 0.25; Dice ≥ 0.01
    * - Atlas--ST
-     - 0.08
-     - 0.06
-     - 0.18
-     - 0.47
-     - 0.21
+     - 0.05
+     - 0.05
+     - 0.20
+     - 0.50
+     - 0.20
      - final score ≥ 0.50; ASD ≤ 50
 
 ASD is not a weighted similarity in any of these composite scores. It is
@@ -408,9 +408,11 @@ Tune this workflow in three groups.
 Hierarchy
 ~~~~~~~~~
 
-- ``n_levels`` adds intermediate coarse-to-fine stages. More levels can
+- ``n_levels`` adds intermediate coarse-to-fine ST stages. More levels can
   stabilize difficult thin structures but increase runtime and may propagate
-  a poor coarse match. Four levels are used for the documented S2R1 run.
+  a poor coarse match. Three levels are used for the documented S2R1 run.
+  Atlas candidates from hierarchy depths 2–10 remain eligible at every stage;
+  only the ST resolution changes.
 - ``minimum_coarse_structures`` controls the number of initial anchors. Too few
   provide weak anatomical support; too many make the first stage insufficiently
   coarse.
@@ -433,13 +435,14 @@ Whole-tissue pre-alignment
 Structure pairing
 ~~~~~~~~~~~~~~~~~
 
-``STAtlasAlignmentConfig`` currently exposes hierarchy, pre-alignment,
-filtering, pairing and continuation controls. It does not expose one shared
-``kernel_scale``/``grid_step`` pair because the coarse-to-fine Atlas workflow
-uses a validated stage-specific S-LDDMM schedule internally. Passing a
-cross-sample ``SLDDMMConfig`` does not change Atlas alignment. Tune the exposed
-structure stages first; a custom stage schedule requires an explicit API
-extension rather than editing notebook-local constants.
+``STAtlasAlignmentConfig`` exposes hierarchy, pre-alignment, filtering,
+pairing and continuation controls. The coarse-to-fine stages use a validated
+stage-specific S-LDDMM schedule internally; passing a cross-sample
+``SLDDMMConfig`` does not change Atlas alignment. The documented continuation
+uses ``continuation_kernel_scale=200``,
+``continuation_velocity_grid_spacing=50`` and
+``continuation_restore_best_checkpoint=False``. Tune structure stages and
+pairs before changing these numerical controls.
 
 The Atlas weights must be non-negative and sum to one. Start from the empirical
 profile in :ref:`cross_modality_pairing_weights`; ``area`` and ``thickness``

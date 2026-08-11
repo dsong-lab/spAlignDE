@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 
 import spAlignDE
+from spalignde.alignment import _atlas_core, atlas as atlas_api
 
 from ._data import make_cross_sample_adata
 
@@ -28,9 +29,12 @@ class SingleClusteringAndAtlasContractTests(unittest.TestCase):
         self.assertEqual(config.num_neighbors, 30)
         self.assertTrue(config.refine_boundaries)
 
-    def test_atlas_default_uses_four_levels_and_validated_palette(self):
+    def test_atlas_default_uses_canonical_three_levels_and_validated_palette(self):
         config = spAlignDE.STAtlasAlignmentConfig()
-        self.assertEqual(config.n_levels, 4)
+        self.assertEqual(config.n_levels, 3)
+        self.assertFalse(config.continuation_restore_best_checkpoint)
+        self.assertEqual(config.continuation_kernel_scale, 200.0)
+        self.assertEqual(config.continuation_velocity_grid_spacing, 50.0)
         self.assertEqual(
             config.minimum_coarse_structures,
             7,
@@ -51,6 +55,19 @@ class SingleClusteringAndAtlasContractTests(unittest.TestCase):
         palette = spAlignDE.load_atlas_structure_color_map()
         self.assertEqual(palette["CA3sp"], "#ff9896")
         self.assertEqual(palette["DG-sg"], "#c5b0d5")
+
+    def test_custom_atlas_weights_reach_legacy_scoring_global_and_are_restored(self):
+        original = dict(_atlas_core.W_ALIGN)
+        custom = {
+            "sdf_corr": 0.05,
+            "chamfer_sim": 0.05,
+            "dice": 0.20,
+            "area_sim": 0.50,
+            "thick_sim": 0.20,
+        }
+        with atlas_api._temporary_core_pairing_weights(_atlas_core, custom):
+            self.assertEqual(_atlas_core.W_ALIGN, custom)
+        self.assertEqual(_atlas_core.W_ALIGN, original)
 
     @unittest.skipUnless(HAS_BANKSY, "optional BANKSY dependency is not installed")
     def test_cluster_single_preserves_anndata_contract(self):

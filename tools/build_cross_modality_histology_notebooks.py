@@ -45,6 +45,12 @@ from PIL import Image
 
 import spAlignDE
 
+WORKFLOW_SEED = 0
+seed_controls = spAlignDE.set_random_seed(
+    WORKFLOW_SEED,
+    deterministic_torch=True,
+)
+
 warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
@@ -473,7 +479,9 @@ else:
     histology = spAlignDE.cluster_histology_features(
         features,
         CLUSTER_DIR,
-        config=spAlignDE.HistologyClusteringConfig(),
+        config=spAlignDE.HistologyClusteringConfig(
+            random_state=WORKFLOW_SEED,
+        ),
     )
     execution_mode = "fresh package clustering"
 
@@ -761,6 +769,7 @@ result = spAlignDE.align_st_to_histology(
         iterations=300,
         momentum_lr=2e3,
         device=None,
+        dtype="float64",
     ),
     cluster_key="cluster",
     structure_key=structure_key,

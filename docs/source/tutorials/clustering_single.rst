@@ -74,10 +74,16 @@ Clustering and refinement
 
 .. code-block:: python
 
+   seed_controls = spAlignDE.set_random_seed(
+       1234,
+       deterministic_torch=True,
+   )
+
    config = spAlignDE.SingleClusteringConfig(
        num_neighbors=30,
        banksy_lambda=0.8,
        resolution=1.2,
+       random_state=1234,
        refine_boundaries=True,
    )
 
@@ -123,6 +129,7 @@ returned AnnData adds:
 
 The MERFISH S2R1 example contains 83,546 cells, 649 measured genes and 25
 refined clusters. It is used as the query for the ST-to-Allen-CCF tutorial.
+Two fresh-process runs produced identical raw, refined and final label vectors.
 
 Troubleshooting
 ---------------

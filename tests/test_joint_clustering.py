@@ -32,6 +32,8 @@ class JointClusteringTests(unittest.TestCase):
             refine_boundaries=False,
             compute_umap=False,
         )
+        self.assertEqual(config.leiden_flavor, "leidenalg")
+        self.assertEqual(config.leiden_n_iterations, -1)
         output = spAlignDE.cluster_joint(adata, config=config)
 
         self.assertNotIn("cluster", adata.obs)

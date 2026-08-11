@@ -12,6 +12,13 @@ Visium count matrix and spot coordinates paired with that H&E section are not
 used to estimate the transformation; in the paper they provide an independent
 post-alignment molecular-concordance assessment.
 
+The validated workflow uses seed ``0`` for feature extraction, K-means and
+automatic pre-alignment. Call
+``spAlignDE.set_random_seed(0, deterministic_torch=True)`` before the first
+stage. The manuscript-grade S-LDDMM run uses float64: image structures, masks
+and accepted pairs reproduce exactly, while CUDA coordinates are compared
+with a declared numerical tolerance.
+
 Data
 ----
 

@@ -13,6 +13,8 @@ its exported pairing CSV directly.
 Use :doc:`../tutorials/parameter_tuning` when changing hierarchy depth, image
 resolution, mask construction, pairing gates or deformation settings. The
 distance-valued defaults belong to each example's own coordinate frame.
+The workflow-specific seeds and continuous-coordinate tolerances are listed in
+:doc:`../tutorials/reproducibility`.
 
 .. toctree::
    :maxdepth: 2

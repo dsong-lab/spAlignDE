@@ -51,6 +51,18 @@ See [ENVIRONMENT.md](ENVIRONMENT.md) for the validated CUDA/CPU variants,
 external HIPT and Allen CCF assets, reproducibility expectations and update
 policy.
 
+The public workflows fix every stochastic stage explicitly. Use seed `1234`
+for single-sample BANKSY, seed `1000` for joint cross-sample clustering, seed
+`0` for histology feature processing/clustering, and seed `1` for the
+post-alignment reference subsampling. `spAlignDE.set_random_seed()` resets
+Python, NumPy and Torch before randomized PCA; see the
+[reproducibility tutorial](docs/source/tutorials/reproducibility.rst) for
+launch-time controls and the exact-versus-tolerance validation contract.
+Before publishing notebook changes, run
+`python tools/audit_tutorial_reproducibility.py`; it checks all computational
+notebooks, external-runner seed forwarding, pinned clustering backends,
+reproducibility metadata and byte-identical Sphinx mirrors.
+
 For a smaller package-only development installation:
 
 ```bash

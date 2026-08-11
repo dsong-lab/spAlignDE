@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import inspect
+import random
 import unittest
 
 import matplotlib.pyplot as plt
@@ -12,6 +13,18 @@ from ._data import make_cross_sample_adata
 
 
 class PublicInterfaceTests(unittest.TestCase):
+    def test_public_seed_helper_resets_python_numpy_and_torch(self):
+        import torch
+
+        draws = []
+        for _ in range(2):
+            metadata = spAlignDE.set_random_seed(31415)
+            draws.append((random.random(), np.random.random(), torch.rand(1).item()))
+
+        self.assertEqual(draws[0], draws[1])
+        self.assertEqual(metadata["random_state"], 31415)
+        self.assertTrue(metadata["numpy_seeded"])
+
     def test_canonical_import_exposes_inference_subpackage(self):
         from spAlignDE.inference import prepare_inference
 

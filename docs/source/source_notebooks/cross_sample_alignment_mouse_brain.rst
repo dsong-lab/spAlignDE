@@ -5,6 +5,9 @@ This single-cell workflow aligns the 85,958-cell ``S2R3`` query section to the
 84,172-cell ``S2R2`` reference section from the Vizgen MERFISH Mouse Brain
 Receptor Map.
 
+The fixed-seed joint result contains 28 raw clusters and 27 refined/final
+clusters, with exact labels in two independent processes.
+
 First run :doc:`the mouse-brain joint-clustering notebook
 <clustering/clustering_joint_nb>`, which is maintained under the
 :doc:`Clustering <clustering>` section. It accepts either a combined AnnData

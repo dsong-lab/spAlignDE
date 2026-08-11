@@ -115,6 +115,11 @@ The P22 ATAC settings are:
 
 .. code-block:: python
 
+   seed_controls = spAlignDE.set_random_seed(
+       1234,
+       deterministic_torch=True,
+   )
+
    cluster_config = spAlignDE.SingleClusteringConfig(
        num_neighbors=30,
        banksy_lambda=0.6,
@@ -132,7 +137,8 @@ The P22 ATAC settings are:
        return_details=True,
    )
 
-The result contains ``cluster_raw``, ``cluster_refined``, and ``cluster``. The
+The fixed result contains 17 ``cluster_raw``, ``cluster_refined``, and
+``cluster`` structures, with exact labels in two fresh processes. The
 paper ATAC-to-ST workflow uses ``cluster_raw`` as its structure partition and
 retains refined labels for boundary QC. This avoids making the alignment
 dependent on an additional local-voting decision.
@@ -268,7 +274,7 @@ for component-specific tuning and :doc:`Parameter Tuning Guide
 
    result = spAlignDE.align_atac_to_st(
        prealigned,
-       config=spAlignDE.ATACSTAlignmentConfig(),
+       config=spAlignDE.ATACSTAlignmentConfig(dtype="float64"),
        atac_cluster_key="cluster_raw",
        st_cluster_key="cluster",
        output_dir="tutorials/cross_modality/atac/output/alignment",

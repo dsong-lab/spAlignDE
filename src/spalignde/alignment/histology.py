@@ -1015,7 +1015,8 @@ def prealign_st_to_histology(
         )
         source_span = float(np.max(np.ptp(search[["x", "y"]].to_numpy(), axis=0)))
         target_span = float(max(histology.shape))
-        previous_resolution = atlas_core.resolution
+        had_resolution = hasattr(atlas_core, "resolution")
+        previous_resolution = getattr(atlas_core, "resolution", None)
         try:
             atlas_core.resolution = max(
                 source_span / max(target_span, 1.0),
@@ -1032,7 +1033,10 @@ def prealign_st_to_histology(
                 scale_steps=config.scale_steps,
             )
         finally:
-            atlas_core.resolution = previous_resolution
+            if had_resolution:
+                atlas_core.resolution = previous_resolution
+            else:
+                del atlas_core.resolution
         normalized_angle = (
             (float(automatic["best_angle_deg"]) + 180.0) % 360.0
         ) - 180.0
