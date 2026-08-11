@@ -87,6 +87,12 @@ from IPython.display import display
 
 import spAlignDE
 
+WORKFLOW_SEED = 1234
+seed_controls = spAlignDE.set_random_seed(
+    WORKFLOW_SEED,
+    deterministic_torch=True,
+)
+
 warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
@@ -147,6 +153,7 @@ config = spAlignDE.SingleClusteringConfig(
     resolution=1.2,
     max_m=1,
     decay="scaled_gaussian",
+    random_state=WORKFLOW_SEED,
     refine_boundaries=True,
 )
 
@@ -296,6 +303,12 @@ from IPython.display import display
 
 import spAlignDE
 
+WORKFLOW_SEED = 1234
+seed_controls = spAlignDE.set_random_seed(
+    WORKFLOW_SEED,
+    deterministic_torch=True,
+)
+
 warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
@@ -353,34 +366,37 @@ print(f"Reference: Allen CCF slice {atlas.slice_index}; image shape {atlas.shape
 Single-sample BANKSY supplies the finest ST labels. spAlignDE then aggregates
 log-transformed expression within each cluster, retains genes explaining 80%
 of total gene-wise variance (at least 50 genes), standardizes cluster-average
-profiles, and applies Ward linkage. Three coarser partitions precede the final
-BANKSY partition. Four levels make the coarse-to-fine deformation more gradual
-and reduce sensitivity to small changes in the finest BANKSY partition. The
+profiles, and applies Ward linkage. Two coarser partitions precede the final
+BANKSY partition. Three levels provide the validated coarse-to-fine path. The
 structure-pairing score also treats area and thickness as first-class shape
 evidence, which helps distinguish narrow laminar regions from broader adjacent
 structures. No CA3-specific matching rule is used. The executed output below
 is authoritative for the current locked environment.
 
 These levels are ST-only: Allen labels and coordinates are not used to create
-them.
+them. Atlas hierarchy candidates from depths 2–10 remain eligible at every
+stage; only the ST partition becomes finer.
 """
             ),
             code(
                 r"""
 config = spAlignDE.STAtlasAlignmentConfig(
-    n_levels=4,
+    n_levels=3,
     minimum_coarse_structures=7,
     variance_fraction=0.8,
     min_genes=50,
     continue_alignment=True,
     continue_max_iterations=10,
     continue_min_pair_gain=1,
-    pairing_weight_sdf=0.08,
-    pairing_weight_chamfer=0.06,
-    pairing_weight_dice=0.18,
-    pairing_weight_area=0.47,
-    pairing_weight_thickness=0.21,
+    pairing_weight_sdf=0.05,
+    pairing_weight_chamfer=0.05,
+    pairing_weight_dice=0.20,
+    pairing_weight_area=0.50,
+    pairing_weight_thickness=0.20,
     pairing_dice_soft=0.25,
+    continuation_kernel_scale=200,
+    continuation_velocity_grid_spacing=50,
+    continuation_restore_best_checkpoint=False,
     device=None,  # automatically uses CUDA when available
 )
 
@@ -425,7 +441,7 @@ No validated-result loader or alignment cache is involved.
 
 The default pairing score is
 
-`0.08 × SDF + 0.06 × Chamfer + 0.18 × Dice + 0.47 × area + 0.21 × thickness`.
+`0.05 × SDF + 0.05 × Chamfer + 0.20 × Dice + 0.50 × area + 0.20 × thickness`.
 
 These weights sum to one. They emphasize global size and laminar thickness
 without a structure-name override; Dice, SDF, and Chamfer still require spatial
@@ -478,12 +494,11 @@ print(f"Peak GPU memory allocation: {runtime_metrics['peak_cuda_memory_allocated
                 r"""
 ## 3. Inspect structure correspondences
 
-The four-level package workflow starts with at least seven coarse structures
-and then adds intermediate partitions so deformation proceeds through smaller
-coarse-to-fine changes. The executed output reports the exact stage and final
-pair counts for this fresh run. The complete matched-pair table is shown for
-general QC. Automatic pairing uses only spatial masks and the atlas hierarchy;
-no shared molecular features or structure-specific override is used.
+The three-level package workflow starts with at least seven coarse structures
+and then makes only the ST partition progressively finer. The executed output
+reports the exact scheduled-stage and post-continuation pair counts. Automatic
+pairing uses spatial masks and the full eligible Atlas hierarchy at every
+stage; no shared molecular features or structure-specific override is used.
 """
             ),
             code(

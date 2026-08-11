@@ -32,6 +32,8 @@ from sklearn.metrics import balanced_accuracy_score, silhouette_score
 from sklearn.model_selection import StratifiedKFold, cross_val_predict
 from sklearn.neighbors import NearestNeighbors
 
+import spAlignDE
+
 
 plt.rcParams["font.family"] = "sans-serif"
 plt.rcParams["font.sans-serif"] = ["Arial", "DejaVu Sans", "Liberation Sans"]
@@ -386,28 +388,16 @@ def compute_umap_and_leiden(
     )
     sc.tl.umap(result, neighbors_key="neighbors_after_harmony", random_state=random_state, min_dist=0.35)
     after_umap = result.obsm["X_umap"].copy()
-    try:
-        sc.tl.leiden(
-            result,
-            resolution=resolution,
-            flavor="igraph",
-            n_iterations=2,
-            random_state=random_state,
-            directed=False,
-            neighbors_key="neighbors_after_harmony",
-            key_added="leiden_harmony",
-        )
-    except Exception as exc:
-        log(f"igraph Leiden failed ({exc}); using leidenalg fallback")
-        sc.tl.leiden(
-            result,
-            resolution=resolution,
-            n_iterations=-1,
-            random_state=random_state,
-            directed=False,
-            neighbors_key="neighbors_after_harmony",
-            key_added="leiden_harmony",
-        )
+    sc.tl.leiden(
+        result,
+        resolution=resolution,
+        flavor="igraph",
+        n_iterations=2,
+        random_state=random_state,
+        directed=False,
+        neighbors_key="neighbors_after_harmony",
+        key_added="leiden_harmony",
+    )
     result.obsm["X_umap_before_harmony"] = before_umap
     result.obsm["X_umap_after_harmony"] = after_umap
     result.obsm.pop("X_umap", None)
@@ -606,7 +596,10 @@ def main() -> None:
     args.output_dir = args.output_dir.expanduser().resolve()
     args.output_dir.mkdir(parents=True, exist_ok=True)
     lambdas = validate_lambdas(args.lambdas)
-    np.random.seed(args.seed)
+    seed_controls = spAlignDE.set_random_seed(
+        args.seed,
+        deterministic_torch=True,
+    )
     sc.settings.seed = args.seed
 
     config = {
@@ -628,7 +621,10 @@ def main() -> None:
         "harmony_max_iter": args.harmony_max_iter,
         "graph_neighbors": args.graph_neighbors,
         "leiden_resolution": args.leiden_resolution,
+        "leiden_flavor": "igraph",
+        "leiden_n_iterations": 2,
         "random_state": args.seed,
+        "seed_controls": seed_controls,
         "max_cells_per_sample": args.max_cells_per_sample,
     }
     write_json(args.output_dir / "run_config.json", config)

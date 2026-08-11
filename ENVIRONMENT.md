@@ -100,20 +100,25 @@ NVIDIA driver.
 
 ## Reproducibility levels
 
-The environment file locks the direct packages that define spAlignDE results.
-Conda still resolves platform-specific system libraries, so Linux, macOS and
-different GPU drivers will not be byte-identical. Expected scientific checks
-are:
+Launch Jupyter with `PYTHONHASHSEED`, `CUBLAS_WORKSPACE_CONFIG` and the thread
+limits documented in `docs/source/tutorials/reproducibility.rst`. Each
+notebook then calls `spAlignDE.set_random_seed()` before randomized work.
 
-1. the same input dimensions and cluster structure;
-2. the same pre-alignment and accepted region-pair logic;
-3. similar energy convergence and anatomical overlap; and
-4. the standardized `x_prealigned`, `y_prealigned`, `x_aligned` and
-   `y_aligned` output contract.
+The environment file locks the direct packages that define results. With
+fixed input checksums and observation order, discrete clustering labels,
+masks, hierarchy memberships and accepted pair tables must reproduce exactly.
+Continuous CUDA coordinates are different: PyTorch reports no deterministic
+CUDA implementation for one grid-sampling backward operation used by S-LDDMM.
+They must therefore pass the workflow's declared absolute or subpixel
+tolerance; a random seed alone does not imply bitwise-identical deformation
+fields.
 
-Small floating-point differences across GPU models and CUDA/PyTorch builds are
-acceptable; large changes in structure pairs, tissue orientation or local
-geometry are not.
+The public August 2026 validation used float64 for Atlas, H&E and ATAC
+manuscript-grade alignments and observed repeat differences below `1e-6`
+(below `1e-12` for H&E and ATAC). Large cross-sample float32 runs were accepted
+within one coordinate unit, no more than one thirtieth of their 30-unit raster
+spacing. Large changes in discrete pairs, tissue orientation or local geometry
+are failures, not acceptable numeric drift.
 
 ## Updating the environment
 

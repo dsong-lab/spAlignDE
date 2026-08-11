@@ -87,6 +87,12 @@ def kidney_clustering_cells() -> list:
             import scipy.sparse as sp
             import spAlignDE
 
+            WORKFLOW_SEED = 1000
+            seed_controls = spAlignDE.set_random_seed(
+                WORKFLOW_SEED,
+                deterministic_torch=True,
+            )
+
             warnings.filterwarnings("ignore", category=FutureWarning)
             warnings.filterwarnings("ignore", category=DeprecationWarning)
             warnings.filterwarnings(
@@ -207,7 +213,9 @@ def kidney_clustering_cells() -> list:
                 harmony_max_iter=20,
                 refine_boundaries=True,
                 compute_umap=False,
-                random_state=1000,
+                random_state=WORKFLOW_SEED,
+                leiden_flavor="leidenalg",
+                leiden_n_iterations=-1,
             )
 
             adata_clustered, clustering_details = spAlignDE.cluster_joint(
@@ -310,6 +318,12 @@ def kidney_alignment_cells() -> list:
             import numpy as np
             import torch
             import spAlignDE
+
+            WORKFLOW_SEED = 1000
+            seed_controls = spAlignDE.set_random_seed(
+                WORKFLOW_SEED,
+                deterministic_torch=True,
+            )
 
             warnings.filterwarnings("ignore", category=FutureWarning)
             warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -446,6 +460,7 @@ def kidney_alignment_cells() -> list:
                 iterations=5000,
                 momentum_lr=50,
                 minimum_momentum_lr=50,
+                restore_best_checkpoint=False,
                 dtype="float32",
             )
             result = spAlignDE.run_slddmm_alignment(
@@ -572,6 +587,12 @@ def breast_clustering_cells() -> list:
             import scanpy as sc
             import spAlignDE
 
+            WORKFLOW_SEED = 1000
+            seed_controls = spAlignDE.set_random_seed(
+                WORKFLOW_SEED,
+                deterministic_torch=True,
+            )
+
             warnings.filterwarnings("ignore", category=FutureWarning)
             warnings.filterwarnings("ignore", category=DeprecationWarning)
             warnings.filterwarnings(
@@ -697,7 +718,9 @@ def breast_clustering_cells() -> list:
                 harmony_max_iter=30,
                 refine_boundaries=True,
                 compute_umap=False,
-                random_state=1000,
+                random_state=WORKFLOW_SEED,
+                leiden_flavor="leidenalg",
+                leiden_n_iterations=-1,
             )
             adata_clustered, clustering_details = spAlignDE.cluster_joint(
                 adata_filtered,
@@ -796,6 +819,12 @@ def breast_alignment_cells() -> list:
             import numpy as np
             import torch
             import spAlignDE
+
+            WORKFLOW_SEED = 1000
+            seed_controls = spAlignDE.set_random_seed(
+                WORKFLOW_SEED,
+                deterministic_torch=True,
+            )
 
             warnings.filterwarnings("ignore", category=FutureWarning)
             warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -917,6 +946,7 @@ def breast_alignment_cells() -> list:
                 momentum_lr=4000,
                 minimum_momentum_lr=4000,
                 momentum_gradient_clip=1000,
+                restore_best_checkpoint=False,
                 dtype="float32",
             )
             result = spAlignDE.run_slddmm_alignment(

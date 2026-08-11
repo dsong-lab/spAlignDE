@@ -32,6 +32,8 @@ The clustering notebook follows the same presentation as the MERFISH example:
 raw joint clusters are shown in the top row and boundary-refined clusters in
 the bottom row, with a shared palette across ``IL3`` and ``NL3``. The executed
 workflow identifies four refined shared clusters.
+With seed ``1000``, both fresh-process runs produced the same four raw,
+refined and final cluster labels.
 
 Automatic shared-cluster centroid fitting is disabled. The alignment notebook
 uses the selected manual similarity coordinates: scale and orientation are
@@ -57,6 +59,7 @@ The requested kidney S-LDDMM settings are used exactly:
        momentum_lr=50,            # lrM
        minimum_momentum_lr=50,
        iterations=5000,           # niter
+       restore_best_checkpoint=False,
    )
 
 Coordinates are multiplied by 50 internally, rasterized with grid spacing 30,

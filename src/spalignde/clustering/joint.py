@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 
 from ..io import spatial_coordinates, validate_cross_sample_anndata
+from ..random import set_random_seed
 
 
 @dataclass(frozen=True)
@@ -31,6 +32,8 @@ class JointClusteringConfig:
     harmony_theta: float = 2.0
     harmony_max_iter: int = 30
     random_state: int = 1000
+    leiden_flavor: str = "leidenalg"
+    leiden_n_iterations: int = -1
     decay: str = "scaled_gaussian"
     refine_boundaries: bool = True
     compute_umap: bool = False
@@ -117,6 +120,7 @@ def cluster_joint(
         cluster_key=cluster_key,
         require_cluster=False,
     )
+    seed_controls = set_random_seed(config.random_state)
 
     from . import _joint_core as core
 
@@ -172,6 +176,8 @@ def cluster_joint(
         k=config.snn_neighbors,
         resolution=config.resolution,
         random_state=config.random_state,
+        flavor=config.leiden_flavor,
+        n_iterations=config.leiden_n_iterations,
         key_added="_spalignde_cluster_raw",
     )
 
@@ -222,6 +228,7 @@ def cluster_joint(
             refined_cluster_key if config.refine_boundaries else None
         ),
         "n_clusters": int(output.obs[cluster_key].nunique()),
+        "seed_controls": seed_controls,
     }
 
     details = {

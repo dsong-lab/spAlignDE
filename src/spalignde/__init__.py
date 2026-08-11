@@ -110,6 +110,7 @@ from .datasets import (
     summarize_raw_genes,
 )
 from . import uncertainty
+from .random import set_random_seed
 
 
 def cluster_joint(
@@ -276,6 +277,7 @@ __all__ = [
     "read_cross_sample_csv",
     "read_single_sample_csv",
     "run_slddmm_alignment",
+    "set_random_seed",
     "validate_cross_sample_anndata",
     "validate_single_sample_anndata",
 ]

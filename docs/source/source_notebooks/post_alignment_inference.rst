@@ -7,6 +7,8 @@ and IL3 10x counts by terminal barcode, estimates post-alignment mismatch risk,
 and fits local tests for ``Cbr1``, ``Cd44`` and ``Myo5a``. Users can replace the
 packaged coordinates with their own alignment output through
 ``SPALIGNDE_ALIGNMENT_DIR``.
+The notebook resets seed ``1`` before reference-cell subsampling and passes
+``random_state=1`` to both preparation and local fitting.
 
 All reusable data preparation is implemented by public package functions. The
 notebook contains no local function definitions:

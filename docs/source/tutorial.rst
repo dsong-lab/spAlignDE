@@ -14,5 +14,6 @@ environment <installation>`.
 
    tutorials/cross_sample_alignment
    tutorials/cross_modality_alignment
+   tutorials/reproducibility
    tutorials/parameter_tuning
    tutorials/post_alignment_inference

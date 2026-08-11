@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from contextlib import contextmanager
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Mapping
@@ -26,7 +27,7 @@ class STAtlasAlignmentConfig:
     neighbors without anatomy-specific overrides.
     """
 
-    n_levels: int = 4
+    n_levels: int = 3
     minimum_coarse_structures: int = 7
     variance_fraction: float = 0.8
     min_genes: int = 50
@@ -34,6 +35,9 @@ class STAtlasAlignmentConfig:
     continue_alignment: bool = True
     continue_max_iterations: int = 10
     continue_min_pair_gain: int = 1
+    continuation_kernel_scale: float = 200.0
+    continuation_velocity_grid_spacing: float = 50.0
+    continuation_restore_best_checkpoint: bool = False
     device: str | None = None
     prealign_close_kernel: int = 15
     prealign_angle_step_degrees: float = 1.0
@@ -45,11 +49,11 @@ class STAtlasAlignmentConfig:
     filter_normal_mad_multiplier: float = 1.2
     filter_grid_thinning: bool = True
     filter_detail_grid_size: float = 10.0
-    pairing_weight_sdf: float = 0.08
-    pairing_weight_chamfer: float = 0.06
-    pairing_weight_dice: float = 0.18
-    pairing_weight_area: float = 0.47
-    pairing_weight_thickness: float = 0.21
+    pairing_weight_sdf: float = 0.05
+    pairing_weight_chamfer: float = 0.05
+    pairing_weight_dice: float = 0.20
+    pairing_weight_area: float = 0.50
+    pairing_weight_thickness: float = 0.20
     pairing_dice_soft: float = 0.25
     pairing_sdf_soft: float = 0.55
     pairing_asd_soft: float = 50.0
@@ -372,6 +376,17 @@ def _pairing_parameters(
     return weights, gate, thresholds
 
 
+@contextmanager
+def _temporary_core_pairing_weights(core, weights: Mapping[str, float]):
+    """Synchronize and restore the legacy module-global pairing weights."""
+    previous = dict(core.W_ALIGN)
+    core.W_ALIGN = dict(weights)
+    try:
+        yield
+    finally:
+        core.W_ALIGN = previous
+
+
 def _core_config(
     config: STAtlasAlignmentConfig,
     *,
@@ -499,10 +514,19 @@ def align_st_to_allen_atlas(
     context["CONTINUE_GATE_PARAMS_OVERRIDE"] = dict(atlas_pairing_gate)
     context["ITER_THRESH_OVERRIDE"] = dict(atlas_pairing_thresholds)
     context["CONTINUE_THRESH_OVERRIDE"] = dict(atlas_pairing_thresholds)
+    context["CONTINUE_MODEL_CFG_OVERRIDE"] = {
+        "a": float(config.continuation_kernel_scale),
+        "grid_step": float(config.continuation_velocity_grid_spacing),
+    }
+    context["CONTINUE_OPTIM_CFG_OVERRIDE"] = {
+        "restore_best": bool(config.continuation_restore_best_checkpoint)
+    }
     context["CONTINUE_LABEL_COL"] = cluster_key
-    core.run_iterative_multi_level_alignment(context)
-    if config.continue_alignment:
-        core.run_continuation_alignment(context)
+    with _temporary_core_pairing_weights(core, atlas_pairing_weights):
+        core.run_iterative_multi_level_alignment(context)
+        if config.continue_alignment:
+            context["continue_start_filtered"] = context["df_smooth"].copy()
+            core.run_continuation_alignment(context)
 
     aligned_table = context["df_aligned_all"].copy()
     labelled_table = core.transfer_all_atlas_labels_to_st(
@@ -881,7 +905,7 @@ _DEFAULT_ATLAS_STRUCTURE_COLOR_MAP = {
     "L4": "#bcbd22",
     "LZ": "#17becf",
     "STRd": "#9edae5",
-    # Additional structures selected by the four-level fresh package run.
+    # Additional structures selected by the three-level fresh package run.
     "TH": "#7f7f7f",
     "cst": "#ff7f0e",
     "ccb": "#98df8a",

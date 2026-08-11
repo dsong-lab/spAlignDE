@@ -16,6 +16,25 @@ effects, legacy S-LDDMM symbols and recommended tuning order are documented in
 Validation and clustering
 -------------------------
 
+``set_random_seed``
+~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: python
+
+   seed_controls = spAlignDE.set_random_seed(
+       1234,
+       deterministic_torch=True,
+       warn_only=True,
+   )
+
+Resets Python, NumPy and Torch generators before downstream stochastic work.
+The returned dictionary records the numeric seed and launch-time environment
+controls. ``PYTHONHASHSEED`` must be set before starting Python; assigning it
+inside a notebook is too late. Deterministic Torch mode cannot remove CUDA
+variation from operations for which PyTorch has no deterministic
+implementation. See :doc:`Reproducibility and fixed random seeds
+<tutorials/reproducibility>`.
+
 ``load_single_sample_data``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -87,7 +106,7 @@ return value is ``(clustered_adata, details)`` instead of AnnData alone.
      - BANKSY neighborhood harmonics and distance decay.
    * - ``random_state``
      - ``1234``
-     - Reproducibility seed.
+     - Seed applied before BANKSY feature construction and randomized PCA.
    * - ``refine_boundaries``
      - ``True``
      - Enable spatial boundary refinement.
@@ -210,7 +229,10 @@ the return value is ``(clustered_adata, details)`` instead of AnnData alone.
      - Sample correction strength and iteration limit.
    * - ``random_state``
      - ``1000``
-     - Reproducibility seed.
+     - Seed applied before BANKSY, joint PCA, Harmony and Leiden.
+   * - ``leiden_flavor`` / ``leiden_n_iterations``
+     - ``"leidenalg"`` / ``-1``
+     - Pin the partition backend and iteration policy used by the fixed run.
    * - ``decay``
      - ``"scaled_gaussian"``
      - BANKSY distance-decay model.
@@ -382,15 +404,16 @@ x/y axes, voxel size and hierarchy table.
 Builds expression-based coarse-to-fine partitions from the selected
 single-sample ``cluster`` labels. ``STAtlasAlignmentConfig`` controls the
 number of levels, cumulative variance threshold, minimum genes, mask
-pre-alignment, point filtering and continuation criteria. Its Atlas default is
-four levels, which provides a more gradual deformation path for thin
-structures than the earlier three-level workflow. By default the coarsest
-partition retains at least seven structures before the remaining levels are
-spaced through the final clustering. The same configuration exposes the five
+pre-alignment, point filtering and continuation criteria. The validated Atlas
+default uses three ST levels (7, 16 and 25 structures for S2R1). Atlas
+candidates from hierarchy depths 2–10 remain eligible at every stage; only
+the ST partition becomes finer. The same configuration exposes the five
 structure-pairing weights, soft Dice/SDF/thickness gates, score threshold and
 maximum average surface distance. The defaults use a normalized,
-shape-balanced score (SDF 0.08, Chamfer 0.06, Dice 0.18, area 0.47 and
-thickness 0.21) without any structure-name-specific override.
+shape-balanced score (SDF 0.05, Chamfer 0.05, Dice 0.20, area 0.50 and
+thickness 0.20) without any structure-name-specific override. Continuation
+uses ``kernel_scale=200``, ``velocity_grid_spacing=50`` and retains the final
+optimization iterate.
 
 ``align_st_to_allen_atlas``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~

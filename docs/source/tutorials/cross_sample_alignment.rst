@@ -181,6 +181,11 @@ The manuscript defaults are exposed through ``JointClusteringConfig``:
 
    import spAlignDE
 
+   seed_controls = spAlignDE.set_random_seed(
+       1000,
+       deterministic_torch=True,
+   )
+
    clustered = spAlignDE.cluster_joint(
        adata,
        config=spAlignDE.JointClusteringConfig(
@@ -191,6 +196,8 @@ The manuscript defaults are exposed through ``JointClusteringConfig``:
            resolution=1.4,
            refine_boundaries=True,
            random_state=1000,
+           leiden_flavor="leidenalg",
+           leiden_n_iterations=-1,
        ),
    )
 
@@ -202,6 +209,8 @@ The returned object has the original ``(170130, 649)`` shape in the MERFISH
 example; BANKSY-expanded features are used internally and do not replace
 ``adata.X``. The raw, refined, and selected final labels are stored as
 ``cluster_raw``, ``cluster_refined``, and ``cluster`` in ``adata.obs``.
+The fixed-seed run contains 28 raw clusters and 27 refined/final clusters;
+the two fresh-process label vectors are identical.
 
 .. figure:: ../_static/tutorial_figures/joint_clustering_tab20.png
    :alt: Joint clustering results for MERFISH S2R2 and S2R3
@@ -413,6 +422,7 @@ The stepwise package calls used in the notebook are:
            time_steps=3,
            kernel_scale=300,
            velocity_grid_spacing=100,
+           restore_best_checkpoint=False,
            dtype="float32",
        ),
        device="cuda:0" if torch.cuda.is_available() else "cpu",

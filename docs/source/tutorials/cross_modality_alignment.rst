@@ -11,6 +11,10 @@ documentation framework as cross-sample alignment: explicit input contracts,
 package functions, ordered executable notebooks, standard coordinate outputs,
 visual QC and reproducible provenance.
 
+Use the workflow-specific seeds and exact-versus-tolerance criteria in
+:doc:`Reproducibility and fixed random seeds <reproducibility>` before running
+any of the executable notebooks.
+
 Every workflow now exposes **paired-feature overlap** as a required QC
 checkpoint. The individual query/reference structures and their shared-color
 overlay show exactly which spatial evidence enters S-LDDMM. Review this panel

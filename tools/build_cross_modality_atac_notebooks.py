@@ -46,6 +46,12 @@ from IPython.utils.capture import capture_output
 
 import spAlignDE
 
+WORKFLOW_SEED = 1234
+seed_controls = spAlignDE.set_random_seed(
+    WORKFLOW_SEED,
+    deterministic_torch=True,
+)
+
 warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
@@ -168,7 +174,7 @@ cluster_config = spAlignDE.SingleClusteringConfig(
     pca_dim=20,
     max_m=1,
     decay="scaled_gaussian",
-    random_state=1234,
+    random_state=WORKFLOW_SEED,
     refine_boundaries=True,
 )
 
@@ -487,6 +493,7 @@ alignment_config = spAlignDE.ATACSTAlignmentConfig(
     momentum_lr=1e3,
     deformation_regularization=1e6,
     matching_scale=0.5,
+    dtype="float64",
 )
 
 started = time.perf_counter()
