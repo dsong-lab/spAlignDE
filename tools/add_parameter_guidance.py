@@ -177,7 +177,7 @@ before changing structure-pairing or S-LDDMM parameters.
   internal structures. Increase it if local pairs distort the overall outline;
   lower it when real outline differences block supported internal alignment.
 - `zoom_scale` downsamples the matching field. Smaller values save memory and
-  remove detail. `kernel_scale` (`a=50`) and `velocity_grid_spacing`
+  remove detail. `kernel_scale` (`a=60`) and `velocity_grid_spacing`
   (`grid_step=6`) remain in original histology feature-grid units because the
   sampled axes retain the full original extent. Do not multiply them by
   `zoom_scale`.

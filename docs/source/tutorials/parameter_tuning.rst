@@ -249,7 +249,7 @@ systems. They are starting profiles, not universal defaults.
      - 2,000
      - pre-aligned Allen physical canvas
    * - Xenium ST → H&E
-     - 50
+     - 60
      - 6
      - 5
      - 300

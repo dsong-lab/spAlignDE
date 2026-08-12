@@ -94,7 +94,7 @@ LDDMM_INPUT_CFG = dict(
     zoom_scale=0.6,
     weight_mode="embedded",
 )
-LDDMM_MODEL_CFG = dict(nt=5, a=50.0, p=2.0, expand=2.0, grid_step=6)
+LDDMM_MODEL_CFG = dict(nt=5, a=60.0, p=2.0, expand=2.0, grid_step=6)
 LDDMM_OPTIM_CFG = dict(
     niter=300,
     diffeo_start=0,

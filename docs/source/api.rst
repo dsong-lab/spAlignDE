@@ -595,11 +595,17 @@ continuous signed-distance channels and fits S-LDDMM. The returned
 ``STHistologyAlignmentResult`` includes aligned AnnData, accepted pairs,
 pre-alignment parameters, image structures and diagnostic fields.
 ``plot_st_histology_alignment`` compares global initialization and final
-alignment over the original color image. ``STHistologyAlignmentConfig``
+alignment over the original color image.
+``plot_st_histology_pair_overlap(result, stage="after")`` displays every
+accepted mask pair after deformation and returns long-form before/after Dice,
+IoU and ASD metrics; the same table is saved as
+``matched_structure_pair_overlap_metrics.csv``. ``STHistologyAlignmentConfig``
 exposes the normalized SDF, Chamfer, Dice, area and thickness weights. Their
 empirical defaults are 0.20, 0.40, 0.15, 0.25 and 0.00; raw ASD is excluded
 from this score and used only by ``pair_asd_threshold`` as an independent QC
-gate. See :ref:`cross_modality_pairing_weights` before changing these values.
+gate. The validated S-LDDMM defaults use ``kernel_scale=60`` and
+``velocity_grid_spacing=6``. See :ref:`cross_modality_pairing_weights` before
+changing these values.
 
 Spatial ATAC-to-ST alignment
 ----------------------------

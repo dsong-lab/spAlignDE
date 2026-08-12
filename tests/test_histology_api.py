@@ -53,6 +53,7 @@ class HistologyContractTests(unittest.TestCase):
         self.assertTrue(callable(spAlignDE.extract_histology_features))
         self.assertTrue(callable(spAlignDE.cluster_histology_features))
         self.assertTrue(callable(spAlignDE.build_st_histology_structures))
+        self.assertTrue(callable(spAlignDE.plot_st_histology_pair_overlap))
         self.assertEqual(spAlignDE.STHistologyStructureConfig().n_levels, 5)
 
     def test_histology_pairing_defaults_match_paper_and_exclude_asd(self):
@@ -61,6 +62,8 @@ class HistologyContractTests(unittest.TestCase):
 
         config = spAlignDE.STHistologyAlignmentConfig()
         self.assertFalse(config.restore_best_checkpoint)
+        self.assertEqual(config.kernel_scale, 60.0)
+        self.assertEqual(config.velocity_grid_spacing, 6.0)
         weights = _histology_pairing_weights(config)
         self.assertEqual(
             weights,
@@ -222,6 +225,48 @@ class HistologyContractTests(unittest.TestCase):
             fig, axes = spAlignDE.plot_histology_feature_clusters(histology)
             self.assertEqual(axes[0, 0].get_title(), "High-resolution H&E image")
             self.assertEqual(axes[1, 1].get_title(), "Cleaned structures (n=2)")
+            plt.close(fig)
+
+    def test_pair_overlap_plot_reports_before_and_after_metrics(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            histology = self.make_histology(Path(temporary))
+            target_0 = np.zeros((16, 16), dtype=np.uint8)
+            target_1 = np.zeros((16, 16), dtype=np.uint8)
+            target_0[2:7, 2:7] = 1
+            target_1[9:14, 9:14] = 1
+            before_0 = np.zeros_like(target_0)
+            before_1 = np.zeros_like(target_1)
+            before_0[2:7, 0:5] = 1
+            before_1[9:14, 11:16] = 1
+            whole = np.ones_like(target_0)
+            result = spAlignDE.STHistologyAlignmentResult(
+                adata=self.make_adata(),
+                histology=histology,
+                matched_pairs=pd.DataFrame(
+                    {"st": ["0", "1"], "he": [0, 1]}
+                ),
+                prealignment_parameters={},
+                context={
+                    "source_binary": np.stack((before_0, before_1, whole)),
+                    "target_binary": np.stack((target_0, target_1, whole)),
+                    "final_source_binary": np.stack((target_0, target_1)),
+                    "final_target_binary": np.stack((target_0, target_1)),
+                },
+            )
+
+            fig, axes, metrics = spAlignDE.plot_st_histology_pair_overlap(result)
+            self.assertEqual(axes.shape, (2, 3))
+            self.assertEqual(len(metrics), 4)
+            before = metrics[metrics["stage"] == "before"].sort_values(
+                "pair_order"
+            )
+            after = metrics[metrics["stage"] == "after"].sort_values(
+                "pair_order"
+            )
+            self.assertTrue(
+                np.all(after["dice"].to_numpy() > before["dice"].to_numpy())
+            )
+            np.testing.assert_allclose(after["dice"], 1.0)
             plt.close(fig)
 
 
