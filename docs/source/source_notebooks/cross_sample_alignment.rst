@@ -24,4 +24,4 @@ rasterization and S-LDDMM settings to a new coordinate system.
 All cross-sample clustering notebooks use seed ``1000`` and explicitly pin
 the partition backend/iteration policy. See
 :doc:`../tutorials/reproducibility` for the exact-label and scale-aware CUDA
-contracts, including the validated aging-brain series.
+contracts used by the public tutorial execution set.

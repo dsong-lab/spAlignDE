@@ -81,6 +81,12 @@ The two required files are
 ``HIPT_4K/Checkpoints/vit256_small_dino.pth`` and
 ``HIPT_4K/Checkpoints/vit4k_xs_dino.pth``.
 
+HIPT must run with a mutually compatible PyTorch/torchvision build. By default
+it uses the notebook kernel's Python. If HIPT is installed in a separate
+validated environment, set
+``SPALIGNDE_HIPT_PYTHON=/path/to/hipt-environment/bin/python``; the notebook
+still controls the seed and records the extractor route and checkpoint hashes.
+
 HIPT divides the prepared image into 4,096-pixel context tiles, encodes local
 256-pixel patches on a 16-pixel feature stride, and repeats inference at four
 offsets per axis to average 16 shifted views. It writes:
@@ -101,7 +107,9 @@ offsets per axis to average 16 shifted views. It writes:
      - Extraction geometry, feature schema, runtime route, file size, and
        feature checksum
 
-The paper image produces a 1,288 × 980 feature grid. Every feature location
+The fixed-seed vendor-BTF run produces a 1,288 × 798 feature grid. The BTF's
+0.27381 μm-per-pixel metadata are used to rescale to 0.5 μm per pixel before
+padding to a 12,768 × 20,608 analysis image. Every feature location
 corresponds to one 16 × 16-pixel image region, and no expression matrix or
 spatial-transcriptomic coordinates are stored in the feature pickle.
 
@@ -117,13 +125,13 @@ spatial-transcriptomic coordinates are stored in the feature pickle.
 `UNI <https://github.com/mahmoodlab/UNI>`_ and its `gated Hugging Face weights
 <https://huggingface.co/MahmoodLab/UNI>`_ provide an optional fine-grained
 pathology representation. The canonical spAlignDE H&E result here uses
-HIPT/ViT only; UNI is not required to reproduce the reported 24 image
+HIPT/ViT only; UNI is not required to reproduce the reported 26 image
 structures.
 
 2. Image-feature clustering
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-:doc:`H&E image-feature clustering into 24 structures
+:doc:`H&E image-feature clustering into 26 structures
 </source_notebooks/cross_modality/st_he_feature_clustering_nb>`
 
 ``spAlignDE.cluster_histology_features`` separates tissue from slide
@@ -131,7 +139,7 @@ background, clusters standardized HIPT, RGB, and coordinate blocks into 30
 initial tissue regions, fills holes, performs feature- and symmetry-aware
 merging, and removes small disconnected islands. The validated
 ``test0730/he_rep1`` configuration uses ``rgb_weight=0.25``,
-``coordinate_weight=0.05``, ``random_state=0``, and produces 24 cleaned image
+``coordinate_weight=0.05``, ``random_state=0``, and produces 26 cleaned image
 structures. These image labels do not represent cell types or atlas regions.
 
 The complete image-only construction is:
@@ -192,7 +200,7 @@ review of reflected-mask candidates before any symmetry-driven merge.
 
    Image-to-structure quality-control sequence: prepared H&E, initial
    HIPT/RGB/coordinate feature clusters, symmetry-aware merging, and the final
-   24 cleaned structures. The vertical arrangement is intentional for this
+   26 cleaned structures. The vertical arrangement is intentional for this
    two-section benchmark. Compare every stage with the prepared image before
    using the labels as alignment features.
 
@@ -204,7 +212,7 @@ review of reflected-mask candidates before any symmetry-driven merge.
 
 ``spAlignDE.build_st_histology_structures`` reproduces the paper hierarchy
 from the original BANKSY partition. With five levels and 75% retained gene
-variance, this example produces k7, k13, k20, and k26 partitions and selects
+variance, this example produces k7, k14, k20, and k26 partitions and selects
 k7 for histology correspondence.
 
 .. figure:: ../_static/tutorial_figures/histology_st_hierarchy.png
@@ -326,9 +334,11 @@ manifest, and PNG plus editable SVG quality-control figures.
 Troubleshooting
 ---------------
 
-- If feature extraction cannot import torchvision or HIPT, run
-  ``tools/check_notebook_environment.py`` and verify both checkpoint paths and
-  hashes; a working Torch import alone is insufficient.
+- If feature extraction cannot import torchvision or reports a missing
+  ``torchvision::nms`` operator, PyTorch and torchvision are binary
+  incompatible. Run ``tools/check_notebook_environment.py``, verify both
+  checkpoint hashes, and point ``SPALIGNDE_HIPT_PYTHON`` to a compatible HIPT
+  environment; a working ``import torch`` alone is insufficient.
 - If tissue size is wrong, correct microns-per-pixel metadata and rerun feature
   extraction. Do not compensate later with ``a`` or manual scale.
 - If feature clusters follow stain noise or image position, reduce
@@ -343,9 +353,9 @@ Troubleshooting
 Validation and interpretation
 -----------------------------
 
-The July 30 deterministic rerun reproduced the H&E HIPT feature pickle, all
-four clustering-stage arrays, and the 24-region supplementary figure exactly,
-byte for byte, relative to the paper analysis. CUDA S-LDDMM may still show
+Two August 11 fresh-process runs from the same vendor-BTF checksum reproduced
+the H&E HIPT feature pickle and all four clustering-stage arrays exactly. The
+fixed result contains 26 regions and two accepted ST/H&E pairs. CUDA S-LDDMM may still show
 small floating-point differences across GPUs and PyTorch versions; anatomical
 overlap and accepted structure pairs, rather than bitwise coordinate identity,
 are the relevant checks.

@@ -66,8 +66,8 @@ python -m pip install -e ".[clustering,atlas,tutorial]"
 
 | Role | Input | Required contract |
 |---|---|---|
-| Query ST | clustered AnnData/H5AD | `obsm["spatial"]` and `obs["cluster"]`; cluster IDs must be exactly those shown in the UI when the pairs were exported |
-| Curated correspondences | `spalign_de_experimental_pairs.csv` | the unedited CSV downloaded with **Export pairs**; retain `group_id`, panel dataset kinds, selected IDs and `atlas_z_slice` |
+| Query ST | clustered AnnData/H5AD | `obsm["spatial"]` and `obs["cluster"]`; the paper example is the seed-1234 output of the preceding single-clustering notebook |
+| Curated correspondences | `spalign_de_experimental_pairs.csv` | the validated CSV for those fixed-seed labels; retain `group_id`, panel dataset kinds, selected IDs and `atlas_z_slice` |
 | Atlas annotation | `annotation_10.nrrd` | the same Allen CCF release and slice used in the UI |
 | Atlas hierarchy | `voxel_count_and_differences.csv` | Allen annotation IDs, names, hierarchy paths and colors |
 
@@ -77,7 +77,8 @@ included UI guide explains how to select raw or custom regions, place several
 selections in one group and export the result.
 
 The example files under `tutorials/cross_modality/atlas/data/` preserve the
-paper run. For a new dataset, set `SPALIGNDE_CLUSTERED_ST_H5AD`,
+Allen selections from the paper run, with ST IDs remapped by cell overlap to
+the seed-1234 clustering output. For a new dataset, set `SPALIGNDE_CLUSTERED_ST_H5AD`,
 `SPALIGNDE_UI_PAIRING_CSV` and `SPALIGNDE_ALLEN_CCF_DIR`. The UI display's
 flip/rotation fields are retained as provenance. They do not replace the
 chosen global initialization: use `prealignment_mode="mask"` to recompute it,
@@ -147,66 +148,35 @@ if missing_atlas_files:
         "or set SPALIGNDE_ALLEN_CCF_DIR. Missing: " + ", ".join(missing_atlas_files)
     )
 
-print("Clustered ST:", CLUSTERED_PATH)
-print("UI pairing CSV:", PAIRING_PATH)
-print("Allen CCF directory:", ATLAS_DIR)
+print("Clustered ST file:", CLUSTERED_PATH.name)
+print("UI pairing file:", PAIRING_PATH.name)
+print("Allen CCF inputs:", [path.name for path in required_atlas_files])
 """
             ),
             markdown(
                 r"""
-## Load the exact ST labels used by the UI
+## Load the fixed-seed ST labels used by this tutorial
 
 Pairing IDs are categorical identifiers, not transferable biological names.
 Changing the clustering seed, refinement or resolution can renumber clusters
-even when cell coordinates are unchanged. Therefore a UI export must be used
-with the exact clustered AnnData uploaded to that UI session.
-
-The checked-in paper example predates the current single-clustering notebook,
-so the next cell restores its exact `banksy_cluster_refined` labels by
-`cell_id`. This compatibility step runs automatically only for the default
-tutorial H5AD. A user-supplied H5AD is never overwritten. Set
-`SPALIGNDE_UI_CLUSTER_METADATA_CSV` only when an equivalent cell-indexed label
-table is intentionally required.
+even when cell coordinates are unchanged. The checked-in pairing CSV was
+therefore revalidated against the seed-1234 clustering output: Allen regions
+and deformation groups are unchanged, while ST IDs were mapped by cell
+overlap. The mapping retains 94.7--99.8% of the cells in each original UI
+group; one split group is represented by the union of fixed-seed clusters 2
+and 13. A user-supplied H5AD must likewise use a pairing CSV created or
+revalidated for its own labels.
 """
             ),
             code(
                 r"""
 adata = spAlignDE.load_single_sample_data(CLUSTERED_PATH)
-
-metadata_override = os.environ.get("SPALIGNDE_UI_CLUSTER_METADATA_CSV")
-example_metadata = DATA_DIR / "ui_example_st_clusters.csv"
-use_example_metadata = (
-    metadata_override is None
-    and CLUSTERED_PATH.resolve() == clustered_default.resolve()
-    and example_metadata.is_file()
+spAlignDE.validate_single_sample_anndata(
+    adata,
+    cluster_key="cluster",
+    require_cluster=True,
 )
-metadata_path = Path(metadata_override).expanduser() if metadata_override else (
-    example_metadata if use_example_metadata else None
-)
-
-if metadata_path is not None:
-    exact_metadata = pd.read_csv(metadata_path, dtype={"cell_id": str}).set_index("cell_id")
-    exact_metadata.index = exact_metadata.index.astype(str)
-    missing_cells = adata.obs_names.astype(str).difference(exact_metadata.index)
-    if len(missing_cells):
-        raise ValueError(
-            f"Cluster metadata is missing {len(missing_cells):,} AnnData cell IDs."
-        )
-    exact_labels = exact_metadata.reindex(adata.obs_names.astype(str))[
-        "banksy_cluster_refined"
-    ]
-    if exact_labels.isna().any():
-        raise ValueError("The exact UI cluster metadata contains missing labels.")
-    adata.obs["cluster"] = exact_labels.astype(str).to_numpy()
-    adata.obs["cluster"] = adata.obs["cluster"].astype("category")
-    print("Restored the exact cluster labels used by the validated UI export.")
-else:
-    spAlignDE.validate_single_sample_anndata(
-        adata,
-        cluster_key="cluster",
-        require_cluster=True,
-    )
-    print("Using cluster labels directly from the supplied AnnData.")
+print("Using fixed-seed cluster labels directly from the supplied AnnData.")
 
 atlas = spAlignDE.load_allen_ccf_reference(
     ATLAS_DIR / "annotation_10.nrrd",
@@ -227,7 +197,7 @@ print(f"Reference: Allen CCF slice {atlas.slice_index}; image shape {atlas.shape
 to their original selected IDs and reconstructs the many-to-many groups. This
 is parsing and validation only; it does not score or rematch a pair.
 
-This example contains 54 selection rows, 9 deformation groups and 11 ST
+This example contains 54 selection rows, 9 deformation groups and 12 ST
 cluster-level records for plotting and provenance. Several rows may describe
 the same group because a group can contain multiple ST clusters and multiple
 Allen structures.

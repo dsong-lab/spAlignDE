@@ -139,14 +139,34 @@ def _add_seed_call(notebook, seed: int) -> None:
 
 
 def _replace_once(notebook, old: str, new: str, *, required: bool = True) -> None:
+    # Check the replacement first. Some replacements intentionally contain the
+    # original suffix (for example adding an argument immediately before
+    # ``dtype``); checking ``old`` first would insert a duplicate on every run.
+    if new and any(new in cell.source for cell in notebook.cells):
+        return
     for cell in notebook.cells:
         if old in cell.source:
             cell.source = cell.source.replace(old, new, 1)
             return
-    if any(new in cell.source for cell in notebook.cells):
-        return
     if required:
         raise RuntimeError(f"Notebook replacement target not found: {old!r}")
+
+
+def _deduplicate_keyword_argument(notebook, keyword: str) -> None:
+    """Keep one occurrence of a config keyword in each code cell."""
+    prefix = f"{keyword}="
+    for cell in notebook.cells:
+        if cell.cell_type != "code":
+            continue
+        seen = False
+        cleaned = []
+        for line in cell.source.splitlines():
+            if line.strip().startswith(prefix):
+                if seen:
+                    continue
+                seen = True
+            cleaned.append(line)
+        cell.source = "\n".join(cleaned)
 
 
 def _update_config(relative: str, notebook) -> None:
@@ -211,6 +231,12 @@ def _update_config(relative: str, notebook) -> None:
         )
     elif relative == "cross_modality/st_he_feature_clustering_nb.ipynb":
         _replace_once(notebook, "    random_state=0,", "    random_state=WORKFLOW_SEED,")
+    elif relative == "cross_modality/st_he_feature_extraction_nb.ipynb":
+        _replace_once(
+            notebook,
+            'print("Histology input:", IMAGE_PATH)',
+            'print("Histology input file:", IMAGE_PATH.name)',
+        )
     elif relative == "cross_modality/st_he_alignment_nb.ipynb":
         _replace_once(
             notebook,
@@ -221,6 +247,7 @@ def _update_config(relative: str, notebook) -> None:
         "cross_sample_alignment_nb.ipynb",
         "cross_sample_alignment_mouse_kidney_alignment_nb.ipynb",
     }:
+        _deduplicate_keyword_argument(notebook, "restore_best_checkpoint")
         _replace_once(
             notebook,
             '    dtype="float32",\n)',
@@ -243,6 +270,50 @@ def _update_config(relative: str, notebook) -> None:
             notebook,
             "rng = np.random.default_rng(1000)",
             "rng = np.random.default_rng(WORKFLOW_SEED)",
+        )
+    elif relative == "cross_modality/ui_paired_atlas_alignment_nb.ipynb":
+        _replace_once(
+            notebook,
+            'print("Clustered ST:", CLUSTERED_PATH)\n'
+            'print("UI pairing CSV:", PAIRING_PATH)\n'
+            'print("Allen CCF directory:", ATLAS_DIR)',
+            'print("Clustered ST file:", CLUSTERED_PATH.name)\n'
+            'print("UI pairing file:", PAIRING_PATH.name)\n'
+            'print("Allen CCF inputs:", [path.name for path in required_atlas_files])',
+        )
+    elif relative == "cross_sample_alignment_breast_cancer_alignment_nb.ipynb":
+        _replace_once(
+            notebook,
+            'print("Preprocessing:", adata.uns["preprocessing"])',
+            'public_preprocessing = {\n'
+            '    key: value\n'
+            '    for key, value in adata.uns["preprocessing"].items()\n'
+            '    if key not in {"input_data_dir", "official_cells_dir", "output_dir"}\n'
+            '}\n'
+            'print("Preprocessing:", public_preprocessing)',
+        )
+    elif relative == "cross_sample_uncertainty_report.ipynb":
+        _replace_once(
+            notebook,
+            'print("Inputs: ", INPUT_DIR)\nprint("Outputs:", OUTPUT_DIR)',
+            'print("Input set: 10 prepared LDDMM replicates")\n'
+            'print("Output directory:", OUTPUT_DIR.name)',
+        )
+        _replace_once(
+            notebook,
+            "FORCE_RERUN = False",
+            'FORCE_RERUN = os.environ.get("SPALIGNDE_FORCE_UNCERTAINTY_RERUN", "0") == "1"',
+        )
+    elif relative == "post_alignment_inference_nb.ipynb":
+        _replace_once(
+            notebook,
+            'print("Raw-data directory:", DATA_DIR)',
+            'print("Raw-data directory:", DATA_DIR.name)',
+        )
+        _replace_once(
+            notebook,
+            'USER_ALIGNMENT_DIR if USER_ALIGNMENT_DIR is not None else "packaged manuscript aligned_317",',
+            '"user-provided coordinates" if USER_ALIGNMENT_DIR is not None else "packaged manuscript aligned_317",',
         )
 
 

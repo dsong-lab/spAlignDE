@@ -116,6 +116,7 @@ def build_notebook(artifacts: Path):
             %matplotlib inline
 
             from pathlib import Path
+            import json
             import os
             import subprocess
             import sys
@@ -177,6 +178,7 @@ def build_notebook(artifacts: Path):
             required_output = OUTPUT_DIR / "batch_and_cluster_metrics.csv"
             force_run = os.environ.get("SPALIGNDE_RUN_XENIUM_CLUSTERING", "0") == "1"
             if force_run or not required_output.exists():
+                execution_mode = "fresh fixed-seed recomputation"
                 command = [
                     sys.executable,
                     str(RUNNER),
@@ -187,8 +189,20 @@ def build_notebook(artifacts: Path):
                     "--seed", str(WORKFLOW_SEED),
                 ]
                 subprocess.run(command, check=True)
+            else:
+                execution_mode = "validated fixed-seed artifacts"
+
+            with (OUTPUT_DIR / "run_config.json").open() as handle:
+                run_config = json.load(handle)
+            if int(run_config["random_state"]) != WORKFLOW_SEED:
+                raise ValueError(
+                    "The selected clustering artifacts were not produced with "
+                    f"the required seed {WORKFLOW_SEED}."
+                )
 
             qc = pd.read_csv(OUTPUT_DIR / "qc_summary.csv")
+            print("Execution mode:", execution_mode)
+            print("Validated artifact seed:", run_config["random_state"])
             display(qc)
             """,
             2,

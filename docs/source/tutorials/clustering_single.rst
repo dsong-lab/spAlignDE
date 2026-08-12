@@ -140,9 +140,9 @@ Troubleshooting
 - If one region fragments into many islands, reduce ``resolution`` or increase
   spatial influence gradually; if thin domains disappear, reduce neighborhood
   smoothing before changing boundary refinement.
-- If a later workflow cannot reproduce UI region IDs, use the exact saved
-  clustered H5AD. Cluster integers may be renumbered by a fresh run even when
-  its map is similar.
+- A UI pairing CSV is label-specific. Use the clustered H5AD from the same
+  fixed-seed run, or revalidate the ST-side IDs by cell overlap while keeping
+  the curated Atlas selections and deformation groups unchanged.
 
 Source notebook
 ---------------

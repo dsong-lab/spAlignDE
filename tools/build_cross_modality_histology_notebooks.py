@@ -196,7 +196,7 @@ export SPALIGNDE_HIPT_PYTHON=/path/to/hipt-environment/bin/python
 ```
 
 A CUDA-capable GPU is strongly recommended because shifted extraction runs 16
-HIPT views and the paper-size feature file is approximately 2.9 GB.
+HIPT views and the BTF-derived feature file is approximately 2.38 GB.
 
 ### Place the input image
 
@@ -211,8 +211,9 @@ export SPALIGNDE_HISTOLOGY_IMAGE=/path/to/high_resolution_image.btf
 Accepted inputs are RGB or RGB-convertible JPEG, PNG, TIFF, OME-TIFF, and BTF
 images readable by Pillow/tifffile. OME physical pixel size is used when
 available. Different source crops or white canvas sizes produce different
-feature-grid dimensions; the executed paper example uses a 15,680 × 20,608
-analysis image and therefore a 1,288 × 980 grid.
+feature-grid dimensions. The fixed-seed release run reads the vendor BTF's
+0.27381 μm-per-pixel metadata, rescales it to 0.5 μm per pixel, and pads to a
+12,768 × 20,608 analysis image, giving a 1,288 × 798 grid.
 
 Coordinates in all downstream image outputs are `(x, y)` feature-grid
 coordinates with origin at the upper left. One feature-grid unit represents a
@@ -236,7 +237,7 @@ if not IMAGE_PATH.is_file():
         "Download the public Replicate 1 image or set SPALIGNDE_HISTOLOGY_IMAGE."
     )
 
-print("Histology input:", IMAGE_PATH)
+print("Histology input file:", IMAGE_PATH.name)
 print("Only the image is used on the reference side.")
 """
             ),
@@ -325,8 +326,8 @@ plt.show()
 ## Inspect the extracted feature field
 
 The table below is generated from the extraction manifest rather than from an
-expected hard-coded display. For the paper image, each channel has shape
-1,288 × 980. `cls` is the 192-channel ViT-4K context field, `sub` is the
+expected hard-coded display. For the vendor BTF release input, each channel
+has shape 1,288 × 798. `cls` is the 192-channel ViT-4K context field, `sub` is the
 384-channel ViT-256 local-morphology field, and `rgb` contains three
 mean-downsampled color channels. The next notebook reads these 579
 image-derived channels and clusters them into spatial structures.
@@ -357,7 +358,7 @@ cell-by-feature table and not an AnnData object:
 }
 ```
 
-For the executed paper image, `(H, W) = (1288, 980)`. Feature location
+For the executed vendor BTF, `(H, W) = (1288, 798)`. Feature location
 `[y, x]` summarizes prepared-image pixels
 `y*16:(y+1)*16, x*16:(x+1)*16`. The pickle therefore contains spatially
 dense morphology and color fields, but no gene expression, cell identity,
@@ -388,7 +389,7 @@ UNI is an **optional advanced representation**. The paper result reproduced
 by these notebooks intentionally uses the unmasked HIPT/ViT-only
 `embeddings-hist-vit.pickle`; no Hugging Face login or UNI weights are needed.
 Do not replace the input to notebook 2 with a merged feature file when trying
-to reproduce the reported 24-structure result.
+to reproduce the reported 26-structure result.
 """
             ),
             markdown(
@@ -406,7 +407,7 @@ The stage writes:
   parameters, feature schema, file size, and output checksum.
 
 No spatial-transcriptomic values are present in these outputs. Continue with
-**H&E image-feature clustering — 24 histology structures**.
+**H&E image-feature clustering — 26 histology structures**.
 """
             ),
         ]
@@ -418,12 +419,12 @@ def feature_clustering_notebook():
         [
             markdown(
                 r"""
-# H&E image-feature clustering into 24 structures
+# H&E image-feature clustering into 26 structures
 
 This second notebook converts the HIPT feature field into coherent
 histology-derived spatial structures. It reproduces the H&E branch validated
 in `test0730/he_rep1`: 30 initial tissue clusters are consolidated by
-feature-based merging, bilateral symmetry, and spatial cleanup into 24 final
+feature-based merging, bilateral symmetry, and spatial cleanup into 26 final
 regions. These labels are derived from the image only.
 """
             ),
@@ -505,7 +506,7 @@ display(
 
 The four panels show the evidence chain used in Supplementary Figure 8:
 original H&E morphology, 30 initial feature assignments, symmetry-aware
-merging, and the cleaned 24-region structure map. Colors identify image
+merging, and the cleaned 26-region structure map. Colors identify image
 structures and do not represent cell types or anatomical labels.
 """
             ),
@@ -515,8 +516,8 @@ fig, axes = spAlignDE.plot_histology_feature_clusters(
     histology,
     figsize=(13, 8),
 )
-fig.savefig(FIGURE_DIR / "he_feature_clustering_24_structures.png", dpi=220, bbox_inches="tight")
-fig.savefig(FIGURE_DIR / "he_feature_clustering_24_structures.svg", bbox_inches="tight")
+fig.savefig(FIGURE_DIR / "he_feature_clustering_26_structures.png", dpi=220, bbox_inches="tight")
+fig.savefig(FIGURE_DIR / "he_feature_clustering_26_structures.svg", bbox_inches="tight")
 plt.show()
 """
             ),
@@ -542,7 +543,7 @@ def alignment_notebook():
 # Xenium Replicate 1 to H&E histology
 
 This final notebook aligns 162,033 Xenium mouse-brain cells (query) to the
-24-region H&E feature map (reference). The query is Replicate 1 from the
+26-region H&E feature map (reference). The query is Replicate 1 from the
 [10x Genomics Fresh Frozen Mouse Brain Xenium dataset](https://www.10xgenomics.com/datasets/fresh-frozen-mouse-brain-replicates-1-standard).
 The reference image is control Replicate 1 from the
 [Visium CytAssist Post-Xenium Mouse Brain dataset](https://www.10xgenomics.com/datasets/visium-cytassist-gene-expression-libraries-of-post-xenium-mouse-brain-ff-using-the-mouse-whole-transcriptome-probe-set-2-standard).
@@ -562,7 +563,7 @@ Run these steps in order:
    AnnData with `X`, `obsm["spatial"]`, `obs["cluster_raw"]`, and
    `obs["cluster"]`.
 2. **H&E image preparation and feature extraction** starts from one image.
-3. **H&E image-feature clustering** creates the fixed 24-region raster.
+3. **H&E image-feature clustering** creates the fixed 26-region raster.
 4. This notebook constructs coarse-to-fine ST structures, estimates a global
    pre-alignment, pairs geometrically compatible masks, and runs S-LDDMM.
 
@@ -604,7 +605,7 @@ print(f"Reference: {histology.n_structures} image-derived structures on a {histo
 The paper hierarchy is built from the original BANKSY labels
 (`cluster_raw`), not from H&E pixels or Visium expression. Cluster-average
 profiles are compared after variance-based gene selection and Ward linkage.
-For this dataset the resulting levels contain 7, 13, 20, and 26 structures;
+For this dataset the resulting levels contain 7, 14, 20, and 26 structures;
 the 7-structure level is used for H&E correspondence.
 """
             ),
@@ -778,10 +779,81 @@ result = spAlignDE.align_st_to_histology(
 
 pair_columns = [
     column
-    for column in ("st_label", "he_label", "align_score", "dice", "area_sim", "asd")
+    for column in ("st", "he", "align_score", "dice", "area_sim", "asd")
     if column in result.matched_pairs
 ]
 display(result.matched_pairs[pair_columns])
+
+# Plot the exact cleaned binary channels supplied to S-LDDMM.  The final
+# channel is the whole-tissue support and is intentionally omitted here.
+from matplotlib.patches import Patch
+
+source_masks = result.context["source_binary"][:-1].astype(bool)
+target_masks = result.context["target_binary"][:-1].astype(bool)
+source_color = (0.00, 0.45, 0.70, 1.00)
+target_color = (0.90, 0.60, 0.00, 1.00)
+overlap_color = (0.80, 0.47, 0.65, 1.00)
+
+fig, axes = plt.subplots(
+    len(result.matched_pairs),
+    3,
+    figsize=(11, 3.4 * len(result.matched_pairs)),
+    constrained_layout=True,
+    squeeze=False,
+)
+for row_index, ((_, pair), source_mask, target_mask) in enumerate(
+    zip(result.matched_pairs.iterrows(), source_masks, target_masks, strict=True)
+):
+    union = source_mask | target_mask
+    yy, xx = union.nonzero()
+    pad = 18
+    y0, y1 = max(0, yy.min() - pad), min(union.shape[0], yy.max() + pad + 1)
+    x0, x1 = max(0, xx.min() - pad), min(union.shape[1], xx.max() + pad + 1)
+
+    source_rgba = plt.cm.colors.to_rgba_array([source_color])[0]
+    target_rgba = plt.cm.colors.to_rgba_array([target_color])[0]
+    panels = []
+    for mask, color in ((source_mask, source_rgba), (target_mask, target_rgba)):
+        image = 1.0 * (~mask)[..., None] * (1.0, 1.0, 1.0, 1.0)
+        image[mask] = color
+        panels.append(image)
+    overlap_image = panels[1].copy()
+    overlap_image[source_mask] = source_color
+    overlap_image[source_mask & target_mask] = overlap_color
+    panels.append(overlap_image)
+
+    titles = (
+        "ST structure",
+        "H&E structure",
+        f"Paired overlap\nST {pair['st']} ↔ H&E {pair['he']}",
+    )
+    for axis, image, title in zip(axes[row_index], panels, titles, strict=True):
+        axis.imshow(image[y0:y1, x0:x1], origin="lower", interpolation="nearest")
+        axis.set_title(title)
+        axis.axis("off")
+    axes[row_index, 2].text(
+        0.5,
+        -0.04,
+        f"score={pair['align_score']:.3f}; Dice={pair['dice']:.3f}; ASD={pair['asd']:.1f}",
+        transform=axes[row_index, 2].transAxes,
+        ha="center",
+        va="top",
+        fontsize=9,
+    )
+
+fig.legend(
+    handles=(
+        Patch(facecolor=source_color, label="ST mask"),
+        Patch(facecolor=target_color, label="H&E mask"),
+        Patch(facecolor=overlap_color, label="overlap"),
+    ),
+    loc="lower center",
+    ncol=3,
+    frameon=False,
+)
+fig.savefig(FIGURE_DIR / "xenium_he_paired_feature_overlap.png", dpi=220, bbox_inches="tight")
+fig.savefig(FIGURE_DIR / "xenium_he_paired_feature_overlap.svg", bbox_inches="tight")
+plt.show()
 """
             ),
             markdown(

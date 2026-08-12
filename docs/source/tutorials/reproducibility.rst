@@ -79,13 +79,28 @@ Before publishing notebook edits, run:
 
 .. code-block:: bash
 
+   # Execute each computational notebook in a fresh kernel, in dependency order.
+   python tools/execute_fixed_seed_tutorials.py
+
+   # Verify complete execution receipts, outputs, seeds and source mirrors.
    python tools/audit_tutorial_reproducibility.py
 
-The audit checks every computational notebook, explicit backend controls,
-seed forwarding to external runners, reproducibility metadata and the
-byte-identical ``source_notebooks``/Sphinx mirror contract. The interactive
-region-pairing notebook only records manual selections and is therefore
-classified separately from stochastic computational workflows.
+The executor forces the current checkout's absolute ``src`` directory onto
+``PYTHONPATH``. This prevents an older editable installation elsewhere on the
+machine from silently supplying ``spAlignDE``. It starts a fresh kernel per
+notebook, stops on the first failed cell, sanitizes machine-specific paths,
+and saves a source/output SHA-256 receipt only after the complete notebook
+succeeds. The audit rejects partial execution, error outputs, inconsistent
+seeds, stale output hashes, and non-identical ``source_notebooks``/Sphinx
+mirrors. The interactive region-pairing notebook only records manual
+selections and is therefore classified separately from stochastic
+computational workflows.
+
+The external inputs used for the release execution are recorded by logical
+role, filename, size and SHA-256 in the :download:`tutorial execution input
+manifest <../_static/tutorial_execution_manifest.json>`. Local absolute paths
+are deliberately excluded. Aging-brain analysis is part of the manuscript
+benchmark, but not part of the public tutorial execution set.
 
 What should reproduce exactly
 -----------------------------
@@ -122,7 +137,7 @@ Validated fixed-seed results
      - ST levels 7/16/25; stage pairs 3/7/15; continuation 15→17 and 17→17
      - Exact discrete tables; float64 coordinates within tolerance.
    * - Xenium S2R1 to H&E
-     - 24 image structures; 2 accepted pairs
+     - 26 image structures; 2 accepted pairs
      - Exact masks/pairs; float64 coordinates within tolerance.
    * - Spatial ATAC to MERFISH S3R1
      - 17 ATAC structures; 5 accepted pairs
@@ -133,9 +148,6 @@ Validated fixed-seed results
    * - Kidney IL3 to NL3
      - 4 raw/refined/final shared clusters
      - Exact labels; scale-aware coordinate tolerance.
-   * - Aging brain to age 4.3
-     - 27 raw/refined/final shared clusters; 19 section alignments
-     - Exact labels; all coordinates within 1/30 raster pixel.
    * - Breast cancer Rep2 to Rep1
      - 10 shared clusters
      - Exact labels; scale-aware coordinate tolerance.
@@ -149,6 +161,12 @@ depths 2–10; there is no stage-specific Atlas-depth restriction. The final
 scheduled stage accepts 15 pairs. Continuation re-scores at the completed
 coordinates, increases the set to 17, runs one stopping cycle at 17, and
 retains that cycle's final iterate.
+
+The UI-paired Atlas example consumes the same seed-1234 clustered H5AD. Its
+Allen selections and deformation groups are preserved from the validated UI
+session, while ST cluster IDs are revalidated by cell overlap against the
+fixed-seed labels. This avoids restoring an older uncontrolled label vector
+inside an otherwise fixed-seed workflow.
 
 Reporting checklist
 -------------------

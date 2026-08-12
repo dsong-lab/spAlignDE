@@ -182,6 +182,13 @@ correspondences. Export the pairs as CSV and keep the exact clustered AnnData
 used in that UI session; ST cluster integers may change after a clustering
 rerun.
 
+The checked-in example is tied to the seed-1234 clustering notebook in this
+release. Its Allen selections and nine deformation groups are unchanged from
+the reviewed UI session; ST IDs were revalidated by cell overlap against the
+fresh fixed-seed clusters. The resulting CSV contains 54 selection rows and
+12 ST cluster-level provenance records. One original region split across
+fixed-seed clusters 2 and 13 and is represented by their union.
+
 .. code-block:: python
 
    pairing = spAlignDE.load_ui_atlas_pairing(
@@ -341,7 +348,7 @@ completed stopping-cycle transform is retained; continuation does not restore
 an earlier energy checkpoint. The hippocampal correspondences include CA3sp,
 DG-sg and CA1sp.
 
-The complete fixed run retains all 83,546 cells and takes 13.7 minutes with
+The complete fixed run retains all 83,546 cells and takes 13.9 minutes with
 0.839 GiB peak CUDA allocation in the documented environment. Exact label
 coverage is reported by the freshly executed notebook rather than copied from
 an earlier uncontrolled result.

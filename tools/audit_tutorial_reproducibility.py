@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 from pathlib import Path
 
 import nbformat
@@ -39,6 +41,14 @@ STOCHASTIC_MARKERS = (
     "np.random.default_rng(",
     "subprocess.run(command",
 )
+
+
+def source_hash(notebook) -> str:
+    """Hash exactly the executable source captured by the notebook executor."""
+    payload = "\n\n".join(
+        f"{cell.cell_type}\n{cell.source}" for cell in notebook.cells
+    ).encode("utf-8")
+    return hashlib.sha256(payload).hexdigest()
 
 
 def audit_notebook(relative: str, seed: int) -> list[str]:
@@ -95,6 +105,39 @@ def audit_notebook(relative: str, seed: int) -> list[str]:
         problems.append(f"{relative}: exact discrete-output contract is missing")
     if "tolerance" not in metadata.get("cuda_coordinate_contract", ""):
         problems.append(f"{relative}: CUDA coordinate tolerance contract is missing")
+
+    execution = notebook.metadata.get("spAlignDE_execution", {})
+    if execution.get("fully_executed") is not True:
+        problems.append(f"{relative}: full fixed-seed execution receipt is missing")
+    if execution.get("workflow_seed") != seed:
+        problems.append(f"{relative}: execution receipt seed is missing or inconsistent")
+    recorded_source_hash = execution.get("source_sha256")
+    if not recorded_source_hash:
+        problems.append(f"{relative}: executed source hash is missing")
+    elif recorded_source_hash != source_hash(notebook):
+        problems.append(
+            f"{relative}: source changed after the saved outputs were executed"
+        )
+    if not execution.get("repository_commit"):
+        problems.append(f"{relative}: execution source revision is missing")
+
+    for index, cell in enumerate(notebook.cells):
+        if cell.cell_type != "code" or not cell.source.strip():
+            continue
+        if cell.execution_count is None:
+            problems.append(f"{relative}: code cell {index} was not executed")
+        if any(output.get("output_type") == "error" for output in cell.get("outputs", [])):
+            problems.append(f"{relative}: code cell {index} contains a saved error")
+
+    output_payload = [
+        cell.get("outputs", [])
+        for cell in notebook.cells
+        if cell.cell_type == "code"
+    ]
+    rendered = json.dumps(output_payload, sort_keys=True, separators=(",", ":"))
+    output_hash = hashlib.sha256(rendered.encode("utf-8")).hexdigest()
+    if execution.get("saved_output_sha256") != output_hash:
+        problems.append(f"{relative}: saved output hash does not match notebook outputs")
     return problems
 
 
@@ -117,7 +160,8 @@ def main() -> None:
         raise SystemExit("\n".join(problems))
     print(
         f"PASS: {len(SEEDS)} computational notebooks have fixed seeds, explicit "
-        "backend controls, reproducibility metadata, and identical documentation mirrors."
+        "backend controls, full execution receipts, verified output hashes, and "
+        "identical documentation mirrors."
     )
     print(
         "INFO: interactive_region_pairing_nb.ipynb is manual input capture and is "

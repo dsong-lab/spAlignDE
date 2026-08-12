@@ -14,7 +14,10 @@ rather than duplicated in the Cross-Modality navigation.
 
 Use :doc:`Interactive region pairing and refinement
 <cross_modality/interactive_region_pairing_nb>` to create the pairing CSV,
-then pass that unedited export to the UI-curated alignment notebook.
+then pass that export together with the clustered H5AD from the same run to
+the UI-curated alignment notebook. The checked-in fixed-seed example preserves
+the reviewed Allen selections while revalidating ST-side IDs against the
+seed-1234 clustering output.
 
 Use :doc:`../tutorials/cross_modality_atlas_alignment` for the Allen input and
 output contracts. The :doc:`../tutorials/parameter_tuning` guide explains

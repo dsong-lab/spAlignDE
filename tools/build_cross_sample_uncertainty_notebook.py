@@ -101,8 +101,8 @@ if not INPUT_DIR.exists():
         "or set SPALIGNDE_UNCERTAINTY_INPUT_DIR."
     )
 
-print("Inputs: ", INPUT_DIR)
-print("Outputs:", OUTPUT_DIR)
+print("Input set: 10 prepared LDDMM replicates")
+print("Output directory:", OUTPUT_DIR.name)
 """
         ),
         md(
@@ -149,7 +149,7 @@ directory is controlled by ``SPALIGNDE_UNCERTAINTY_OUTPUT_DIR`` and defaults to
         ),
         code(
             r"""
-FORCE_RERUN = False
+FORCE_RERUN = os.environ.get("SPALIGNDE_FORCE_UNCERTAINTY_RERUN", "0") == "1"
 
 model_cfg = {
     "a": 300,
