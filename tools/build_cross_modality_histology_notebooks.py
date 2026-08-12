@@ -28,6 +28,12 @@ def notebook(cells):
         "name": "python3",
     }
     result.metadata["language_info"] = {"name": "python", "version": "3.10"}
+    result.metadata["spAlignDE_reproducibility"] = {
+        "workflow_seed": 0,
+        "seed_scope": "Python, NumPy, Torch and configured stochastic methods",
+        "discrete_repeat_contract": "exact",
+        "cuda_coordinate_contract": "workflow-specific numerical tolerance",
+    }
     return result
 
 
@@ -769,7 +775,7 @@ result = spAlignDE.align_st_to_histology(
         pair_score_threshold=0.40,
         pair_asd_threshold=30.0,
         time_steps=5,
-        kernel_scale=50.0,
+        kernel_scale=60.0,
         velocity_grid_spacing=6.0,
         iterations=300,
         momentum_lr=2e3,
@@ -858,6 +864,26 @@ fig.legend(
 )
 fig.savefig(FIGURE_DIR / "xenium_he_paired_feature_overlap.png", dpi=220, bbox_inches="tight")
 fig.savefig(FIGURE_DIR / "xenium_he_paired_feature_overlap.svg", bbox_inches="tight")
+plt.show()
+
+# Re-rasterize the accepted ST structures after the final deformation and
+# compare pair-level Dice, IoU, and ASD against the pre-aligned masks above.
+fig, axes, pair_overlap_metrics = spAlignDE.plot_st_histology_pair_overlap(
+    result,
+    stage="after",
+)
+display(pair_overlap_metrics[
+    ["st", "he", "stage", "dice", "iou", "asd", "hd"]
+])
+fig.savefig(
+    FIGURE_DIR / "xenium_he_paired_feature_overlap_after_lddmm.png",
+    dpi=300,
+    bbox_inches="tight",
+)
+fig.savefig(
+    FIGURE_DIR / "xenium_he_paired_feature_overlap_after_lddmm.svg",
+    bbox_inches="tight",
+)
 plt.show()
 """
             ),

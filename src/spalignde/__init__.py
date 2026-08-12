@@ -7,7 +7,7 @@ from typing import Any
 
 import anndata as ad
 
-__version__ = "0.2.0"
+__version__ = "0.1.0"
 
 from .alignment import (
     ATACSTAlignmentConfig,
@@ -64,6 +64,7 @@ from .alignment import (
     plot_histology_feature_clusters,
     plot_histology_prealignment_preview,
     plot_st_histology_alignment,
+    plot_st_histology_pair_overlap,
     plot_st_histology_structures,
     plot_atac_st_alignment,
     plot_atac_st_matched_structures,
@@ -260,6 +261,7 @@ __all__ = [
     "plot_histology_feature_clusters",
     "plot_histology_prealignment_preview",
     "plot_st_histology_alignment",
+    "plot_st_histology_pair_overlap",
     "plot_st_histology_structures",
     "plot_atac_st_alignment",
     "plot_atac_st_matched_structures",

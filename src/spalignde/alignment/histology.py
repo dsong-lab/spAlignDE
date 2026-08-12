@@ -181,7 +181,7 @@ class STHistologyAlignmentConfig:
     zoom_scale: float = 0.60
     global_shape_weight: float = 1.60
     time_steps: int = 5
-    kernel_scale: float = 50.0
+    kernel_scale: float = 60.0
     kernel_power: float = 2.0
     velocity_expand: float = 2.0
     velocity_grid_spacing: float = 6.0
@@ -1505,6 +1505,67 @@ def align_st_to_histology(
         mapped = mapped.detach().cpu().numpy()
     output.obs["x_aligned"] = mapped[:, 1].astype(float)
     output.obs["y_aligned"] = mapped[:, 0].astype(float)
+
+    # Re-rasterize the accepted ST structures at their final coordinates so
+    # users can inspect the exact pairwise evidence before and after S-LDDMM.
+    # The same filtering decisions and mask-cleanup settings are reused; only
+    # the ST coordinates change.
+    final_filtered = filtered.copy()
+    final_filtered["x_aligned"] = output.obs.loc[
+        final_filtered.index, "x_aligned"
+    ].to_numpy(float)
+    final_filtered["y_aligned"] = output.obs.loc[
+        final_filtered.index, "y_aligned"
+    ].to_numpy(float)
+    final_mask_result = core.build_cluster_masks(
+        df_smooth=final_filtered,
+        sl=histology.tissue_mask.astype(np.uint8),
+        xJ=grid_x,
+        yJ=grid_y,
+        x_col="x_aligned",
+        y_col="y_aligned",
+        label_col=structure_key,
+        params=core.DEFAULT_MASK_PARAMS,
+        params_thin=core.MASK_PARAMS_THIN,
+        shape_type_col="shape_type",
+        thin_values=("detail",),
+        thin_rule="mode",
+        verbose=False,
+    )
+    final_source_pairs, final_target_pairs, _ = core.build_pair_onehot_from_masks(
+        matched,
+        he_masks,
+        final_mask_result["st_masks"],
+        add_other=False,
+    )
+    final_source_binary, final_target_binary = core.preprocess_onehot_asymmetric(
+        final_source_pairs,
+        final_target_pairs,
+        st_cfg=dict(sigma_pre=1.4, thr=0.5, close_r=2, open_r=1, min_area=50),
+        he_cfg=dict(sigma_pre=0.4, thr=0.5, close_r=1, open_r=1, min_area=80),
+    )
+    pair_metric_rows = []
+    for pair_order, (_, pair) in enumerate(matched.iterrows()):
+        for stage, source_mask, target_mask in (
+            ("before", source_binary[pair_order], target_binary[pair_order]),
+            (
+                "after",
+                final_source_binary[pair_order],
+                final_target_binary[pair_order],
+            ),
+        ):
+            metrics = core.compute_all_metrics(source_mask, target_mask)
+            pair_metric_rows.append(
+                {
+                    "pair_order": pair_order,
+                    "st": pair["st"],
+                    "he": pair["he"],
+                    "stage": stage,
+                    **metrics,
+                }
+            )
+    pair_overlap_metrics = pd.DataFrame(pair_metric_rows)
+
     metadata = output.uns.setdefault("spAlignDE", {})
     metadata.setdefault("st_to_histology", {})["alignment"] = _anndata_ready({
         "cluster_key": cluster_key,
@@ -1521,6 +1582,10 @@ def align_st_to_histology(
         destination.mkdir(parents=True, exist_ok=True)
         output.write_h5ad(destination / "st_to_histology_aligned.h5ad")
         matched.to_csv(destination / "matched_structure_pairs.csv", index=False)
+        pair_overlap_metrics.to_csv(
+            destination / "matched_structure_pair_overlap_metrics.csv",
+            index=False,
+        )
         filter_stats.to_csv(destination / "st_mask_filter_summary.csv", index=False)
         _write_json(
             destination / "alignment_manifest.json",
@@ -1546,11 +1611,196 @@ def align_st_to_histology(
             "removed_st_observations": removed,
             "source_binary": source_binary,
             "target_binary": target_binary,
+            "final_source_binary": final_source_binary,
+            "final_target_binary": final_target_binary,
+            "pair_overlap_metrics": pair_overlap_metrics,
             "channel_weights": weights,
             "pair_metadata": pair_meta,
             "lddmm_output": lddmm_output,
         },
     )
+
+
+def plot_st_histology_pair_overlap(
+    result: STHistologyAlignmentResult,
+    *,
+    stage: str = "after",
+    padding: int = 18,
+    figsize: tuple[float, float] | None = None,
+) -> tuple[Any, np.ndarray, pd.DataFrame]:
+    """Plot each accepted ST--H&E mask pair before or after S-LDDMM.
+
+    The returned long-form table reports Dice, IoU, ASD, and the other mask
+    metrics at both stages. The final-stage plot annotates the before-to-after
+    changes for direct pair-level quality control.
+    """
+    from matplotlib.patches import Patch
+    from . import _histology_alignment_core as core
+
+    if stage not in {"before", "after"}:
+        raise ValueError("stage must be 'before' or 'after'")
+    if result.context is None:
+        raise ValueError("Pair-overlap plotting requires the in-memory result context")
+
+    context = result.context
+    if stage == "before":
+        source_masks = np.asarray(context["source_binary"][:-1]).astype(bool)
+        target_masks = np.asarray(context["target_binary"][:-1]).astype(bool)
+    else:
+        try:
+            source_masks = np.asarray(context["final_source_binary"]).astype(bool)
+            target_masks = np.asarray(context["final_target_binary"]).astype(bool)
+        except KeyError as error:
+            raise ValueError(
+                "This result predates final pair-mask capture; rerun "
+                "align_st_to_histology before plotting stage='after'"
+            ) from error
+
+    pair_count = len(result.matched_pairs)
+    if pair_count == 0:
+        raise ValueError("No matched ST--H&E pairs are available")
+    if source_masks.shape[0] != pair_count or target_masks.shape[0] != pair_count:
+        raise ValueError("Stored pair masks do not match matched_pairs")
+
+    metrics_table = context.get("pair_overlap_metrics")
+    if metrics_table is None:
+        rows = []
+        before_sources = np.asarray(context["source_binary"][:-1]).astype(bool)
+        before_targets = np.asarray(context["target_binary"][:-1]).astype(bool)
+        after_sources = np.asarray(context["final_source_binary"]).astype(bool)
+        after_targets = np.asarray(context["final_target_binary"]).astype(bool)
+        for pair_order, (_, pair) in enumerate(result.matched_pairs.iterrows()):
+            for current_stage, source_mask, target_mask in (
+                ("before", before_sources[pair_order], before_targets[pair_order]),
+                ("after", after_sources[pair_order], after_targets[pair_order]),
+            ):
+                rows.append(
+                    {
+                        "pair_order": pair_order,
+                        "st": pair["st"],
+                        "he": pair["he"],
+                        "stage": current_stage,
+                        **core.compute_all_metrics(source_mask, target_mask),
+                    }
+                )
+        metrics_table = pd.DataFrame(rows)
+    else:
+        metrics_table = pd.DataFrame(metrics_table).copy()
+
+    source_color = (0.00, 0.45, 0.70, 1.00)
+    target_color = (0.90, 0.60, 0.00, 1.00)
+    overlap_color = (0.80, 0.47, 0.65, 1.00)
+    if figsize is None:
+        figsize = (11.0, 3.6 * pair_count + 0.45)
+    fig, axes = plt.subplots(
+        pair_count,
+        3,
+        figsize=figsize,
+        constrained_layout=False,
+        squeeze=False,
+    )
+    fig.subplots_adjust(
+        left=0.02,
+        right=0.98,
+        top=0.96,
+        bottom=0.10,
+        hspace=0.36,
+        wspace=0.10,
+    )
+
+    for pair_order, ((_, pair), source_mask, target_mask) in enumerate(
+        zip(
+            result.matched_pairs.iterrows(),
+            source_masks,
+            target_masks,
+            strict=True,
+        )
+    ):
+        union = source_mask | target_mask
+        yy, xx = union.nonzero()
+        if yy.size:
+            y0 = max(0, int(yy.min()) - padding)
+            y1 = min(union.shape[0], int(yy.max()) + padding + 1)
+            x0 = max(0, int(xx.min()) - padding)
+            x1 = min(union.shape[1], int(xx.max()) + padding + 1)
+        else:
+            y0, y1, x0, x1 = 0, union.shape[0], 0, union.shape[1]
+
+        panels = []
+        for mask, color in (
+            (source_mask, source_color),
+            (target_mask, target_color),
+        ):
+            image = np.ones((*mask.shape, 4), dtype=float)
+            image[mask] = color
+            panels.append(image)
+        overlap_image = panels[1].copy()
+        overlap_image[source_mask] = source_color
+        overlap_image[source_mask & target_mask] = overlap_color
+        panels.append(overlap_image)
+
+        if stage == "after":
+            source_title = "ST structure (after S-LDDMM)"
+            overlap_title = "After S-LDDMM overlap"
+        else:
+            source_title = "ST structure (pre-aligned)"
+            overlap_title = "Pre-aligned overlap"
+        titles = (
+            source_title,
+            "H&E structure",
+            f"{overlap_title}\nST {pair['st']} ↔ H&E {pair['he']}",
+        )
+        for axis, image, title in zip(axes[pair_order], panels, titles, strict=True):
+            axis.imshow(
+                image[y0:y1, x0:x1],
+                origin="lower",
+                interpolation="nearest",
+                rasterized=True,
+            )
+            axis.set_title(title)
+            axis.axis("off")
+
+        selected = metrics_table[
+            (metrics_table["pair_order"] == pair_order)
+            & (metrics_table["stage"] == stage)
+        ].iloc[0]
+        if stage == "after":
+            before = metrics_table[
+                (metrics_table["pair_order"] == pair_order)
+                & (metrics_table["stage"] == "before")
+            ].iloc[0]
+            annotation = (
+                f"Dice {before['dice']:.3f}→{selected['dice']:.3f}; "
+                f"IoU {before['iou']:.3f}→{selected['iou']:.3f}; "
+                f"ASD {before['asd']:.1f}→{selected['asd']:.1f}"
+            )
+        else:
+            annotation = (
+                f"Dice={selected['dice']:.3f}; IoU={selected['iou']:.3f}; "
+                f"ASD={selected['asd']:.1f}"
+            )
+        axes[pair_order, 2].text(
+            0.5,
+            -0.04,
+            annotation,
+            transform=axes[pair_order, 2].transAxes,
+            ha="center",
+            va="top",
+            fontsize=9,
+        )
+
+    fig.legend(
+        handles=(
+            Patch(facecolor=source_color, label="ST mask"),
+            Patch(facecolor=target_color, label="H&E mask"),
+            Patch(facecolor=overlap_color, label="overlap"),
+        ),
+        loc="lower center",
+        bbox_to_anchor=(0.5, 0.015),
+        ncol=3,
+        frameon=False,
+    )
+    return fig, axes, metrics_table
 
 
 def plot_st_histology_alignment(
@@ -1628,6 +1878,7 @@ __all__ = [
     "load_histology_features",
     "plot_histology_feature_clusters",
     "plot_histology_prealignment_preview",
+    "plot_st_histology_pair_overlap",
     "plot_st_histology_alignment",
     "plot_st_histology_structures",
     "prealign_st_to_histology",

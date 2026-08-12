@@ -276,6 +276,16 @@ sensitive to boundary displacement even for thin structures.
    purple is their intersection. Scores beneath each pair are calculated
    before deformation and provide direct QC of the selected alignment evidence.
 
+.. figure:: ../_static/tutorial_figures/histology_paired_feature_overlap_after_lddmm.png
+   :alt: Accepted Xenium and H&E feature-mask overlaps after S-LDDMM
+   :width: 100%
+   :align: center
+
+   The same accepted pairs after the final S-LDDMM deformation. Each row
+   reports the change in Dice, IoU and ASD from global pre-alignment to the
+   final aligned ST mask, making pair-specific gains and residual mismatch
+   directly auditable.
+
 .. figure:: ../_static/tutorial_figures/histology_alignment_before_after.png
    :alt: Xenium coordinates before and after histology-guided S-LDDMM
    :width: 100%
@@ -304,7 +314,7 @@ and ``pairing_weight_thickness`` control the composite score; their paper
 defaults are 0.20, 0.40, 0.15, 0.25 and 0.00. ``pair_score_threshold`` and
 ``pair_asd_threshold`` independently control accepted correspondences;
 ``global_shape_weight`` balances the whole-tissue outline against matched
-internal structures. The histology S-LDDMM values ``a=50`` and
+internal structures. The histology S-LDDMM values ``a=60`` and
 ``grid_step=6`` are expressed in original feature-grid units. ``zoom_scale``
 changes image sampling density but retains axes spanning that original grid;
 do not rescale ``a`` or ``grid_step`` by ``zoom_scale``.

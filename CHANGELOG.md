@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.2.0 — 2026-08-04
+## 0.1.0 — 2026-08-04
 
 - Replaced the former tail/intercept mismatch calibration with the promoted
   gene-specific MAD-null1-A0 design: within-risk-bin median centering,

@@ -2,7 +2,7 @@ cff-version: 1.2.0
 message: "If you use spAlignDE, please cite the software and the associated manuscript."
 type: software
 title: "spAlignDE"
-version: 0.2.0
+version: 0.1.0
 license: MIT
 repository-code: "https://github.com/dsong-lab/spAlignDE"
 authors:
