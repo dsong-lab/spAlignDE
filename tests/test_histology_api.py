@@ -60,6 +60,7 @@ class HistologyContractTests(unittest.TestCase):
         from spAlignDE.alignment import _histology_alignment_core as core
 
         config = spAlignDE.STHistologyAlignmentConfig()
+        self.assertFalse(config.restore_best_checkpoint)
         weights = _histology_pairing_weights(config)
         self.assertEqual(
             weights,

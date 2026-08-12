@@ -743,7 +743,11 @@ pairs use the paper weights for SDF agreement, Chamfer similarity, Dice, area,
 and thickness (`0.20, 0.40, 0.15, 0.25, 0.00`). ASD is not included in the
 composite score; its raw raster-space value is used only as an independent QC
 gate. Pairs must have score ≥ 0.40 and ASD ≤ 30 pixels. Accepted pairs become
-continuous signed-distance channels for a single-stage S-LDDMM fit.
+ continuous signed-distance channels for a single-stage S-LDDMM fit.
+
+The run retains the final optimizer iterate (`restore_best_checkpoint=False`),
+which is the package-wide default and avoids comparing energies across EM
+intensity updates with different objective scales.
 
 Users can change the five normalized weights in
 `STHistologyAlignmentConfig`. Tune them only after checking the coordinate
@@ -769,6 +773,7 @@ result = spAlignDE.align_st_to_histology(
         velocity_grid_spacing=6.0,
         iterations=300,
         momentum_lr=2e3,
+        restore_best_checkpoint=False,
         device=None,
         dtype="float64",
     ),

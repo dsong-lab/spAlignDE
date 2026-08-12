@@ -90,8 +90,9 @@ class SLDDMMConfig:
     warps; smaller values strengthen regularization.
 
     ``restore_best_checkpoint`` restores the lowest-energy optimizer state at
-    the end of a run. Set it to ``False`` when EM intensity updates change the
-    objective scale and the final-iteration transformation is required.
+    the end of a run. It defaults to ``False`` because EM intensity updates can
+    change the objective scale; set it to ``True`` only when checkpoint
+    restoration is explicitly desired.
     """
 
     kernel_scale: float = 300.0
@@ -108,7 +109,7 @@ class SLDDMMConfig:
     affine_slowdown: float = 10.0
     momentum_gradient_clip: float | None = None
     momentum_lr_decay: float = 1.0
-    restore_best_checkpoint: bool = True
+    restore_best_checkpoint: bool = False
     em_update_every: int = 5
     em_start: int = 50
     sigma_match: float = 1.0

@@ -257,7 +257,9 @@ The paper settings are:
 
 For numerical stability, the optimizer clips the momentum gradient, reduces a
 common step scale after an energy increase, rejects non-finite or singular
-affine updates, and returns the lowest-energy checkpoint. These safeguards are
+affine updates, and retains the final optimizer iterate
+(``restore_best_checkpoint=False``). This is the package-wide default because
+EM intensity updates can change the objective scale. These safeguards are
 global optimization rules and do not inspect structure labels or anatomy.
 
 For a new dataset, inspect accepted and rejected masks before changing
@@ -274,7 +276,10 @@ for component-specific tuning and :doc:`Parameter Tuning Guide
 
    result = spAlignDE.align_atac_to_st(
        prealigned,
-       config=spAlignDE.ATACSTAlignmentConfig(dtype="float64"),
+       config=spAlignDE.ATACSTAlignmentConfig(
+           restore_best_checkpoint=False,
+           dtype="float64",
+       ),
        atac_cluster_key="cluster_raw",
        st_cluster_key="cluster",
        output_dir="tutorials/cross_modality/atac/output/alignment",

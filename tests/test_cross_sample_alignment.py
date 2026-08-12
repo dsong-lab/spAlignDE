@@ -145,7 +145,7 @@ class CrossSampleAlignmentTests(unittest.TestCase):
     def test_stepwise_alignment_and_h5ad_roundtrip(self):
         adata = make_cross_sample_adata()
         original_spatial = np.asarray(adata.obsm["spatial"]).copy()
-        self.assertTrue(spAlignDE.SLDDMMConfig().restore_best_checkpoint)
+        self.assertFalse(spAlignDE.SLDDMMConfig().restore_best_checkpoint)
 
         prealignment = spAlignDE.prealign_cross_sample(
             adata,

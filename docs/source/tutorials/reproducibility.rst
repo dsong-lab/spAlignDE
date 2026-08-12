@@ -116,9 +116,11 @@ environment, the following are expected to be exact between fresh processes:
 Continuous CUDA coordinates are assessed with a declared tolerance. PyTorch
 reports that ``grid_sampler_2d_backward_cuda`` has no deterministic CUDA
 implementation, so setting a seed does not justify a claim of bitwise-identical
-deformation fields. Float64 reduced the observed H&E and ATAC coordinate
-differences below ``1e-12``. Large cross-sample runs in float32 reproduced
-within one coordinate unit, at most one thirtieth of the 30-unit raster grid.
+deformation fields. With final-iterate checkpoint handling, repeated float64
+ATAC runs differed by at most ``4.55e-13`` coordinate units; repeated H&E runs
+differed by at most ``0.0203`` units and are assessed against a conservative
+``0.05``-unit tolerance. Large cross-sample runs in float32 reproduced within
+one coordinate unit, at most one thirtieth of the 30-unit raster grid.
 
 Validated fixed-seed results
 ----------------------------

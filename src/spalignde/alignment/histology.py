@@ -165,7 +165,8 @@ class STHistologyAlignmentConfig:
     ``kernel_scale``/``velocity_grid_spacing`` pair is the public equivalent of
     legacy ``a``/``grid_step`` and uses original feature-grid coordinate units.
     ``zoom_scale`` changes image sampling density while retaining axes that
-    span the original feature-grid extent.
+    span the original feature-grid extent. ``restore_best_checkpoint`` defaults
+    to ``False`` so the returned transform is the final optimizer iterate.
     """
 
     pairing_weight_sdf: float = 0.20
@@ -190,6 +191,7 @@ class STHistologyAlignmentConfig:
     momentum_lr: float = 2e3
     momentum_lr_decay: float = 0.9995
     minimum_momentum_lr: float = 200.0
+    restore_best_checkpoint: bool = False
     device: str | None = None
     dtype: str = "float32"
 
@@ -1479,6 +1481,7 @@ def align_st_to_histology(
             "affine_slowdown": 10.0,
             "lrM_decay": config.momentum_lr_decay,
             "lrM_min": config.minimum_momentum_lr,
+            "restore_best": config.restore_best_checkpoint,
         },
         em_cfg={"update_every": 5, "start_iter": 50},
         intensity_cfg={

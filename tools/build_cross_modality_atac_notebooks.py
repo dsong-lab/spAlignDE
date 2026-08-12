@@ -465,9 +465,10 @@ The paper settings are `nt=8`, `niter=500`, diffeomorphic start 20,
 `epM=1e3`, `sigmaR=1e6`, and `sigmaM=0.5`.
 
 The optimizer applies one global numerical-stability policy: clip the momentum
-gradient, reduce the common step scale when total energy rises, reject a
-non-finite or singular affine update, and restore the lowest-energy checkpoint.
-These safeguards do not inspect cluster names or anatomical regions.
+gradient, reduce the common step scale when total energy rises, and reject a
+non-finite or singular affine update. The run retains the final optimizer
+iterate (`restore_best_checkpoint=False`), consistent with the package-wide
+default. These safeguards do not inspect cluster names or anatomical regions.
 """
             ),
             code(
@@ -491,6 +492,7 @@ alignment_config = spAlignDE.ATACSTAlignmentConfig(
     affine_linear_lr=2e-11,
     affine_translation_lr=2e-5,
     momentum_lr=1e3,
+    restore_best_checkpoint=False,
     deformation_regularization=1e6,
     matching_scale=0.5,
     dtype="float64",

@@ -31,7 +31,9 @@ class ATACSTContractTests(unittest.TestCase):
     def test_pairing_weights_are_user_configurable_and_normalized(self):
         from spAlignDE.alignment.atac import _atac_pairing_weights
 
-        default_weights = _atac_pairing_weights(spAlignDE.ATACSTAlignmentConfig())
+        config = spAlignDE.ATACSTAlignmentConfig()
+        self.assertFalse(config.restore_best_checkpoint)
+        default_weights = _atac_pairing_weights(config)
         self.assertEqual(
             default_weights,
             {

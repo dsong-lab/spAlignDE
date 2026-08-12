@@ -473,10 +473,11 @@ changing these values. The complete tuning order and the validated MERFISH,
 kidney and breast-cancer profiles are in :doc:`Parameter Tuning Guide
 <parameter_tuning>`.
 
-``restore_best_checkpoint=True`` is the default and returns the lowest-energy
-recorded optimizer state. Use ``False`` when EM intensity updates make energy
-levels across phases incomparable and the intended output is the final
-iteration. In either case, inspect the energy history and aligned geometry.
+``restore_best_checkpoint=False`` is the default and returns the final-iteration
+transformation because EM intensity updates can make energy levels across
+phases incomparable. Set it to ``True`` only when restoring the lowest-energy
+recorded state is explicitly desired. In either case, inspect the energy
+history and aligned geometry.
 
 Output contract
 ---------------

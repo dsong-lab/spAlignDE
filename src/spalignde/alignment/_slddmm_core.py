@@ -515,7 +515,7 @@ def LDDMM_shooting(
             'rollback_patience': 6,
             'minimum_energy_improvement': 1e-5,
             'minimum_affine_determinant': 1e-6,
-            'restore_best': True,
+            'restore_best': False,
         },
         optim_cfg,
     )

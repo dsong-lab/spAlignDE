@@ -68,6 +68,8 @@ class ATACSTAlignmentConfig:
     broad masks without region-specific weights.
     ``kernel_scale`` and ``velocity_grid_spacing`` are legacy ``a`` and
     ``grid_step`` in the cropped raster-canvas coordinate system.
+    ``restore_best_checkpoint`` defaults to ``False`` so the returned transform
+    is the final optimizer iterate.
     """
 
     sdf_weight: float = 0.35
@@ -104,6 +106,7 @@ class ATACSTAlignmentConfig:
     rollback_patience: int = 6
     minimum_energy_improvement: float = 1e-5
     minimum_affine_determinant: float = 1e-4
+    restore_best_checkpoint: bool = False
     deformation_regularization: float = 1e6
     matching_scale: float = 0.5
     device: str | None = None
@@ -788,7 +791,7 @@ def align_atac_to_st(
             "rollback_patience": config.rollback_patience,
             "minimum_energy_improvement": config.minimum_energy_improvement,
             "minimum_affine_determinant": config.minimum_affine_determinant,
-            "restore_best": True,
+            "restore_best": config.restore_best_checkpoint,
         },
         em_cfg={"update_every": 5, "start_iter": 50},
         intensity_cfg={

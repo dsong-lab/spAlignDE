@@ -188,11 +188,11 @@ Keep the affine learning rates near the validated workflow values after a good
 pre-alignment. Large affine updates during S-LDDMM often indicate that the
 global initialization should be fixed instead.
 
-By default, ``restore_best_checkpoint=True`` returns the optimizer state with
-the lowest recorded energy. Set it to ``False`` when EM intensity updates make
-energies from different optimization phases incomparable and the intended
-output is the final-iteration transformation. Always inspect both the energy
-history and the resulting geometry before changing this setting.
+By default, ``restore_best_checkpoint=False`` returns the final-iteration
+transformation because EM intensity updates can make energies from different
+optimization phases incomparable. Set it to ``True`` only when restoring the
+lowest-energy recorded state is explicitly desired. Always inspect both the
+energy history and the resulting geometry before changing this setting.
 
 ``diffeomorphic_start``
 ~~~~~~~~~~~~~~~~~~~~~~~

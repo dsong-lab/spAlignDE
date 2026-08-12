@@ -254,6 +254,8 @@ Chamfer, Dice, area and thickness similarities with empirical weights 0.20,
 not part of the composite score; its raw value is retained only as an
 independent QC measure. Pairs must have score at least 0.40 and ASD at most 30
 pixels. Accepted pairs become continuous signed-distance channels for S-LDDMM.
+The optimizer retains its final iterate
+(``restore_best_checkpoint=False``), consistent with the package-wide default.
 
 Paired-feature overlap quality control
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -305,7 +307,10 @@ defaults are 0.20, 0.40, 0.15, 0.25 and 0.00. ``pair_score_threshold`` and
 internal structures. The histology S-LDDMM values ``a=50`` and
 ``grid_step=6`` are expressed in original feature-grid units. ``zoom_scale``
 changes image sampling density but retains axes spanning that original grid;
-do not rescale ``a`` or ``grid_step`` by ``zoom_scale``. See the
+do not rescale ``a`` or ``grid_step`` by ``zoom_scale``.
+``restore_best_checkpoint=False`` keeps the final optimizer transformation;
+set it to ``True`` only for an explicitly designed checkpoint-selection
+analysis. See the
 :ref:`cross-modality pairing-weight guide <cross_modality_pairing_weights>`
 and :doc:`Parameter Tuning Guide <parameter_tuning>` before
 transferring them to another image resolution.
