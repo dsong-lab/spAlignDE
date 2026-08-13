@@ -1,11 +1,17 @@
-Post-Alignment Inference - Injured Mouse Kidney
-================================================
+Post-Alignment Inference
+========================
 
 spAlignDE tests location-resolved expression differences after samples have
-been transformed into a common coordinate frame. The real-data example uses a
-normal mouse-kidney Visium section (``NL3``) as reference and an injured
-section (``IL3``) as query. It reports local results for ``Cbr1``, ``Cd44`` and
-``Myo5a`` together with one gene-level ACAT omnibus P value per gene.
+been transformed into a common coordinate frame. The public tutorials cover
+two aligned-tissue examples: injured mouse kidney and aging mouse brain.
+
+Injured Mouse Kidney
+--------------------
+
+The first example uses a normal mouse-kidney Visium section (``NL3``) as
+reference and an injured section (``IL3``) as query. It reports local results
+for ``Cbr1``, ``Cd44`` and ``Myo5a`` together with one gene-level ACAT omnibus
+P value per gene.
 
 The fully executed notebook uses the packaged manuscript ``aligned_317``
 coordinates. These files contain spot identifiers and aligned coordinates
@@ -13,7 +19,7 @@ only. Raw expression and tissue-position tables remain external public inputs,
 and users can substitute coordinates from their own spAlignDE run.
 
 Installation and data
----------------------
+~~~~~~~~~~~~~~~~~~~~~
 
 Install the integrated package and tutorial dependencies from the repository
 root:
@@ -50,7 +56,7 @@ and performs a one-to-one join between raw expression, tissue positions and
 aligned coordinates. Row order is never used as identity.
 
 Stable-gene candidates and density risk
----------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The three tested genes are kept separate from the broad mismatch-risk candidate
 pool. Candidates must be detected in at least 10 spots and have at least 10
@@ -73,7 +79,7 @@ precision adjustment; it is not part of the gene-specific alignment-risk
 calibration.
 
 Shared-grid rule
-----------------
+~~~~~~~~~~~~~~~~
 
 Let :math:`N_{typ}` be the median observation count per sample. With
 ``grid_n=None``, spAlignDE begins from the R-driven Cartesian resolution and
@@ -88,7 +94,7 @@ selected value, its ``automatic`` or ``manual`` source, the target interval and
 the final valid count are recorded in ``prepared.metadata``.
 
 Gene-specific local-only calibration
-------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 For each gene, Mismatch-aware fitting first obtains local statistics without
 mismatch inflation. Let :math:`r_i` denote normalized local risk. The
@@ -119,7 +125,7 @@ failure mode in which a small number of genes were over-shrunk everywhere by a
 large gene-specific global factor.
 
 Public workflow
----------------
+~~~~~~~~~~~~~~~
 
 The package performs the complete reusable handoff. After concatenating the
 standardized outputs of ``build_visium_coordinate_table`` into
@@ -175,7 +181,7 @@ Requested and actual calibration modes plus local/global coefficients are
 stored in ``result.metadata``.
 
 Grid-level regions and gene-level ACAT
---------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 BH adjustment is performed separately for every gene and contrast across valid
 grid locations. The tutorial deliberately sets ``region_cleanup=False``;
@@ -191,7 +197,7 @@ P value for spatial change somewhere on the tested grid. It is neither a local
 P value nor a genome-wide FDR-adjusted gene discovery value.
 
 Recorded result
----------------
+~~~~~~~~~~~~~~~
 
 The executed notebook retains 6,169 tissue-valid shared-grid locations and
 reports:
@@ -227,10 +233,86 @@ and the gene-level ACAT P value. Figures are preserved as genuine execution
 outputs inside the notebook; no separate precomputed image file is required.
 
 Interpretation and limitations
-------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This is a matched-section IL3-versus-NL3 analysis, not replicate-level
 population inference. Mismatch risk describes local comparability and does not
 replace geometric quality control. Inspect the aligned geometry, shared-grid
 occupancy, stable-gene screen, density risk and local support before assigning
 biological meaning to significant regions.
+
+Aging Mouse Brain
+-----------------
+
+The second example compares four aging mouse-brain MERFISH sections with a
+4.3-month reference in their shared spAlignDE coordinate frame. The queries
+are 6.6, 15.8, 30.9 and 34.5 months, and the local test is fitted for
+``Gamt``.
+
+Data and alignment handoff
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The original 300-gene MERFISH data were published with `Spatial transcriptomic
+clocks reveal cell proximity effects in brain ageing
+<https://doi.org/10.1038/s41586-024-08334-8>`_. The processed public data are
+available from `Zenodo record 13883177
+<https://doi.org/10.5281/zenodo.13883177>`_.
+
+The package contains a compact subset of five coronal sections selected from
+the public aging cohorts. For each section it retains raw integer counts,
+original coordinates and cell-type labels, and adds ``x_aligned`` and ``y_aligned``
+coordinates generated by spAlignDE. The tutorial consumes these precomputed
+alignment outputs; it does not rerun alignment. The packaged subset makes the
+example executable without a separate data download while retaining links to
+the original source and paper.
+
+Public workflow
+~~~~~~~~~~~~~~~
+
+The complete handoff uses the dataset loader and inference API directly:
+
+.. code-block:: python
+
+   import spAlignDE
+
+   from spAlignDE.datasets import (
+       AGING_BRAIN_REFERENCE,
+       aging_brain_genes,
+       load_aging_brain,
+   )
+
+   data = load_aging_brain()
+   prepared = spAlignDE.prepare_inference(
+       data,
+       reference=AGING_BRAIN_REFERENCE,
+       genes=["Gamt"],
+       risk_genes=aging_brain_genes(),
+       density_energy_share=0.25,
+       library_size=250,
+       grid_n=None,
+       random_state=1,
+   )
+   result = spAlignDE.fit_local_de(
+       prepared,
+       genes=["Gamt"],
+       contrast="vs_reference",
+       alpha=0.05,
+       mismatch_aware=True,
+       technical_adjustment=True,
+       cell_type_adjustment=False,
+       global_offset=True,
+       region_cleanup=True,
+   )
+
+Raw counts are not log-transformed and are normalized to a library size of
+250. The density channel receives 25% of standardized mismatch-feature energy,
+and the broad 300-gene panel is retained for mismatch-risk screening.
+
+Interpretation and limitations
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Each output row is one age-versus-4.3-month contrast. Red contours mark the
+connected subset of grid locations passing within-contrast BH FDR at
+``q <= 0.05``. The analysis compares individual aligned sections rather than
+biological replicates, so its local maps should not be interpreted as
+replicate-level population inference.
