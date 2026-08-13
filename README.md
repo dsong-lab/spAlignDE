@@ -87,6 +87,7 @@ analysis workflows listed below.
 | ST to histology image | `source_notebooks/cross_modality/st_he_feature_extraction_nb.ipynb` → `source_notebooks/cross_modality/st_he_feature_clustering_nb.ipynb` → `source_notebooks/cross_modality/st_he_alignment_nb.ipynb` |
 | Spatial ATAC to ST | `source_notebooks/cross_modality/atac_st_single_clustering_nb.ipynb` → `source_notebooks/cross_modality/atac_st_alignment_nb.ipynb` |
 | Post-alignment inference | `source_notebooks/post_alignment_inference_nb.ipynb` after kidney alignment |
+| Aging-brain Figure 5A | `source_notebooks/mouse_aging_brain_figure5a.ipynb` using packaged aligned MERFISH data |
 
 The post-alignment notebook retains the standard website input handoff:
 the packaged manuscript `aligned_317` coordinates plus the public NL3/IL3 raw
@@ -98,6 +99,12 @@ The notebook delegates barcode matching, raw-count loading, per-gene support
 summaries, risk-gene filtering and long-table construction to
 `spAlignDE.build_visium_inference_table`; it defines no dataset-processing
 functions of its own.
+
+The aging-brain notebook is self-contained: the package includes the five
+aligned MERFISH sections, raw counts for the 300-gene mismatch-risk candidate
+panel, original/aligned coordinates, and cell-type annotations. It reproduces
+the four age-versus-4.3-month `Gamt` local-statistic maps with the manuscript
+settings and requires no external data download.
 
 Mismatch-aware inference calibrates each gene from its first-pass local
 statistics. Statistics are grouped by normalized local risk, median-centered,

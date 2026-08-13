@@ -1,0 +1,70 @@
+{
+  "description": "Five aging mouse-brain MERFISH sections used to reproduce the Gamt local-statistic maps in Figure 5A.",
+  "reference": "age_4.3",
+  "queries": [
+    "age_6.6",
+    "age_15.8",
+    "age_30.9",
+    "age_34.5"
+  ],
+  "expression": "raw transcript counts",
+  "coordinate_system": "precomputed spAlignDE aligned coordinates",
+  "gene_count": 300,
+  "observation_columns": [
+    "cell_id",
+    "sample_id",
+    "age",
+    "batch",
+    "celltype",
+    "x",
+    "y",
+    "x_aligned",
+    "y_aligned"
+  ],
+  "samples": {
+    "age_4.3": {
+      "n_cells": 79824,
+      "n_genes": 300,
+      "counts_file": "age_4_3_counts.npz",
+      "observations_file": "age_4_3_observations.csv.gz"
+    },
+    "age_6.6": {
+      "n_cells": 78862,
+      "n_genes": 300,
+      "counts_file": "age_6_6_counts.npz",
+      "observations_file": "age_6_6_observations.csv.gz"
+    },
+    "age_15.8": {
+      "n_cells": 72453,
+      "n_genes": 300,
+      "counts_file": "age_15_8_counts.npz",
+      "observations_file": "age_15_8_observations.csv.gz"
+    },
+    "age_30.9": {
+      "n_cells": 66416,
+      "n_genes": 300,
+      "counts_file": "age_30_9_counts.npz",
+      "observations_file": "age_30_9_observations.csv.gz"
+    },
+    "age_34.5": {
+      "n_cells": 73775,
+      "n_genes": 300,
+      "counts_file": "age_34_5_counts.npz",
+      "observations_file": "age_34_5_observations.csv.gz"
+    }
+  },
+  "manuscript_settings": {
+    "gene": "Gamt",
+    "alpha": 0.05,
+    "density_energy_share": 0.25,
+    "library_size": 250,
+    "grid_n": null,
+    "mismatch_aware": true,
+    "technical_adjustment": true,
+    "cell_type_adjustment": false,
+    "global_offset": true,
+    "region_cleanup": true,
+    "contrast": "vs_reference",
+    "random_state": 1
+  }
+}

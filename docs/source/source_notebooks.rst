@@ -29,6 +29,7 @@ the required quality-control sequence.
    source_notebooks/cross_sample_alignment
    source_notebooks/cross_modality_alignment
    source_notebooks/post_alignment_inference
+   source_notebooks/aging_brain_figure5a
 
 Workflow Categories
 -------------------
@@ -37,3 +38,4 @@ Workflow Categories
 - :doc:`Cross-Sample Alignment <source_notebooks/cross_sample_alignment>`
 - :doc:`Cross-Modality Alignment <source_notebooks/cross_modality_alignment>`
 - :doc:`Post-Alignment Inference <source_notebooks/post_alignment_inference>`
+- :doc:`Aging Brain Figure 5A <source_notebooks/aging_brain_figure5a>`

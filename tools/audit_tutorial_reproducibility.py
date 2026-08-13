@@ -30,6 +30,7 @@ SEEDS = {
     "cross_sample_alignment_mouse_kidney_clustering_nb.ipynb": 1000,
     "cross_sample_alignment_nb.ipynb": 1000,
     "cross_sample_uncertainty_report.ipynb": 1000,
+    "mouse_aging_brain_figure5a.ipynb": 1,
     "post_alignment_inference_nb.ipynb": 1,
 }
 
