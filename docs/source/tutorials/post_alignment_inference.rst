@@ -155,6 +155,7 @@ standardized outputs of ``build_visium_coordinate_table`` into
        density_energy_share=0.75,
        library_size=10_000,
        grid_n=None,
+       n_jobs=1,
        random_state=1,
    )
 
@@ -167,6 +168,7 @@ standardized outputs of ``build_visium_coordinate_table`` into
        cell_type_adjustment=False,
        global_offset=False,
        region_cleanup=False,
+       n_jobs=1,
        random_state=1,
    )
 
@@ -290,6 +292,7 @@ The complete handoff uses the dataset loader and inference API directly:
        density_energy_share=0.25,
        library_size=250,
        grid_n=None,
+       n_jobs=1,
        random_state=1,
    )
    result = spAlignDE.fit_local_de(
@@ -302,6 +305,8 @@ The complete handoff uses the dataset loader and inference API directly:
        cell_type_adjustment=False,
        global_offset=True,
        region_cleanup=True,
+       n_jobs=1,
+       random_state=1,
    )
 
 Raw counts are not log-transformed and are normalized to a library size of
@@ -316,3 +321,33 @@ connected subset of grid locations passing within-contrast BH FDR at
 ``q <= 0.05``. The analysis compares individual aligned sections rather than
 biological replicates, so its local maps should not be interpreted as
 replicate-level population inference.
+
+Fixed-seed repeat check
+-----------------------
+
+Both public workflows were executed twice from clean working directories with
+``PYTHONHASHSEED`` set before kernel startup, workflow seed 1, deterministic
+library controls and ``n_jobs=1`` for preparation and fitting.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 22 22 25 31
+
+   * - Workflow
+     - Shared-grid locations
+     - Saved-output SHA256
+     - Repeat result
+   * - Kidney NL3 versus IL3
+     - 6,169
+     - ``7be989029cc4...``
+     - Exact saved-output match
+   * - Aging brain versus 4.3 months
+     - 74,908
+     - ``b6e64d662a59...``
+     - Exact saved-output match
+
+The saved-output hash covers all sanitized code-cell outputs, including tables
+and figures, but excludes execution timing metadata. With ``n_jobs>1`` the
+scientific arrays remain deterministic in this workflow, while diagnostic log
+messages from parallel workers may arrive in a different order and therefore
+change a whole-notebook byte/hash comparison.
