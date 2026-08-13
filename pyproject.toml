@@ -91,6 +91,7 @@ py-modules = ["spAlignDE"]
 
 [tool.setuptools.package-data]
 "spalignde.datasets" = ["*.csv.gz", "*.json"]
+"spalignde.datasets.aging_brain" = ["*.csv.gz", "*.npz", "*.json"]
 "spalignde.datasets.kidney" = ["*.csv.gz", "metadata.json"]
 
 [tool.setuptools.packages.find]

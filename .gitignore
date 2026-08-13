@@ -35,6 +35,7 @@ tutorials/**/output/
 *.pickle
 *.pkl
 *.npz
+!src/spalignde/datasets/aging_brain/*.npz
 
 # The UI source/component and small structure table are tracked; user uploads
 # and the external Allen annotation are not.

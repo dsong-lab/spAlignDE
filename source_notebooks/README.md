@@ -6,7 +6,8 @@ Its folder structure mirrors `docs/source/source_notebooks`:
 
 - `clustering/`: joint and single-sample clustering;
 - `cross_modality/`: ATAC–ST, H&E–ST, and interactive region-pairing workflows;
-- top-level cross-sample, atlas, uncertainty, and post-alignment notebooks.
+- top-level cross-sample, atlas, uncertainty, and post-alignment notebooks,
+  including the packaged aging-brain Figure 5A workflow.
 
 Notebooks are executed here first and then copied to the matching Sphinx source
 path. Public Python examples use the case-preserving `spAlignDE` name, and
@@ -22,8 +23,7 @@ python tools/audit_tutorial_reproducibility.py
 The executor uses a fresh kernel per notebook, imports the current checkout
 through an absolute `src` path, stops on cell errors, sanitizes local paths and
 records source/output hashes only after full execution. The public execution
-set contains 16 computational notebooks; aging brain is intentionally not a
-tutorial workflow. External input checksums are stored in
+set contains 17 computational notebooks. External input checksums are stored in
 `docs/source/_static/tutorial_execution_manifest.json`.
 
 The task-specific **How to adapt...** cells are maintained by
