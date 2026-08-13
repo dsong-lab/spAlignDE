@@ -46,7 +46,7 @@ WORKFLOWS = (
     ("cross_sample_alignment_breast_cancer_clustering_nb.ipynb", 1000),
     ("cross_sample_alignment_breast_cancer_alignment_nb.ipynb", 1000),
     ("cross_sample_uncertainty_report.ipynb", 1000),
-    ("mouse_aging_brain_figure5a.ipynb", 1),
+    ("post_alignment_inference_aging_brain_nb.ipynb", 1),
     ("post_alignment_inference_nb.ipynb", 1),
 )
 
@@ -135,7 +135,9 @@ def execute(relative: str, seed: int, timeout: int) -> None:
         "execution_root": "repository root",
         "package_source": "current checkout src",
         "input_manifest": "docs/source/_static/tutorial_execution_manifest.json",
-        "aging_brain_included": relative == "mouse_aging_brain_figure5a.ipynb",
+        "aging_brain_included": (
+            relative == "post_alignment_inference_aging_brain_nb.ipynb"
+        ),
     }
     temporary = path.with_suffix(".executed.tmp.ipynb")
     nbformat.write(executed, temporary)

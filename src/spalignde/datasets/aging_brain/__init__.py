@@ -1,4 +1,4 @@
-"""Packaged aging mouse-brain data for the Figure 5A tutorial."""
+"""Packaged aligned aging mouse-brain data for post-alignment inference."""
 
 from __future__ import annotations
 
@@ -10,20 +10,20 @@ import pandas as pd
 from scipy import sparse
 
 
-AGING_BRAIN_FIGURE5A_REFERENCE = "age_4.3"
-AGING_BRAIN_FIGURE5A_QUERIES = (
+AGING_BRAIN_REFERENCE = "age_4.3"
+AGING_BRAIN_QUERIES = (
     "age_6.6",
     "age_15.8",
     "age_30.9",
     "age_34.5",
 )
-AGING_BRAIN_FIGURE5A_SAMPLES = (
-    AGING_BRAIN_FIGURE5A_REFERENCE,
-    *AGING_BRAIN_FIGURE5A_QUERIES,
+AGING_BRAIN_SAMPLES = (
+    AGING_BRAIN_REFERENCE,
+    *AGING_BRAIN_QUERIES,
 )
 
 
-def aging_brain_figure5a_metadata() -> dict:
+def aging_brain_metadata() -> dict:
     """Return provenance, schema, and manuscript settings for the dataset."""
 
     resource = files(__package__).joinpath("metadata.json")
@@ -31,7 +31,7 @@ def aging_brain_figure5a_metadata() -> dict:
         return json.load(stream)
 
 
-def aging_brain_figure5a_genes() -> tuple[str, ...]:
+def aging_brain_genes() -> tuple[str, ...]:
     """Return the ordered 300-gene candidate panel stored with the dataset."""
 
     resource = files(__package__).joinpath("genes.json")
@@ -56,7 +56,7 @@ def _normalize_selection(
     return selected
 
 
-def load_aging_brain_figure5a(
+def load_aging_brain(
     *,
     samples: Sequence[str] | None = None,
     genes: Sequence[str] | None = None,
@@ -68,10 +68,10 @@ def load_aging_brain_figure5a(
     ``genes`` is primarily useful for inspecting the packaged data.
     """
 
-    available_genes = aging_brain_figure5a_genes()
+    available_genes = aging_brain_genes()
     selected_samples = _normalize_selection(
         samples,
-        available=AGING_BRAIN_FIGURE5A_SAMPLES,
+        available=AGING_BRAIN_SAMPLES,
         label="samples",
     )
     selected_genes = _normalize_selection(
@@ -108,10 +108,10 @@ def load_aging_brain_figure5a(
 
 
 __all__ = [
-    "AGING_BRAIN_FIGURE5A_QUERIES",
-    "AGING_BRAIN_FIGURE5A_REFERENCE",
-    "AGING_BRAIN_FIGURE5A_SAMPLES",
-    "aging_brain_figure5a_genes",
-    "aging_brain_figure5a_metadata",
-    "load_aging_brain_figure5a",
+    "AGING_BRAIN_QUERIES",
+    "AGING_BRAIN_REFERENCE",
+    "AGING_BRAIN_SAMPLES",
+    "aging_brain_genes",
+    "aging_brain_metadata",
+    "load_aging_brain",
 ]

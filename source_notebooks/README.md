@@ -7,7 +7,7 @@ Its folder structure mirrors `docs/source/source_notebooks`:
 - `clustering/`: joint and single-sample clustering;
 - `cross_modality/`: ATAC–ST, H&E–ST, and interactive region-pairing workflows;
 - top-level cross-sample, atlas, uncertainty, and post-alignment notebooks,
-  including the packaged aging-brain Figure 5A workflow.
+  including kidney and aging-brain inference workflows.
 
 Notebooks are executed here first and then copied to the matching Sphinx source
 path. Public Python examples use the case-preserving `spAlignDE` name, and
