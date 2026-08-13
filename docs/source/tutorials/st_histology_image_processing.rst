@@ -125,13 +125,13 @@ spatial-transcriptomic coordinates are stored in the feature pickle.
 `UNI <https://github.com/mahmoodlab/UNI>`_ and its `gated Hugging Face weights
 <https://huggingface.co/MahmoodLab/UNI>`_ provide an optional fine-grained
 pathology representation. The canonical spAlignDE H&E result here uses
-HIPT/ViT only; UNI is not required to reproduce the reported 26 image
+HIPT/ViT only; UNI is not required to reproduce the reported 21 final image
 structures.
 
 2. Image-feature clustering
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-:doc:`H&E image-feature clustering into 26 structures
+:doc:`H&E image-feature clustering into 21 final structures
 </source_notebooks/cross_modality/st_he_feature_clustering_nb>`
 
 ``spAlignDE.cluster_histology_features`` separates tissue from slide
@@ -139,7 +139,7 @@ background, clusters standardized HIPT, RGB, and coordinate blocks into 30
 initial tissue regions, fills holes, performs feature- and symmetry-aware
 merging, and removes small disconnected islands. The validated
 ``test0730/he_rep1`` configuration uses ``rgb_weight=0.25``,
-``coordinate_weight=0.05``, ``random_state=0``, and produces 26 cleaned image
+``coordinate_weight=0.05``, ``random_state=0``, and produces 21 cleaned image
 structures. These image labels do not represent cell types or atlas regions.
 
 The complete image-only construction is:
@@ -150,11 +150,12 @@ The complete image-only construction is:
 3. concatenate HIPT features, RGB weighted by ``0.25``, and normalized x/y
    coordinates weighted by ``0.05``;
 4. run deterministic K-means to obtain 30 initial tissue regions;
-5. fill internal holes and merge regions supported by feature-centroid
-   similarity;
-6. accept at most two layout-aware reflection merges when overlap, feature
-   cosine similarity, centroid distance, and symmetry-score gain pass their
-   gates; and
+5. fill internal holes and consolidate by feature-centroid similarity to a
+   26-cluster merge target;
+6. apply reflection merging with minimum area 200, IoU 0.20 and Dice 0.30,
+   then accept at most three additional symmetry-score merges when reflected
+   overlap, feature cosine similarity, centroid distance and score-gain gates
+   pass; and
 7. remove disconnected islands smaller than 250 feature-grid pixels, keeping
    background encoded as −1.
 
@@ -178,12 +179,20 @@ review of reflected-mask candidates before any symmetry-driven merge.
    cluster_config = spAlignDE.HistologyClusteringConfig(
        background_clusters=2,
        image_clusters=30,
-       merged_clusters=30,
+       merged_clusters=26,
        rgb_weight=0.25,
        coordinate_weight=0.05,
        cleanup_min_size=250,
+       do_reflection_merge=True,
        symmetry_axis="ud",  # benchmark: two sections stacked vertically
-       symmetry_max_merges=2,
+       reflection_min_area=200,
+       reflection_min_iou=0.20,
+       reflection_min_dice=0.30,
+       symmetry_max_merges=3,
+       symmetry_min_score_gain=0.02,
+       symmetry_min_reflected_dice=0.15,
+       symmetry_max_centroid_distance=0.15,
+       symmetry_min_feature_cosine=0.30,
        random_state=0,
    )
 
@@ -200,7 +209,7 @@ review of reflected-mask candidates before any symmetry-driven merge.
 
    Image-to-structure quality-control sequence: prepared H&E, initial
    HIPT/RGB/coordinate feature clusters, symmetry-aware merging, and the final
-   26 cleaned structures. The vertical arrangement is intentional for this
+   21 cleaned structures. The vertical arrangement is intentional for this
    two-section benchmark. Compare every stage with the prepared image before
    using the labels as alignment features.
 
@@ -368,12 +377,13 @@ Troubleshooting
 Validation and interpretation
 -----------------------------
 
-Two August 11 fresh-process runs from the same vendor-BTF checksum reproduced
-the H&E HIPT feature pickle and all four clustering-stage arrays exactly. The
-fixed result contains 26 regions and two accepted ST/H&E pairs. CUDA S-LDDMM may still show
-small floating-point differences across GPUs and PyTorch versions; anatomical
-overlap and accepted structure pairs, rather than bitwise coordinate identity,
-are the relevant checks.
+Two August 12 fresh-process runs from the same fixed HIPT feature checksum
+reproduced the H&E labels, pre-alignment and accepted pair table exactly. The
+selected result contains 21 final regions and two accepted ST/H&E pairs. CUDA
+S-LDDMM coordinates differed by at most 0.00114 feature-grid unit and pairwise
+Dice by at most 9.23e-5 across the two runs. Anatomical overlap and accepted
+structure pairs, rather than bitwise coordinate identity, are therefore the
+relevant checks.
 
 The before/after overlay establishes geometric plausibility, not biological
 ground truth. The paper's comparison against Visium expression is independent

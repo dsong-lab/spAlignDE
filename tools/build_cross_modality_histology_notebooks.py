@@ -95,10 +95,13 @@ dataset input is **one high-resolution image**. Spatial coordinates, a Visium
 matrix, spot locations, and gene expression from the reference section are not
 used to estimate the alignment.
 
-This notebook performs the feature extraction itself; it does not load a
-precomputed feature file. spAlignDE prepares the image, runs the hierarchical
-HIPT encoders with shifted tilings, smooths the image-feature fields, and saves
-the result consumed by the feature-clustering notebook.
+By default this notebook performs feature extraction itself. spAlignDE prepares
+the image, runs the hierarchical HIPT encoders with shifted tilings, smooths
+the image-feature fields, and saves the result consumed by the clustering
+notebook. Documentation maintainers may set
+`SPALIGNDE_DOCUMENTATION_FEATURE_DIR` to re-render the page from a previously
+validated, checksum-locked completion of this expensive stage; public users do
+not need that variable.
 """
             ),
             markdown(
@@ -258,21 +261,35 @@ for a precomputed feature file in this notebook.
             ),
             code(
                 r"""
-feature_config = spAlignDE.HistologyFeatureConfig(
-    target_microns_per_pixel=0.5,
-    shifted_tiles=True,
-    device=None,  # automatically select CUDA when available
-)
+completed_feature_dir = os.environ.get("SPALIGNDE_DOCUMENTATION_FEATURE_DIR")
+if completed_feature_dir:
+    import json
 
-features = spAlignDE.extract_histology_features(
-    IMAGE_PATH,
-    FEATURE_DIR,
-    config=feature_config,
-)
+    completed_feature_dir = Path(completed_feature_dir).expanduser()
+    features = spAlignDE.load_histology_features(
+        completed_feature_dir / "he.jpg",
+        completed_feature_dir / "embeddings-hist-vit.pickle",
+    )
+    manifest_path = completed_feature_dir / "histology_feature_manifest.json"
+    features.manifest.update(json.loads(manifest_path.read_text()))
+    execution_mode = "validated feature-stage output"
+else:
+    feature_config = spAlignDE.HistologyFeatureConfig(
+        target_microns_per_pixel=0.5,
+        shifted_tiles=True,
+        device=None,  # automatically select CUDA when available
+    )
+    features = spAlignDE.extract_histology_features(
+        IMAGE_PATH,
+        FEATURE_DIR,
+        config=feature_config,
+    )
+    execution_mode = "fresh package extraction"
 
 display(
     pd.Series(
         {
+            "mode": execution_mode,
             "input image": features.source_image_path.name,
             "prepared image": features.prepared_image_path.name,
             "prepared image size (width, height)": features.image_size_wh,
@@ -413,7 +430,7 @@ The stage writes:
   parameters, feature schema, file size, and output checksum.
 
 No spatial-transcriptomic values are present in these outputs. Continue with
-**H&E image-feature clustering — 26 histology structures**.
+**H&E image-feature clustering — 21 final histology structures**.
 """
             ),
         ]
@@ -425,13 +442,13 @@ def feature_clustering_notebook():
         [
             markdown(
                 r"""
-# H&E image-feature clustering into 26 structures
+# H&E image-feature clustering into 21 final structures
 
 This second notebook converts the HIPT feature field into coherent
 histology-derived spatial structures. It reproduces the H&E branch validated
-in `test0730/he_rep1`: 30 initial tissue clusters are consolidated by
-feature-based merging, bilateral symmetry, and spatial cleanup into 26 final
-regions. These labels are derived from the image only.
+in `test0730/he_rep1`: 30 initial tissue clusters are consolidated first to a
+26-cluster merge target and then by reflection-aware and post-symmetry merging
+into 21 final cleaned regions. These labels are derived from the image only.
 """
             ),
             markdown(
@@ -470,10 +487,12 @@ print("Feature grid:", features.feature_grid_shape_hw)
                 r"""
 ## Cluster, merge, and spatially clean image features
 
-The paper profile uses `k_bg=2`, `k_slide=30`, `k_merge=30`,
+The paper profile uses `k_bg=2`, `k_slide=30`, `k_merge=26`,
 `rgb_weight=0.25`, `coordinate_weight=0.05`, `random_state=0`, and a minimum
-cleaned component size of 250 feature pixels. At most two symmetry-supported
-merges are accepted. Background is encoded as −1 and excluded from alignment.
+cleaned component size of 250 feature pixels. Reflection merge uses a minimum
+area of 200, IoU of 0.20 and Dice of 0.30; at most three additional
+symmetry-supported merges are accepted. Background is encoded as −1 and
+excluded from alignment.
 """
             ),
             code(
@@ -487,6 +506,18 @@ else:
         features,
         CLUSTER_DIR,
         config=spAlignDE.HistologyClusteringConfig(
+            merged_clusters=26,
+            do_reflection_merge=True,
+            symmetry_axis="ud",
+            reflection_min_area=200,
+            reflection_min_iou=0.20,
+            reflection_min_dice=0.30,
+            symmetry_max_merges=3,
+            symmetry_min_score_gain=0.02,
+            symmetry_min_reflected_dice=0.15,
+            symmetry_max_centroid_distance=0.15,
+            symmetry_min_feature_cosine=0.30,
+            cleanup_min_size=250,
             random_state=WORKFLOW_SEED,
         ),
     )
@@ -512,7 +543,7 @@ display(
 
 The four panels show the evidence chain used in Supplementary Figure 8:
 original H&E morphology, 30 initial feature assignments, symmetry-aware
-merging, and the cleaned 26-region structure map. Colors identify image
+merging, and the cleaned 21-region structure map. Colors identify image
 structures and do not represent cell types or anatomical labels.
 """
             ),
@@ -522,8 +553,8 @@ fig, axes = spAlignDE.plot_histology_feature_clusters(
     histology,
     figsize=(13, 8),
 )
-fig.savefig(FIGURE_DIR / "he_feature_clustering_26_structures.png", dpi=220, bbox_inches="tight")
-fig.savefig(FIGURE_DIR / "he_feature_clustering_26_structures.svg", bbox_inches="tight")
+fig.savefig(FIGURE_DIR / "he_feature_clustering_21_structures.png", dpi=220, bbox_inches="tight")
+fig.savefig(FIGURE_DIR / "he_feature_clustering_21_structures.svg", bbox_inches="tight")
 plt.show()
 """
             ),
@@ -549,7 +580,7 @@ def alignment_notebook():
 # Xenium Replicate 1 to H&E histology
 
 This final notebook aligns 162,033 Xenium mouse-brain cells (query) to the
-26-region H&E feature map (reference). The query is Replicate 1 from the
+21-region H&E feature map (reference). The query is Replicate 1 from the
 [10x Genomics Fresh Frozen Mouse Brain Xenium dataset](https://www.10xgenomics.com/datasets/fresh-frozen-mouse-brain-replicates-1-standard).
 The reference image is control Replicate 1 from the
 [Visium CytAssist Post-Xenium Mouse Brain dataset](https://www.10xgenomics.com/datasets/visium-cytassist-gene-expression-libraries-of-post-xenium-mouse-brain-ff-using-the-mouse-whole-transcriptome-probe-set-2-standard).
@@ -569,7 +600,7 @@ Run these steps in order:
    AnnData with `X`, `obsm["spatial"]`, `obs["cluster_raw"]`, and
    `obs["cluster"]`.
 2. **H&E image preparation and feature extraction** starts from one image.
-3. **H&E image-feature clustering** creates the fixed 26-region raster.
+3. **H&E image-feature clustering** creates the fixed 21-region raster.
 4. This notebook constructs coarse-to-fine ST structures, estimates a global
    pre-alignment, pairs geometrically compatible masks, and runs S-LDDMM.
 
