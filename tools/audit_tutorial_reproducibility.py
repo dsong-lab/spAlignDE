@@ -109,6 +109,18 @@ def audit_notebook(relative: str, seed: int) -> list[str]:
                 problems.append(
                     f"{relative}: missing automatic Atlas optimizer control {required}"
                 )
+    if relative in {
+        "post_alignment_inference_aging_brain_nb.ipynb",
+        "post_alignment_inference_nb.ipynb",
+    }:
+        if code.count("n_jobs=1") < 2:
+            problems.append(
+                f"{relative}: preparation and fitting must both use n_jobs=1"
+            )
+        if code.count("random_state=WORKFLOW_SEED") < 2:
+            problems.append(
+                f"{relative}: inference calls must use WORKFLOW_SEED explicitly"
+            )
 
     metadata = notebook.metadata.get("spAlignDE_reproducibility", {})
     if metadata.get("workflow_seed") != seed:

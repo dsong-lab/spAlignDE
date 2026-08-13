@@ -29,6 +29,57 @@ Use the following order for every alignment workflow:
 7. **Re-run quality control.** Compare pre-aligned and final overlays, accepted
    pairs, energy history and downstream label or cluster agreement.
 
+Quick tuning map by pipeline section
+------------------------------------
+
+Use this table as the short entry point. Tune only one row at a time and keep
+the remaining rows at the closest validated tutorial settings.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 20 31 49
+
+   * - Section
+     - Key parameters
+     - Change them when
+   * - Structure discovery
+     - ``resolution``, ``banksy_lambda``, ``num_neighbors``
+     - Regions are fragmented, over-merged or absent in one sample. Select by
+       spatial coherence and shared coverage, not by cluster integers.
+   * - Global pre-alignment
+     - angle, scale, translation, reflection and crop/slice controls
+     - Whole tissues have the wrong orientation, field of view or size. Fix
+       this before pairing or S-LDDMM.
+   * - Raster and masks
+     - ``grid_spacing``, ``blur_sigma``, minimum area and cleanup size
+     - Thin structures disappear, masks contain islands, or sparse points do
+       not form continuous regions.
+   * - Structure pairing
+     - normalized shape weights, score threshold and independent Dice/ASD gates
+     - Candidate ranking is systematically wrong or good pairs sit just below
+       a justified QC gate. Inspect masks before loosening thresholds.
+   * - Deformation scale
+     - ``kernel_scale`` and ``velocity_grid_spacing``
+     - Credible pairs align broad anatomy but miss local bends, or the fitted
+       field is too wavy. Tune these two together.
+   * - Optimizer
+     - ``iterations``, ``momentum_lr`` and ``diffeomorphic_start``
+     - Energy is still decreasing, converges too slowly, or oscillates after
+       geometry, masks and pairs have passed QC.
+   * - Post-alignment inference
+     - ``risk_genes``, filtering, ``density_energy_share``, ``grid_n`` and
+       adjustment/cleanup switches
+     - Alignment already passes QC but mismatch risk, spatial resolution or
+       reported connected regions are not appropriate for the study design.
+
+For a controlled sweep, freeze the input files and row order, use one fixed
+workflow seed, and change three nearby values from one parameter group. Reject
+geometrically implausible runs before looking at downstream biological
+statistics. After selecting a configuration, execute it twice in clean working
+directories. Compare cluster partitions and pair identities exactly; compare
+CUDA coordinates within the documented tolerance. Save the selected config,
+input hashes, seed, accepted-pair table and overlays with the result.
+
 Save the selected configuration under ``adata.uns["spAlignDE"]`` with the
 aligned coordinates. Parameter choices are part of the result, not merely
 runtime settings.
@@ -257,7 +308,7 @@ systems. They are starting profiles, not universal defaults.
      - histology feature-grid pixels
    * - Spatial ATAC → MERFISH ST
      - 100
-     - 40
+     - 50
      - 8
      - 500
      - 1,000
@@ -437,9 +488,10 @@ Structure pairing
 
 ``STAtlasAlignmentConfig`` exposes hierarchy, pre-alignment, filtering,
 pairing and continuation controls. The coarse-to-fine stages use a validated
-stage-specific S-LDDMM schedule internally; passing a cross-sample
-``SLDDMMConfig`` does not change Atlas alignment. The documented continuation
-uses ``continuation_kernel_scale=200``,
+schedule of ``stage_iterations=(100, 500, 100)`` with
+``restore_best_checkpoint=False``; passing a cross-sample ``SLDDMMConfig`` does
+not change Atlas alignment. The documented continuation uses
+``continuation_kernel_scale=200``,
 ``continuation_velocity_grid_spacing=50`` and
 ``continuation_restore_best_checkpoint=False``. Tune structure stages and
 pairs before changing these numerical controls.
@@ -598,6 +650,11 @@ Inference tuning begins only after the alignment passes geometric QC.
   ``q < 0.05`` grid mask. Enabling cleanup removes isolated or unsupported
   fragments from the reported mask without changing statistics, P values or
   q-values. Report the choice when interpreting connected regions.
+- Use ``random_state=WORKFLOW_SEED`` for both preparation and fitting. The
+  public kidney and aging-brain notebooks also use ``n_jobs=1`` so their saved
+  diagnostic streams and numerical outputs are reproducible exactly. Larger
+  ``n_jobs`` values can shorten multi-query runs, but worker log order is not a
+  scientific result and may differ between executions.
 
 The gene-specific calibration has no public tuning knobs. It median-centers
 first-pass statistics within normalized-risk bins, scales each MAD by the

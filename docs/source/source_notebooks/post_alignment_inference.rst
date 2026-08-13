@@ -60,3 +60,10 @@ should be broad and selected independently of tested genes; cell-type
 adjustment requires complete validated labels in every sample. See
 :doc:`../tutorials/parameter_tuning` for filtering, density-risk and region-
 cleanup guidance.
+
+The public kidney and aging-brain notebooks use workflow seed 1 and
+``n_jobs=1`` for both inference preparation and fitting. Independent clean
+runs reproduced all sanitized saved outputs exactly: 6,169 shared-grid
+locations for kidney and 74,908 for aging brain. Parallel workers can be used
+for exploratory acceleration, but their diagnostic messages may be emitted in
+a different order even when the fitted scientific results are unchanged.
