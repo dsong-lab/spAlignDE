@@ -327,7 +327,7 @@ def promote_atlas(args, static_dir: Path) -> dict:
             "Mode: fresh package run\n"
             f"Aligned observations: {aligned.n_obs:,}\n"
             f"Scheduled pair counts: {run_summary['stage_pair_counts']}\n"
-            "Continuation pair counts: 15→17, 17→17\n"
+            "Continuation pair counts: 17→18, 18→18\n"
             f"Final matched structure pairs: {len(pairs)}\n"
             f"Alignment runtime: {run_summary['runtime_seconds'] / 60:.1f} minutes\n"
             f"Peak GPU memory allocation: {run_summary['peak_cuda_memory_gib']:.3f} GiB"
@@ -349,7 +349,7 @@ def promote_atlas(args, static_dir: Path) -> dict:
         "artifact_sha256": sha256(aligned_path),
         "discrete_repeat_contract": "exact",
         "continuous_repeat_contract": "declared CUDA tolerance",
-        "final_pairs": 17,
+        "final_pairs": int(len(pairs)),
     }
     update_notebook_pair(args.repo_root, "cross_modal_atlas_alignment_nb.ipynb", update, metadata)
     return metadata

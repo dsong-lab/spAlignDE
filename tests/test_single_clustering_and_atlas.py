@@ -3,6 +3,7 @@ from __future__ import annotations
 import unittest
 import importlib.util
 from pathlib import Path
+from unittest import mock
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -32,6 +33,9 @@ class SingleClusteringAndAtlasContractTests(unittest.TestCase):
     def test_atlas_default_uses_canonical_three_levels_and_validated_palette(self):
         config = spAlignDE.STAtlasAlignmentConfig()
         self.assertEqual(config.n_levels, 3)
+        self.assertEqual(config.stage_iterations, (100, 500, 100))
+        self.assertFalse(config.restore_best_checkpoint)
+        self.assertEqual(config.continuation_iterations, 200)
         self.assertFalse(config.continuation_restore_best_checkpoint)
         self.assertEqual(config.continuation_kernel_scale, 200.0)
         self.assertEqual(config.continuation_velocity_grid_spacing, 50.0)
@@ -55,6 +59,49 @@ class SingleClusteringAndAtlasContractTests(unittest.TestCase):
         palette = spAlignDE.load_atlas_structure_color_map()
         self.assertEqual(palette["CA3sp"], "#ff9896")
         self.assertEqual(palette["DG-sg"], "#c5b0d5")
+
+    def test_atlas_optimizer_schedule_reaches_every_automatic_stage(self):
+        overrides = atlas_api._optimizer_overrides(
+            spAlignDE.STAtlasAlignmentConfig()
+        )
+        self.assertEqual(
+            overrides,
+            {
+                "STAGE_ITERATIONS_SCHEDULE": [100, 500, 100],
+                "ITER_OPTIM_CFG_OVERRIDE": {"restore_best": False},
+                "ITER_FINAL_OPTIM_CFG_OVERRIDE": {"restore_best": False},
+                "CONTINUE_OPTIM_CFG_OVERRIDE": {
+                    "restore_best": False,
+                    "niter": 200,
+                },
+            },
+        )
+
+    def test_atlas_stage_iteration_schedule_must_match_level_count(self):
+        with self.assertRaisesRegex(
+            ValueError,
+            "one value per coarse-to-fine stage",
+        ):
+            atlas_api._optimizer_overrides(
+                spAlignDE.STAtlasAlignmentConfig(
+                    n_levels=3,
+                    stage_iterations=(100, 500),
+                )
+            )
+
+    def test_atlas_stage_schedule_is_injected_without_mutating_core_source(self):
+        original = _atlas_core.ITERATIVE_ALIGNMENT_CELL_SOURCE
+        context = {"STAGE_ITERATIONS_SCHEDULE": [100, 500, 100]}
+        with mock.patch.object(
+            _atlas_core,
+            "_exec_in_context",
+            return_value=context,
+        ) as execute:
+            _atlas_core.run_iterative_multi_level_alignment(context)
+        executed_source = execute.call_args.args[0]
+        self.assertIn("stage_iterations_schedule", executed_source)
+        self.assertIn("stage_optim_cfg['niter']", executed_source)
+        self.assertEqual(_atlas_core.ITERATIVE_ALIGNMENT_CELL_SOURCE, original)
 
     def test_custom_atlas_weights_reach_legacy_scoring_global_and_are_restored(self):
         original = dict(_atlas_core.W_ALIGN)

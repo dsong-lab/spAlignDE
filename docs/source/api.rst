@@ -412,8 +412,10 @@ structure-pairing weights, soft Dice/SDF/thickness gates, score threshold and
 maximum average surface distance. The defaults use a normalized,
 shape-balanced score (SDF 0.05, Chamfer 0.05, Dice 0.20, area 0.50 and
 thickness 0.20) without any structure-name-specific override. Continuation
-uses ``kernel_scale=200``, ``velocity_grid_spacing=50`` and retains the final
-optimization iterate.
+uses ``kernel_scale=200`` and ``velocity_grid_spacing=50``. The validated
+automatic optimizer schedule is 100, 500 and 100 iterations across the three
+coarse-to-fine stages, followed by 200 iterations per continuation round. All
+stages retain the final optimization iterate.
 
 ``align_st_to_allen_atlas``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~

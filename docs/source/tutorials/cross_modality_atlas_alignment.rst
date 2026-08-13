@@ -101,6 +101,9 @@ depth restriction and no structure-specific matching rule.
        minimum_coarse_structures=7,
        variance_fraction=0.8,
        min_genes=50,
+       stage_iterations=(100, 500, 100),
+       restore_best_checkpoint=False,
+       continuation_iterations=200,
        pairing_weight_sdf=0.05,
        pairing_weight_chamfer=0.05,
        pairing_weight_dice=0.20,
@@ -276,7 +279,7 @@ interpreting the deformation. Blue is the moving ST feature, orange is its
 Allen target and purple is their intersection. Dice measures area overlap,
 whereas ASD remains sensitive to displaced boundaries and width differences in
 thin structures. The panel shows the six pairs with the highest global gated
-score; the notebook displays the complete 17-pair table. This is a global
+score; the notebook displays the complete 18-pair table. This is a global
 score-based display rule and does not give any anatomical region special
 priority.
 
@@ -341,15 +344,15 @@ for every annotation ID; label 0 remains white.
    MERFISH coordinates (right). Identical label colors allow a direct visual
    audit of transfer coverage and background cells.
 
-In the fixed-seed three-stage run, the scheduled stages accept 3, 7 and 15
-structure pairs. Continuation re-scores 15 pairs before its first deformation,
-increases the set to 17, and runs one stopping cycle that remains at 17. The
+In the fixed-seed three-stage run, the scheduled stages accept 3, 8 and 16
+structure pairs. Continuation identifies 17 pairs before its first deformation,
+increases the set to 18, and runs one stopping cycle that remains at 18. The
 completed stopping-cycle transform is retained; continuation does not restore
 an earlier energy checkpoint. The hippocampal correspondences include CA3sp,
 DG-sg and CA1sp.
 
-The complete fixed run retains all 83,546 cells and takes 13.9 minutes with
-0.839 GiB peak CUDA allocation in the documented environment. Exact label
+The complete fixed run retains all 83,546 cells and takes 13.2 minutes with
+0.862 GiB peak CUDA allocation in the documented environment. Exact label
 coverage is reported by the freshly executed notebook rather than copied from
 an earlier uncontrolled result.
 

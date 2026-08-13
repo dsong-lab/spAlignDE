@@ -32,9 +32,12 @@ class STAtlasAlignmentConfig:
     variance_fraction: float = 0.8
     min_genes: int = 50
     drop_blank_genes: bool = True
+    stage_iterations: tuple[int, ...] = (100, 500, 100)
+    restore_best_checkpoint: bool = False
     continue_alignment: bool = True
     continue_max_iterations: int = 10
     continue_min_pair_gain: int = 1
+    continuation_iterations: int = 200
     continuation_kernel_scale: float = 200.0
     continuation_velocity_grid_spacing: float = 50.0
     continuation_restore_best_checkpoint: bool = False
@@ -387,6 +390,38 @@ def _temporary_core_pairing_weights(core, weights: Mapping[str, float]):
         core.W_ALIGN = previous
 
 
+def _optimizer_overrides(
+    config: STAtlasAlignmentConfig,
+) -> dict[str, Any]:
+    """Validate and expose the optimizer schedule for automatic Atlas alignment."""
+    stage_iterations = tuple(int(value) for value in config.stage_iterations)
+    if len(stage_iterations) != int(config.n_levels):
+        raise ValueError(
+            "stage_iterations must contain one value per coarse-to-fine stage "
+            f"({config.n_levels} values required, found {len(stage_iterations)})"
+        )
+    if any(value < 1 for value in stage_iterations):
+        raise ValueError("stage_iterations values must be positive integers")
+
+    continuation_iterations = int(config.continuation_iterations)
+    if continuation_iterations < 1:
+        raise ValueError("continuation_iterations must be a positive integer")
+
+    return {
+        "STAGE_ITERATIONS_SCHEDULE": list(stage_iterations),
+        "ITER_OPTIM_CFG_OVERRIDE": {
+            "restore_best": bool(config.restore_best_checkpoint),
+        },
+        "ITER_FINAL_OPTIM_CFG_OVERRIDE": {
+            "restore_best": bool(config.restore_best_checkpoint),
+        },
+        "CONTINUE_OPTIM_CFG_OVERRIDE": {
+            "restore_best": bool(config.continuation_restore_best_checkpoint),
+            "niter": continuation_iterations,
+        },
+    }
+
+
 def _core_config(
     config: STAtlasAlignmentConfig,
     *,
@@ -518,9 +553,7 @@ def align_st_to_allen_atlas(
         "a": float(config.continuation_kernel_scale),
         "grid_step": float(config.continuation_velocity_grid_spacing),
     }
-    context["CONTINUE_OPTIM_CFG_OVERRIDE"] = {
-        "restore_best": bool(config.continuation_restore_best_checkpoint)
-    }
+    context.update(_optimizer_overrides(config))
     context["CONTINUE_LABEL_COL"] = cluster_key
     with _temporary_core_pairing_weights(core, atlas_pairing_weights):
         core.run_iterative_multi_level_alignment(context)

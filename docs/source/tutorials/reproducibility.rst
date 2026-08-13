@@ -117,7 +117,7 @@ Continuous CUDA coordinates are assessed with a declared tolerance. PyTorch
 reports that ``grid_sampler_2d_backward_cuda`` has no deterministic CUDA
 implementation, so setting a seed does not justify a claim of bitwise-identical
 deformation fields. With final-iterate checkpoint handling, repeated float64
-ATAC runs differed by at most ``4.55e-13`` coordinate units; repeated H&E runs
+ATAC runs differed by at most ``9.10e-13`` coordinate units; repeated H&E runs
 differed by at most ``0.0203`` units and are assessed against a conservative
 ``0.05``-unit tolerance. Large cross-sample runs in float32 reproduced within
 one coordinate unit, at most one thirtieth of the 30-unit raster grid.
@@ -136,13 +136,13 @@ Validated fixed-seed results
      - 25 raw/refined/final clusters
      - Exact labels.
    * - ST to Allen CCF slice 675
-     - ST levels 7/16/25; stage pairs 3/7/15; continuation 15→17 and 17→17
+     - ST levels 7/16/25; stage pairs 3/8/16; continuation 17→18 and 18→18
      - Exact discrete tables; float64 coordinates within tolerance.
    * - Xenium S2R1 to H&E
      - 26 image structures; 2 accepted pairs
      - Exact masks/pairs; float64 coordinates within tolerance.
    * - Spatial ATAC to MERFISH S3R1
-     - 17 ATAC structures; 5 accepted pairs
+     - 17 ATAC structures; 8 accepted pairs
      - Exact labels/pairs; float64 coordinates within tolerance.
    * - MERFISH S2R3 to S2R2
      - 28 raw and 27 refined/final shared clusters
@@ -160,8 +160,9 @@ Atlas terminology
 The three Atlas stages make only the ST partition progressively finer. At
 every stage, automatic pairing searches the same Allen hierarchy candidate
 depths 2–10; there is no stage-specific Atlas-depth restriction. The final
-scheduled stage accepts 15 pairs. Continuation re-scores at the completed
-coordinates, increases the set to 17, runs one stopping cycle at 17, and
+scheduled stage accepts 16 pairs. Continuation first identifies 17 pairs at
+the completed coordinates, increases the set to 18, runs one stopping cycle
+at 18, and
 retains that cycle's final iterate.
 
 The UI-paired Atlas example consumes the same seed-1234 clustered H5AD. Its

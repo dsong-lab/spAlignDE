@@ -98,6 +98,17 @@ def audit_notebook(relative: str, seed: int) -> list[str]:
             problems.append(f"{relative}: external runner must receive exactly one seed")
     if "np.random.default_rng(" in code and "np.random.default_rng(WORKFLOW_SEED)" not in code:
         problems.append(f"{relative}: display subsampling uses a different seed")
+    if relative == "cross_modal_atlas_alignment_nb.ipynb":
+        for required in (
+            "stage_iterations=(100, 500, 100)",
+            "restore_best_checkpoint=False",
+            "continuation_iterations=200",
+            "continuation_restore_best_checkpoint=False",
+        ):
+            if required not in code:
+                problems.append(
+                    f"{relative}: missing automatic Atlas optimizer control {required}"
+                )
 
     metadata = notebook.metadata.get("spAlignDE_reproducibility", {})
     if metadata.get("workflow_seed") != seed:

@@ -28,6 +28,12 @@ def notebook(cells):
         "name": "python3",
     }
     result.metadata["language_info"] = {"name": "python", "version": "3.10"}
+    result.metadata["spAlignDE_reproducibility"] = {
+        "workflow_seed": 1234,
+        "seed_scope": "Python, NumPy, Torch and configured stochastic methods",
+        "discrete_repeat_contract": "exact",
+        "cuda_coordinate_contract": "workflow-specific numerical tolerance",
+    }
     return result
 
 
@@ -385,9 +391,12 @@ config = spAlignDE.STAtlasAlignmentConfig(
     minimum_coarse_structures=7,
     variance_fraction=0.8,
     min_genes=50,
+    stage_iterations=(100, 500, 100),
+    restore_best_checkpoint=False,
     continue_alignment=True,
     continue_max_iterations=10,
     continue_min_pair_gain=1,
+    continuation_iterations=200,
     pairing_weight_sdf=0.05,
     pairing_weight_chamfer=0.05,
     pairing_weight_dice=0.20,
