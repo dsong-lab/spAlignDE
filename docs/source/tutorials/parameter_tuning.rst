@@ -354,7 +354,7 @@ The empirical paper profiles are:
      - 0.10
      - 0.30
      - 0
-     - final score ≥ 0.25; Dice ≥ 0.01
+     - final score ≥ 0.21; Dice ≥ 0.01
    * - Atlas--ST
      - 0.05
      - 0.05

@@ -40,10 +40,18 @@ From the repository root:
    python -m pip install -e ".[clustering,atlas,tutorial]"
 
 A CUDA-capable GPU is recommended for S-LDDMM. BANKSY clustering can be run on
-CPU. The final released environment will pin dependency versions; until then,
-minor BANKSY boundary changes and label renumbering can occur between versions.
-These changes should be evaluated spatially rather than by comparing cluster
-integers.
+CPU. Dependency versions are pinned for the validated release; using different
+versions can cause minor BANKSY boundary changes and label renumbering. Such
+changes should be evaluated spatially rather than by comparing cluster
+integers alone.
+
+The validated release environment is pinned in the repository-level
+``environment.yml``, including the exact BANKSY commit. Run the notebooks from
+the repository root with that environment and do not reuse a previously
+cropped ``st_reference_analysis_frame.h5ad`` as the S3R1 input: notebook 2
+expects the complete 70,844-cell reference and performs the half-brain crop
+once, yielding 35,422 fixed cells. The input filenames and SHA256 checksums are
+recorded in ``docs/source/_static/tutorial_execution_manifest.json``.
 
 Data sources
 ------------
@@ -225,10 +233,14 @@ All ATAC/ST candidates are scored by one global geometric rule:
        + 0.10 S_{\mathrm{Dice}}.
 
 A logistic gate globally downweights pairs with large boundary Chamfer
-distance. Candidates require an alignment score of at least 0.25 and Dice
+distance. Candidates require an alignment score of at least 0.21 and Dice
 overlap of at least 0.01. Greedy selection then produces a one-to-one set of
 structure pairs. No anatomical names or region-specific weights enter this
 step.
+
+With the fixed inputs and seed ``1234``, this threshold retains eight pairs.
+The accepted pair table and pair scores were identical in an independent
+repeat; float64 aligned coordinates agreed within ``1e-12``.
 
 Stage 4: structure-guided S-LDDMM
 ---------------------------------
@@ -248,7 +260,7 @@ The paper settings are:
    diffeo_start = 20
    a = 100
    p = 2
-   grid_step = 40
+   grid_step = 50
    epL = 2e-11
    epT = 2e-5
    epM = 1e3
@@ -267,7 +279,7 @@ For a new dataset, inspect accepted and rejected masks before changing
 area and Dice weights only as one global rule and keep their sum equal to one.
 ``channel_area_power`` controls inverse-area balancing and can give narrow masks
 more influence without naming an anatomical region. The ATAC values ``a=100``
-and ``grid_step=40`` belong to the cropped raster canvas. See the
+and ``grid_step=50`` belong to the cropped raster canvas. See the
 :ref:`cross-modality pairing-weight guide <cross_modality_pairing_weights>`
 for component-specific tuning and :doc:`Parameter Tuning Guide
 <parameter_tuning>` for the full dependency and failure checklist.
@@ -301,7 +313,7 @@ source and target channels.
    :align: center
 
    Moving ATAC mask (blue), fixed ST mask (orange) and intersection (purple)
-   for all five accepted feature pairs, with score, Dice and Chamfer distance.
+   for all eight accepted feature pairs, with score, Dice and Chamfer distance.
 
 The shared-color point panels then show the independently inferred structures
 and their correspondence before and after S-LDDMM. Shared colors indicate

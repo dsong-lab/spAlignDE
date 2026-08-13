@@ -149,6 +149,61 @@ def execute(relative: str, seed: int, timeout: int) -> None:
     print(f"PASS    {relative}", flush=True)
 
 
+def refresh_source_hash(relative: str, seed: int) -> None:
+    """Refresh generated source while preserving validated saved outputs.
+
+    This is intended only when a notebook's executable source is regenerated
+    from its canonical builder and the corresponding computation has already
+    been repeated outside the public checkout. It prevents regenerated source
+    from silently discarding the published result while clearly distinguishing
+    a validated imported output from an in-checkout execution.
+    """
+    path = SOURCE_ROOT / relative
+    mirror = MIRROR_ROOT / relative
+    validated_path_env = os.environ.get("SPALIGNDE_VALIDATED_NOTEBOOK")
+    validated_path = (
+        Path(validated_path_env).expanduser().resolve()
+        if validated_path_env
+        else mirror
+    )
+    generated = nbformat.read(path, as_version=4)
+    validated = nbformat.read(validated_path, as_version=4)
+    generated_code = [cell for cell in generated.cells if cell.cell_type == "code"]
+    validated_code = [cell for cell in validated.cells if cell.cell_type == "code"]
+    if len(generated_code) != len(validated_code):
+        raise ValueError(
+            f"Cannot restore outputs for {relative}: generated and validated "
+            "notebooks have different code-cell counts."
+        )
+    for destination, source in zip(generated_code, validated_code):
+        destination["execution_count"] = source.get("execution_count")
+        destination["outputs"] = source.get("outputs", [])
+
+    notebook = generated
+    source_hash = _source_hash(notebook)
+    execution = notebook.metadata.setdefault("spAlignDE_execution", {})
+    execution.update(
+        {
+            "fully_executed": False,
+            "workflow_seed": seed,
+            "source_sha256": source_hash,
+            "saved_output_sha256": _output_hash(notebook),
+            "repository_commit": _git_revision(),
+            "executed_at_utc": datetime.now(timezone.utc).isoformat(),
+            "execution_root": "validated external run",
+            "package_source": "current checkout src",
+            "input_manifest": "docs/source/_static/tutorial_execution_manifest.json",
+            "output_provenance": "validated fixed-seed run imported after source refresh",
+            "source_refresh_only": True,
+            "aging_brain_included": False,
+        }
+    )
+    nbformat.write(notebook, path)
+    mirror.parent.mkdir(parents=True, exist_ok=True)
+    mirror.write_bytes(path.read_bytes())
+    print(f"REFRESH {relative} (seed={seed})", flush=True)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -159,6 +214,11 @@ def main() -> None:
     )
     parser.add_argument("--timeout", type=int, default=7200)
     parser.add_argument("--list", action="store_true")
+    parser.add_argument(
+        "--refresh-source-hash-only",
+        action="store_true",
+        help="Preserve validated outputs and refresh source/provenance hashes only.",
+    )
     args = parser.parse_args()
 
     selected = set(args.only)
@@ -175,7 +235,10 @@ def main() -> None:
     for relative, seed in WORKFLOWS:
         if selected and relative not in selected:
             continue
-        execute(relative, seed, args.timeout)
+        if args.refresh_source_hash_only:
+            refresh_source_hash(relative, seed)
+        else:
+            execute(relative, seed, args.timeout)
         executed += 1
     print(f"Executed {executed} computational tutorial notebook(s).")
 
