@@ -29,6 +29,12 @@ def notebook(cells):
         "name": "python3",
     }
     result.metadata["language_info"] = {"name": "python", "version": "3.10"}
+    result.metadata["spAlignDE_reproducibility"] = {
+        "workflow_seed": 1234,
+        "seed_scope": "Python, NumPy, Torch and configured stochastic methods",
+        "discrete_repeat_contract": "exact",
+        "cuda_coordinate_contract": "workflow-specific numerical tolerance",
+    }
     return result
 
 

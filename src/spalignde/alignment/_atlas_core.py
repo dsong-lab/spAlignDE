@@ -234,7 +234,21 @@ def _exec_in_context(source: str, context: dict[str, Any], name: str) -> dict[st
 
 def run_iterative_multi_level_alignment(context: dict[str, Any]) -> dict[str, Any]:
     """Run the notebook's main coarse-to-fine iterative LDDMM alignment section."""
-    return _exec_in_context(ITERATIVE_ALIGNMENT_CELL_SOURCE, context, "iterative_alignment")
+    source = ITERATIVE_ALIGNMENT_CELL_SOURCE
+    if context.get("STAGE_ITERATIONS_SCHEDULE") is not None:
+        needle = "    globals()['W_ALIGN'] = stage_w_align"
+        replacement = (
+            "    stage_iterations_schedule = globals().get('STAGE_ITERATIONS_SCHEDULE')\n"
+            "    stage_optim_cfg['niter'] = int("
+            "stage_iterations_schedule[stage_idx - 1])\n\n"
+            + needle
+        )
+        if needle not in source:
+            raise RuntimeError(
+                "Could not locate the automatic Atlas stage-optimizer insertion point"
+            )
+        source = source.replace(needle, replacement, 1)
+    return _exec_in_context(source, context, "iterative_alignment")
 
 
 def run_continuation_alignment(context: dict[str, Any]) -> dict[str, Any]:

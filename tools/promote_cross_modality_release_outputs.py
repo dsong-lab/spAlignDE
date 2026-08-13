@@ -24,6 +24,7 @@ import numpy as np
 import pandas as pd
 
 import spAlignDE
+from spalignde.alignment import _atlas_core
 from spalignde.alignment.atac import (
     ATACSTAlignmentConfig,
     ATACSTAlignmentResult,
@@ -43,6 +44,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--atac-output", type=Path, required=True)
     parser.add_argument("--atac-repeat", type=Path, required=True)
     parser.add_argument("--he-figure-dir", type=Path, required=True)
+    parser.add_argument("--atlas-output", type=Path)
+    parser.add_argument("--atlas-repeat", type=Path)
+    parser.add_argument("--atlas-annotation", type=Path)
+    parser.add_argument("--atlas-structures", type=Path)
     return parser.parse_args()
 
 
@@ -59,6 +64,16 @@ def read_pairs(path: Path) -> list[dict[str, str]]:
         return list(csv.DictReader(stream))
 
 
+def parse_atlas_labels(value) -> list[int]:
+    if isinstance(value, (list, tuple, set, np.ndarray)):
+        return [int(item) for item in value]
+    text = str(value).strip().replace(" ", "")
+    for separator in (";", ","):
+        if separator in text:
+            return [int(float(item)) for item in text.split(separator) if item]
+    return [int(float(text))]
+
+
 def notebook_result_summary(repo: Path, relative: str) -> dict:
     notebook = nbformat.read(repo / "source_notebooks" / relative, as_version=4)
     execution = notebook.metadata.get("spAlignDE_execution", {})
@@ -69,6 +84,174 @@ def notebook_result_summary(repo: Path, relative: str) -> dict:
         "source_sha256": execution.get("source_sha256"),
         "saved_output_sha256": execution.get("saved_output_sha256"),
         "source_refresh_only": execution.get("source_refresh_only", False),
+    }
+
+
+def promote_atlas(args: argparse.Namespace, static_dir: Path) -> dict:
+    required = {
+        "atlas_output": args.atlas_output,
+        "atlas_repeat": args.atlas_repeat,
+        "atlas_annotation": args.atlas_annotation,
+        "atlas_structures": args.atlas_structures,
+    }
+    missing = [name for name, value in required.items() if value is None]
+    if missing:
+        raise ValueError(
+            "Atlas promotion requires all Atlas arguments; missing: "
+            + ", ".join(missing)
+        )
+
+    alignment_dir = args.atlas_output.resolve()
+    repeat_dir = args.atlas_repeat.resolve()
+    pairs = pd.read_csv(alignment_dir / "matched_pairs_final_stage.csv")
+    repeat_pairs = pd.read_csv(repeat_dir / "matched_pairs_final_stage.csv")
+    stages = pd.read_csv(alignment_dir / "iterative_alignment_stage_summary.csv")
+    continuation = pd.read_csv(
+        alignment_dir
+        / "continue_alignment"
+        / "continue_alignment_pair_counts.csv"
+    )
+    coordinates = pd.read_csv(
+        alignment_dir / "final_aligned_all_points.csv",
+        index_col=0,
+    )
+    repeat_coordinates = pd.read_csv(
+        repeat_dir / "final_aligned_all_points.csv",
+        index_col=0,
+    )
+    cell_order_exact = coordinates.index.equals(repeat_coordinates.index)
+    repeat_coordinates = repeat_coordinates.reindex(coordinates.index)
+
+    pair_key_columns = [
+        "cluster",
+        "atlas_labels_union",
+        "pair_type",
+        "candidate_name",
+    ]
+    pair_keys = sorted(
+        map(tuple, pairs[pair_key_columns].astype(str).values.tolist())
+    )
+    repeat_pair_keys = sorted(
+        map(tuple, repeat_pairs[pair_key_columns].astype(str).values.tolist())
+    )
+    pair_table_repeat_exact = pair_keys == repeat_pair_keys
+    x_difference = float(
+        np.max(
+            np.abs(
+                coordinates["x_aligned"].to_numpy(float)
+                - repeat_coordinates["x_aligned"].to_numpy(float)
+            )
+        )
+    )
+    y_difference = float(
+        np.max(
+            np.abs(
+                coordinates["y_aligned"].to_numpy(float)
+                - repeat_coordinates["y_aligned"].to_numpy(float)
+            )
+        )
+    )
+    coordinate_tolerance = 0.1
+    if not cell_order_exact or not pair_table_repeat_exact:
+        raise AssertionError("Atlas discrete repeat contract failed")
+    if max(x_difference, y_difference) > coordinate_tolerance:
+        raise AssertionError(
+            "Atlas coordinate repeat tolerance failed: "
+            f"{x_difference}, {y_difference}"
+        )
+
+    atlas = spAlignDE.load_allen_ccf_reference(
+        args.atlas_annotation,
+        args.atlas_structures,
+        slice_index=675,
+    )
+    filtered = pd.read_csv(
+        alignment_dir / "final_filtered_points_for_matching.csv"
+    )
+    mask_result = _atlas_core.build_cluster_masks(
+        filtered,
+        sl=atlas.annotation,
+        xJ=atlas.x_coordinates,
+        yJ=atlas.y_coordinates,
+        x_col="x_prealigned",
+        y_col="y_prealigned",
+        label_col="cluster",
+        params=_atlas_core.DEFAULT_MASK_PARAMS,
+        params_thin=_atlas_core.MASK_PARAMS_THIN,
+        shape_type_col="shape_type",
+        thin_values=("detail",),
+        thin_rule="mode",
+        verbose=False,
+    )
+    top = pairs.sort_values(
+        "align_score_gated",
+        ascending=False,
+    ).head(6).reset_index(drop=True)
+    source_masks = [
+        np.asarray(mask_result["st_masks"][str(row.cluster)]) > 0
+        for _, row in top.iterrows()
+    ]
+    target_masks = [
+        np.isin(atlas.annotation, parse_atlas_labels(row.atlas_labels_union))
+        for _, row in top.iterrows()
+    ]
+
+    def labels(row):
+        return (
+            (
+                "ST feature",
+                "Allen feature",
+                f"Paired overlap\nST {row.cluster} ↔ {row.candidate_name}",
+            ),
+            (
+                f"score={row.align_score_gated:.3f}; "
+                f"Dice={row.dice:.3f}; ASD={row.asd:.1f}"
+            ),
+        )
+
+    plot_mask_rows(
+        list(top.itertuples(index=False)),
+        source_masks,
+        target_masks,
+        static_dir / "atlas_paired_feature_masks.png",
+        labels,
+    )
+    source_figure_dir = alignment_dir.parent / "figures"
+    for source_name, destination_name in (
+        ("st_to_allen_before_after.png", "atlas_alignment_structures.png"),
+        ("st_to_allen_label_transfer.png", "atlas_label_transfer.png"),
+    ):
+        source = source_figure_dir / source_name
+        if not source.is_file():
+            raise FileNotFoundError(source)
+        (static_dir / destination_name).write_bytes(source.read_bytes())
+
+    return {
+        "seed": 1234,
+        "input_observations": int(len(coordinates)),
+        "st_structure_levels": [7, 16, 25],
+        "stage_iterations": [100, 500, 100],
+        "stage_pair_counts": stages["n_pairs"].astype(int).tolist(),
+        "continuation_iterations": 200,
+        "continuation_pair_counts": continuation[
+            ["n_pairs_before", "n_pairs_after"]
+        ].astype(int).values.tolist(),
+        "accepted_pairs": int(len(pairs)),
+        "pairing_weights": [0.05, 0.05, 0.20, 0.50, 0.20],
+        "continuation_kernel_scale": 200.0,
+        "continuation_velocity_grid_spacing": 50.0,
+        "restore_best_checkpoint": False,
+        "continuation_restore_best_checkpoint": False,
+        "pair_table_repeat_exact": pair_table_repeat_exact,
+        "cell_order_repeat_exact": cell_order_exact,
+        "coordinate_repeat_max_abs_difference": {
+            "x": x_difference,
+            "y": y_difference,
+        },
+        "coordinate_repeat_tolerance": coordinate_tolerance,
+        "aligned_h5ad_sha256": sha256(
+            alignment_dir / "st_to_allen_atlas_aligned.h5ad"
+        ),
     }
 
 
@@ -264,6 +447,15 @@ def main() -> None:
             ),
         ],
     }
+    if args.atlas_output is not None:
+        report["st_to_atlas"] = promote_atlas(args, static_dir)
+        report["notebooks"].insert(
+            0,
+            notebook_result_summary(
+                args.repo_root,
+                "cross_modal_atlas_alignment_nb.ipynb",
+            ),
+        )
     destination = (
         args.repo_root / "docs" / "source" / "_static" /
         "cross_modality_reproducibility_manifest.json"

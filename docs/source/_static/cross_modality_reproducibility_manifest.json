@@ -18,7 +18,7 @@
       "y": 9.094947017729282e-13
     },
     "coordinate_repeat_tolerance": 1e-12,
-    "aligned_h5ad_sha256": "c2331f3b6eb9ca97c5081544fb7c4e707b3e5d16b4d2183fda8380aa55917672"
+    "aligned_h5ad_sha256": "fb45f3567aff9d658bbc944381217b9bfdcc7afc1db7542940842b7a26eed1e4"
   },
   "st_to_he": {
     "seed": 0,
@@ -38,19 +38,27 @@
   },
   "notebooks": [
     {
+      "notebook": "cross_modal_atlas_alignment_nb.ipynb",
+      "workflow_seed": 1234,
+      "fully_executed": true,
+      "source_sha256": "ee6d2f8be3b597cf7058b0aafd2877383eae1fb802ecd9e55a7a583e5a8d330a",
+      "saved_output_sha256": "4eb4a4941c1ce615f371c59638ce97c61829173c9b1f7b1bbbe721c618e076aa",
+      "source_refresh_only": false
+    },
+    {
       "notebook": "cross_modality/atac_st_single_clustering_nb.ipynb",
       "workflow_seed": 1234,
-      "fully_executed": false,
+      "fully_executed": true,
       "source_sha256": "930e439c8520d5d6d169e2697e26fa3877e455957b43403078af3210c65e60fe",
-      "saved_output_sha256": "bf9c14dcb7a12dc5eabba6c8350b5bde7e7f1a50666768e7a8ec75f4ca476bbc",
-      "source_refresh_only": true
+      "saved_output_sha256": "3ceed54405aa37ec1f42f4ffab003824e0ce142445426d06f9bc46cafe2f2fd1",
+      "source_refresh_only": false
     },
     {
       "notebook": "cross_modality/atac_st_alignment_nb.ipynb",
       "workflow_seed": 1234,
       "fully_executed": true,
       "source_sha256": "b9a357fef144889bce9a942b5fdc99ab5ca6ea2138965245f069455b06c3935d",
-      "saved_output_sha256": "091ae14354e1855294cdd8dda71edefcb8490c8ed7426db2d4e20fa534ea47ed",
+      "saved_output_sha256": "3929c7480cf78455c91e3ad82b853cba63742d7390a1c5072162cd86dfd6ac59",
       "source_refresh_only": false
     },
     {
@@ -69,5 +77,55 @@
       "saved_output_sha256": "4cba4b93ae3ecac9e74dbbac285b105c117137a2768d34e065d00f785c69ecec",
       "source_refresh_only": false
     }
-  ]
+  ],
+  "st_to_atlas": {
+    "seed": 1234,
+    "input_observations": 83546,
+    "st_structure_levels": [
+      7,
+      16,
+      25
+    ],
+    "stage_iterations": [
+      100,
+      500,
+      100
+    ],
+    "stage_pair_counts": [
+      3,
+      8,
+      16
+    ],
+    "continuation_iterations": 200,
+    "continuation_pair_counts": [
+      [
+        17,
+        18
+      ],
+      [
+        18,
+        18
+      ]
+    ],
+    "accepted_pairs": 18,
+    "pairing_weights": [
+      0.05,
+      0.05,
+      0.2,
+      0.5,
+      0.2
+    ],
+    "continuation_kernel_scale": 200.0,
+    "continuation_velocity_grid_spacing": 50.0,
+    "restore_best_checkpoint": false,
+    "continuation_restore_best_checkpoint": false,
+    "pair_table_repeat_exact": true,
+    "cell_order_repeat_exact": true,
+    "coordinate_repeat_max_abs_difference": {
+      "x": 3.352215571794659e-08,
+      "y": 7.320140866795555e-07
+    },
+    "coordinate_repeat_tolerance": 0.1,
+    "aligned_h5ad_sha256": "21b3f6be6211f277d1f245f7e7387be0fc8568164df1324491c8509cff3a63d8"
+  }
 }

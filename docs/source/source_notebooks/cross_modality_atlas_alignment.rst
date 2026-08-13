@@ -25,8 +25,8 @@ hierarchy depth, whole-mask initialization, global area/thickness weighting,
 pair gates and the separate UI-curated deformation controls.
 
 The automatic workflow uses seed ``1234``, three ST levels (7/16/25
-structures), scheduled-stage pair counts 3/7/15 and a final post-continuation
-set of 17. Allen hierarchy depths 2–10 remain searchable at every stage.
+structures), scheduled-stage pair counts 3/8/16 and a final post-continuation
+set of 18. Allen hierarchy depths 2–10 remain searchable at every stage.
 
 .. toctree::
    :hidden:
