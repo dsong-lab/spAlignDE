@@ -75,7 +75,7 @@ class HistologyClusteringConfig:
 
     background_clusters: int = 2
     image_clusters: int = 30
-    merged_clusters: int = 30
+    merged_clusters: int = 26
     kmeans_iterations: int = 11
     initialization_samples: int = 50_000
     assignment_chunk: int = 50_000
@@ -84,8 +84,12 @@ class HistologyClusteringConfig:
     coordinate_weight: float = 0.05
     random_state: int = 0
     cleanup_min_size: int = 250
+    do_reflection_merge: bool = True
     symmetry_axis: str = "ud"
-    symmetry_max_merges: int = 2
+    reflection_min_area: int = 200
+    reflection_min_iou: float = 0.20
+    reflection_min_dice: float = 0.30
+    symmetry_max_merges: int = 3
     symmetry_min_score_gain: float = 0.02
     symmetry_min_reflected_dice: float = 0.15
     symmetry_max_centroid_distance: float = 0.15
@@ -663,7 +667,10 @@ def cluster_histology_features(
         labels_slide=labels_slide,
         k_slide=config.image_clusters,
         k_merge=config.merged_clusters,
-        do_reflection_merge=True,
+        do_reflection_merge=config.do_reflection_merge,
+        reflection_min_area=config.reflection_min_area,
+        reflection_min_iou=config.reflection_min_iou,
+        reflection_min_dice=config.reflection_min_dice,
         reflection_axis=config.symmetry_axis,
     )
     labels_merged, symmetry_history = core.post_merge_by_symmetry_score(
@@ -688,7 +695,7 @@ def cluster_histology_features(
     }.items():
         np.save(output_dir / filename, array)
     summary = {
-        "profile": "paper_he_24_structure",
+        "profile": "paper_he_selected_21_structure",
         "input_image": image.name,
         "input_feature": feature_path.name,
         "feature_grid_shape_hw": list(labels_clean.shape),

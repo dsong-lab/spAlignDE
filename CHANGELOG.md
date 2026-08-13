@@ -2,6 +2,12 @@
 
 ## 0.1.0 — 2026-08-04
 
+- Updated the fixed-seed H&E image-clustering profile to a 26-cluster merge
+  target followed by the selected reflection and post-symmetry gates, yielding
+  21 final cleaned structures for the documented mouse-brain example.
+- Exposed reflection-merge thresholds in ``HistologyClusteringConfig`` and
+  refreshed the ST-to-H&E tutorial outputs from the resulting two-pair,
+  final-iterate S-LDDMM alignment.
 - Replaced the former tail/intercept mismatch calibration with the promoted
   gene-specific MAD-null1-A0 design: within-risk-bin median centering,
   Student-t null MAD scaling, monotone nonnegative scale excess, and a

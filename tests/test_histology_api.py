@@ -84,6 +84,22 @@ class HistologyContractTests(unittest.TestCase):
         self.assertNotIn("asd_sim", metrics)
         self.assertIn("thick_sim", metrics)
 
+    def test_histology_clustering_defaults_match_selected_paper_profile(self):
+        config = spAlignDE.HistologyClusteringConfig()
+        self.assertEqual(config.image_clusters, 30)
+        self.assertEqual(config.merged_clusters, 26)
+        self.assertTrue(config.do_reflection_merge)
+        self.assertEqual(config.symmetry_axis, "ud")
+        self.assertEqual(config.reflection_min_area, 200)
+        self.assertEqual(config.reflection_min_iou, 0.20)
+        self.assertEqual(config.reflection_min_dice, 0.30)
+        self.assertEqual(config.symmetry_max_merges, 3)
+        self.assertEqual(config.symmetry_min_score_gain, 0.02)
+        self.assertEqual(config.symmetry_min_reflected_dice, 0.15)
+        self.assertEqual(config.symmetry_max_centroid_distance, 0.15)
+        self.assertEqual(config.symmetry_min_feature_cosine, 0.30)
+        self.assertEqual(config.cleanup_min_size, 250)
+
     def test_histology_pairing_weights_are_user_configurable_and_normalized(self):
         from spAlignDE.alignment.histology import _histology_pairing_weights
 
