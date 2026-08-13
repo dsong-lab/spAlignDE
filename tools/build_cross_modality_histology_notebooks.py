@@ -966,6 +966,26 @@ print("Saved: tutorials/cross_modality/histology/output/alignment/st_to_histolog
 
 
 def write_notebook(result, paths):
+    validated_path = paths[0]
+    if validated_path.is_file():
+        validated = nbf.read(validated_path, as_version=4)
+        result_code = [cell for cell in result.cells if cell.cell_type == "code"]
+        validated_code = [cell for cell in validated.cells if cell.cell_type == "code"]
+        if len(result_code) == len(validated_code):
+            for destination, source in zip(result_code, validated_code):
+                destination["execution_count"] = source.get("execution_count")
+                destination["outputs"] = source.get("outputs", [])
+                destination["id"] = source.get("id", destination.get("id"))
+                destination["metadata"] = source.get("metadata", {})
+            for destination, source in zip(result.cells, validated.cells):
+                if destination.cell_type == source.cell_type:
+                    destination["id"] = source.get("id", destination.get("id"))
+            if "spAlignDE_execution" in validated.metadata:
+                result.metadata["spAlignDE_execution"] = validated.metadata[
+                    "spAlignDE_execution"
+                ]
+            if "language_info" in validated.metadata:
+                result.metadata["language_info"] = validated.metadata["language_info"]
     for path in paths:
         path.parent.mkdir(parents=True, exist_ok=True)
         nbf.write(result, path)
@@ -973,14 +993,12 @@ def write_notebook(result, paths):
 
 def main():
     source_dir = PROJECT_ROOT / "source_notebooks" / "cross_modality"
-    tutorial_dir = PROJECT_ROOT / "tutorials" / "cross_modality" / "histology"
     sphinx_dir = SPHINX_SOURCE / "source_notebooks" / "cross_modality"
 
     write_notebook(
         feature_extraction_notebook(),
         (
             source_dir / "st_he_feature_extraction_nb.ipynb",
-            tutorial_dir / "01_image_feature_extraction.ipynb",
             sphinx_dir / "st_he_feature_extraction_nb.ipynb",
         ),
     )
@@ -988,7 +1006,6 @@ def main():
         feature_clustering_notebook(),
         (
             source_dir / "st_he_feature_clustering_nb.ipynb",
-            tutorial_dir / "02_feature_clustering.ipynb",
             sphinx_dir / "st_he_feature_clustering_nb.ipynb",
         ),
     )
@@ -996,7 +1013,6 @@ def main():
         alignment_notebook(),
         (
             source_dir / "st_he_alignment_nb.ipynb",
-            tutorial_dir / "03_alignment.ipynb",
             sphinx_dir / "st_he_alignment_nb.ipynb",
         ),
     )

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import hashlib
 
 import nbformat as nbf
 
@@ -29,6 +30,13 @@ def notebook(cells):
     }
     result.metadata["language_info"] = {"name": "python", "version": "3.10"}
     return result
+
+
+def source_hash(result) -> str:
+    payload = "\n\n".join(
+        f"{cell.cell_type}\n{cell.source}" for cell in result.cells
+    ).encode("utf-8")
+    return hashlib.sha256(payload).hexdigest()
 
 
 COMMON_SETUP = r"""
@@ -86,6 +94,10 @@ BANKSY, and saves a clustered AnnData object for the alignment notebook.
 The paper example contains 9,215 spatial observations measured at 20-µm
 resolution. ATAC is clustered independently from the ST reference: matched
 genes or a joint ATAC/ST latent space are not required.
+
+For the validated release, use the repository ``environment.yml`` (including
+the pinned BANKSY commit), run from the repository root, and retain seed
+``1234`` throughout clustering and alignment.
 """
             ),
             markdown(
@@ -299,6 +311,12 @@ Download S3R1 from the
 Place the files under `tutorials/cross_modality/atac/output/` and
 `data/cross_modality/atac/`, respectively, or set
 `SPALIGNDE_ATAC_CLUSTERED_H5AD` and `SPALIGNDE_ST_CLUSTERED_H5AD`.
+
+The ST file must contain the complete 70,844-cell S3R1 reference. Do not pass a
+previously cropped `st_reference_analysis_frame.h5ad`: this notebook performs
+the half-brain crop exactly once and retains 35,422 fixed cells. The validated
+input hashes are listed in
+`docs/source/_static/tutorial_execution_manifest.json`.
 """
             ),
             code(COMMON_SETUP),
@@ -443,11 +461,15 @@ Every cross-modality candidate pair is evaluated with one global score:
 ```
 
 A global logistic gate downweights candidates with large boundary distance.
-Pairs must have score ≥ 0.25 and Dice ≥ 0.01; greedy selection then enforces a
+Pairs must have score ≥ 0.21 and Dice ≥ 0.01; greedy selection then enforces a
 one-to-one mapping. These weights and gates are applied identically to every
 structure—there are no region-specific labels or anatomical weights. For a new
 dataset, follow the [cross-modality pairing-weight tuning guide](https://dsong-lab.github.io/spAlignDE/tutorials/parameter_tuning.html#cross-modality-pairing-weights),
 change one component at a time, and renormalize all four weights to sum to one.
+
+With the fixed inputs and seed `1234`, this configuration retains eight pairs.
+The pair table and pair scores were identical in an independent repeat, and
+float64 aligned coordinates agreed within `1e-12`.
 """
             ),
             markdown(
@@ -460,8 +482,8 @@ loss while remaining a global rule shared by every channel. S-LDDMM then
 estimates a smooth diffeomorphic field and maps all ATAC observations, not only
 the points belonging to matched masks.
 
-The paper settings are `nt=8`, `niter=500`, diffeomorphic start 20,
-`a=100`, `p=2`, velocity-grid spacing 40, `epL=2e-11`, `epT=2e-5`,
+The fixed-seed release settings are `nt=8`, `niter=500`, diffeomorphic start
+20, `a=100`, `p=2`, velocity-grid spacing 50, `epL=2e-11`, `epT=2e-5`,
 `epM=1e3`, `sigmaR=1e6`, and `sigmaM=0.5`.
 
 The optimizer applies one global numerical-stability policy: clip the momentum
@@ -480,7 +502,7 @@ alignment_config = spAlignDE.ATACSTAlignmentConfig(
     dice_weight=0.10,
     chamfer_gate_center=16.0,
     chamfer_gate_scale=6.0,
-    pair_score_threshold=0.25,
+    pair_score_threshold=0.21,
     pair_dice_threshold=0.01,
     maximum_pairs=20,
     time_steps=8,
@@ -488,7 +510,7 @@ alignment_config = spAlignDE.ATACSTAlignmentConfig(
     diffeomorphic_start=20,
     kernel_scale=100.0,
     kernel_power=2.0,
-    velocity_grid_spacing=40.0,
+    velocity_grid_spacing=50.0,
     affine_linear_lr=2e-11,
     affine_translation_lr=2e-5,
     momentum_lr=1e3,
@@ -611,7 +633,34 @@ print("Validated all", f"{result.atac.n_obs:,}", "ATAC observations.")
     )
 
 
-def write_notebook(result, *paths: Path) -> None:
+def write_notebook(result, *paths: Path, validated_output_path: Path | None = None) -> None:
+    if validated_output_path is not None and validated_output_path.is_file():
+        validated = nbf.read(validated_output_path, as_version=4)
+        result_code = [cell for cell in result.cells if cell.cell_type == "code"]
+        validated_code = [cell for cell in validated.cells if cell.cell_type == "code"]
+        if len(result_code) == len(validated_code):
+            for destination, source in zip(result_code, validated_code):
+                destination["execution_count"] = source.get("execution_count")
+                destination["outputs"] = source.get("outputs", [])
+                destination["id"] = source.get("id", destination.get("id"))
+                destination["metadata"] = source.get("metadata", {})
+            for destination, source in zip(result.cells, validated.cells):
+                if destination.cell_type == source.cell_type:
+                    destination["id"] = source.get("id", destination.get("id"))
+            if "spAlignDE_execution" in validated.metadata:
+                result.metadata["spAlignDE_execution"] = validated.metadata[
+                    "spAlignDE_execution"
+                ]
+            if "language_info" in validated.metadata:
+                result.metadata["language_info"] = validated.metadata["language_info"]
+            execution = result.metadata.get("spAlignDE_execution")
+            if isinstance(execution, dict) and execution.get("source_sha256") != source_hash(result):
+                execution["source_sha256"] = source_hash(result)
+                execution["fully_executed"] = False
+                execution["source_refresh_only"] = True
+                execution["output_provenance"] = (
+                    "validated fixed-seed outputs preserved after source refresh"
+                )
     for path in paths:
         path.parent.mkdir(parents=True, exist_ok=True)
         nbf.write(result, path)
@@ -620,20 +669,19 @@ def write_notebook(result, *paths: Path) -> None:
 
 def main() -> None:
     canonical = PROJECT_ROOT / "source_notebooks" / "cross_modality"
-    tutorial = PROJECT_ROOT / "tutorials" / "cross_modality" / "atac"
     sphinx = SPHINX_SOURCE / "source_notebooks" / "cross_modality"
 
     write_notebook(
         single_clustering_notebook(),
         canonical / "atac_st_single_clustering_nb.ipynb",
-        tutorial / "01_atac_single_clustering.ipynb",
         sphinx / "atac_st_single_clustering_nb.ipynb",
+        validated_output_path=canonical / "atac_st_single_clustering_nb.ipynb",
     )
     write_notebook(
         alignment_notebook(),
         canonical / "atac_st_alignment_nb.ipynb",
-        tutorial / "02_atac_to_st_alignment.ipynb",
         sphinx / "atac_st_alignment_nb.ipynb",
+        validated_output_path=canonical / "atac_st_alignment_nb.ipynb",
     )
 
 

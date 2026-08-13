@@ -1,0 +1,73 @@
+{
+  "schema_version": 1,
+  "atac_to_st": {
+    "seed": 1234,
+    "input_st_observations": 70844,
+    "analysis_st_observations": 35422,
+    "atac_observations": 9215,
+    "accepted_pairs": 8,
+    "pair_score_threshold": 0.21,
+    "kernel_scale": 100.0,
+    "velocity_grid_spacing": 50.0,
+    "restore_best_checkpoint": false,
+    "dtype": "float64",
+    "pair_table_repeat_exact": true,
+    "pair_score_repeat_max_abs_difference": 0.0,
+    "coordinate_repeat_max_abs_difference": {
+      "x": 3.410605131648481e-13,
+      "y": 9.094947017729282e-13
+    },
+    "coordinate_repeat_tolerance": 1e-12,
+    "aligned_h5ad_sha256": "c2331f3b6eb9ca97c5081544fb7c4e707b3e5d16b4d2183fda8380aa55917672"
+  },
+  "st_to_he": {
+    "seed": 0,
+    "merged_cluster_target": 26,
+    "final_cleaned_structures": 21,
+    "accepted_pairs": 2,
+    "kernel_scale": 60.0,
+    "velocity_grid_spacing": 6.0,
+    "restore_best_checkpoint": false,
+    "dtype": "float64",
+    "published_static_sha256": {
+      "histology_alignment_before_after.png": "f4311b8ab084c5dd53a797daf8354c8d92b5eb1848bd0f0eb7d199f089a72518",
+      "histology_feature_clustering.png": "fe2776927951abec225f34f3338c08b976865989eca355c4bf8c3563baccd3c5",
+      "histology_paired_feature_overlap.png": "9b1bd27d2cb8fafaf1b897bc3d8fa6d9afe9f6eb266400b0241d311be7c366b8",
+      "histology_paired_feature_overlap_after_lddmm.png": "8bdb2b056a8f9cb3bdfeb52971b6fbdcd8f8a518fb2d299f87707bc24a091b23"
+    }
+  },
+  "notebooks": [
+    {
+      "notebook": "cross_modality/atac_st_single_clustering_nb.ipynb",
+      "workflow_seed": 1234,
+      "fully_executed": false,
+      "source_sha256": "930e439c8520d5d6d169e2697e26fa3877e455957b43403078af3210c65e60fe",
+      "saved_output_sha256": "bf9c14dcb7a12dc5eabba6c8350b5bde7e7f1a50666768e7a8ec75f4ca476bbc",
+      "source_refresh_only": true
+    },
+    {
+      "notebook": "cross_modality/atac_st_alignment_nb.ipynb",
+      "workflow_seed": 1234,
+      "fully_executed": true,
+      "source_sha256": "b9a357fef144889bce9a942b5fdc99ab5ca6ea2138965245f069455b06c3935d",
+      "saved_output_sha256": "091ae14354e1855294cdd8dda71edefcb8490c8ed7426db2d4e20fa534ea47ed",
+      "source_refresh_only": false
+    },
+    {
+      "notebook": "cross_modality/st_he_feature_clustering_nb.ipynb",
+      "workflow_seed": 0,
+      "fully_executed": true,
+      "source_sha256": "fe2a32a41eb1a8afde3623f22d59bd66e6b58be7db4386c344c5ed2a840e1660",
+      "saved_output_sha256": "36be54f84b5cd958425b10fe2cf6674da1ae22bd125b7b49def4d31cd719606d",
+      "source_refresh_only": false
+    },
+    {
+      "notebook": "cross_modality/st_he_alignment_nb.ipynb",
+      "workflow_seed": 0,
+      "fully_executed": true,
+      "source_sha256": "0b063ffb63c2b49b8cf62dac965f933ee05138dbb8a637491bae656dbb006b03",
+      "saved_output_sha256": "4cba4b93ae3ecac9e74dbbac285b105c117137a2768d34e065d00f785c69ecec",
+      "source_refresh_only": false
+    }
+  ]
+}

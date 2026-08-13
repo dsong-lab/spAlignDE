@@ -2,6 +2,13 @@
 
 ## 0.1.0 — 2026-08-04
 
+- Updated the fixed-seed ATAC-to-ST release profile to an acceptance threshold
+  of 0.21 and velocity-grid spacing 50, yielding eight identical accepted
+  pairs across independent runs and float64 coordinates agreeing within
+  ``1e-12``.
+- Refreshed the ATAC notebook outputs and public tutorial figures, documented
+  the full-S3R1 input contract to prevent an accidental second half-brain crop,
+  and added a machine-readable cross-modality reproducibility manifest.
 - Updated the fixed-seed H&E image-clustering profile to a 26-cluster merge
   target followed by the selected reflection and post-symmetry gates, yielding
   21 final cleaned structures for the documented mouse-brain example.

@@ -33,6 +33,9 @@ class ATACSTContractTests(unittest.TestCase):
 
         config = spAlignDE.ATACSTAlignmentConfig()
         self.assertFalse(config.restore_best_checkpoint)
+        self.assertEqual(config.pair_score_threshold, 0.21)
+        self.assertEqual(config.kernel_scale, 100.0)
+        self.assertEqual(config.velocity_grid_spacing, 50.0)
         default_weights = _atac_pairing_weights(config)
         self.assertEqual(
             default_weights,

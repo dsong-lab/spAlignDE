@@ -14,8 +14,10 @@ the data/output contract and :doc:`../tutorials/parameter_tuning` for failure-
 oriented tuning.
 
 Both notebooks use seed ``1234``. The fixed result contains 17 ATAC
-structures and five accepted ATAC-to-ST pairs; discrete labels and pair tables
-were exact in two fresh processes.
+structures and eight accepted ATAC-to-ST pairs. In two fresh processes, the
+pair table was identical and the aligned coordinates agreed within
+``1e-12``; this numerical tolerance is used for float64 GPU output rather
+than requiring byte-identical H5AD files.
 
 .. toctree::
    :maxdepth: 1

@@ -78,7 +78,7 @@ class ATACSTAlignmentConfig:
     dice_weight: float = 0.10
     chamfer_gate_center: float = 16.0
     chamfer_gate_scale: float = 6.0
-    pair_score_threshold: float = 0.25
+    pair_score_threshold: float = 0.21
     pair_dice_threshold: float = 0.01
     maximum_pairs: int = 20
     minimum_atac_points: int = 80
@@ -96,7 +96,7 @@ class ATACSTAlignmentConfig:
     kernel_scale: float = 100.0
     kernel_power: float = 2.0
     velocity_expand: float = 2.0
-    velocity_grid_spacing: float = 40.0
+    velocity_grid_spacing: float = 50.0
     affine_linear_lr: float = 2e-11
     affine_translation_lr: float = 2e-5
     momentum_lr: float = 1e3
