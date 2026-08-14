@@ -18,6 +18,12 @@
       "y": 9.094947017729282e-13
     },
     "coordinate_repeat_tolerance": 1e-12,
+    "local_neighborhood_preservation": {
+      "10": 0.8940965816603367,
+      "20": 0.9756158437330441,
+      "30": 0.9167046482184844,
+      "50": 0.9287726532826914
+    },
     "aligned_h5ad_sha256": "fb45f3567aff9d658bbc944381217b9bfdcc7afc1db7542940842b7a26eed1e4"
   },
   "st_to_he": {

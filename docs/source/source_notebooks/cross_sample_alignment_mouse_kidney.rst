@@ -10,7 +10,7 @@ Input data
 
 The IL3 and NL3 Visium matrices, spatial coordinates and region annotations
 are publicly available from the `STcompare Zenodo record
-<https://zenodo.org/records/19486091>`_, as listed in the manuscript Data
+<https://zenodo.org/records/20647680>`_, as listed in the manuscript Data
 Availability section.
 
 The input may be a combined AnnData file or paired per-sample CSV files
@@ -35,12 +35,11 @@ workflow identifies four refined shared clusters.
 With seed ``1000``, both fresh-process runs produced the same four raw,
 refined and final cluster labels.
 
-Automatic shared-cluster centroid fitting is disabled. The alignment notebook
-uses the selected manual similarity coordinates: scale and orientation are
-preserved, and the IL3 query receives the center-to-center translation from
-the original kidney workflow. It then shows:
+The alignment notebook estimates rotation, scale and translation automatically
+from the four fixed-seed shared spatial structures. Cluster-size weighting is
+enabled and reflection is disabled. It then shows:
 
-1. the selected manual pre-alignment;
+1. automatic weighted shared-structure-centroid pre-alignment;
 2. rasterized shared-cluster and density fields;
 3. overlays before and after S-LDDMM without cluster colors; and
 4. overlays before and after S-LDDMM with cluster colors.
@@ -64,7 +63,14 @@ The requested kidney S-LDDMM settings are used exactly:
 
 Coordinates are multiplied by 50 internally, rasterized with grid spacing 30,
 and returned in the original coordinate scale. The executed alignment improves
-nearest-neighbor cluster agreement from 0.663 to 0.744.
+nearest-neighbor cluster agreement from 0.569 to 0.606. The independent kidney
+annotation benchmark gives a five-neighbor same-region fraction of 0.636.
+
+Independent fresh-kernel executions retained the same observation order,
+cluster labels and automatic pre-alignment parameters. Across the validated
+executions, final coordinates differed by at most ``3.91e-4`` original
+array-coordinate units, below the
+predeclared ``0.01``-unit tolerance and far below one coordinate unit.
 
 Here ``a`` controls deformation smoothness and ``grid_step`` controls velocity
 field resolution. Increasing either makes the warp more global/coarse;

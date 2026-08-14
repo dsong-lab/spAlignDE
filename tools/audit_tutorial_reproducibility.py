@@ -146,6 +146,23 @@ def audit_notebook(relative: str, seed: int) -> list[str]:
         ):
             if required not in code:
                 problems.append(f"{relative}: missing validated ATAC control {required}")
+    if relative == "cross_sample_alignment_mouse_kidney_alignment_nb.ipynb":
+        for required in (
+            "spAlignDE.prealign_cross_sample(",
+            "spAlignDE.PrealignmentConfig(",
+            "allow_scaling=True",
+            "allow_reflection=False",
+            "use_cluster_size_weights=True",
+            "min_cluster_size=10",
+        ):
+            if required not in code:
+                problems.append(
+                    f"{relative}: missing reported automatic kidney control {required}"
+                )
+        if "prealign_cross_sample_manual(" in code:
+            problems.append(
+                f"{relative}: still uses the retired manual kidney initialization"
+            )
     if relative == "cross_sample_uncertainty_report.ipynb":
         for required in (
             "WORKFLOW_SEED = 1000",
@@ -224,6 +241,10 @@ def audit_notebook(relative: str, seed: int) -> list[str]:
         "cross_modality/st_he_alignment_nb.ipynb": (
             "Reference: 21 image-derived structures",
         ),
+        "cross_sample_alignment_mouse_kidney_alignment_nb.ipynb": (
+            "nearest_label_agreement_prealigned: 0.5689713322091062",
+            "nearest_label_agreement_aligned: 0.6057335581787521",
+        ),
         "cross_sample_uncertainty_report.ipynb": (
             "429.54",
             "2352.74",
@@ -254,6 +275,25 @@ def main() -> None:
         problems.append(
             "Notebook inventory changed; classify new notebooks explicitly: "
             f"unexpected={sorted(discovered - expected)}, missing={sorted(expected - discovered)}"
+        )
+
+    cross_modality_manifest = json.loads(
+        (ROOT / "docs/source/_static/cross_modality_reproducibility_manifest.json")
+        .read_text(encoding="utf-8")
+    )
+    observed_knn = cross_modality_manifest.get("atac_to_st", {}).get(
+        "local_neighborhood_preservation"
+    )
+    expected_knn = {
+        "10": 0.8940965816603367,
+        "20": 0.9756158437330441,
+        "30": 0.9167046482184844,
+        "50": 0.9287726532826914,
+    }
+    if observed_knn != expected_knn:
+        problems.append(
+            "cross-modality manifest lacks the exact fixed ATAC neighborhood "
+            f"preservation values: observed={observed_knn!r}"
         )
 
     if problems:

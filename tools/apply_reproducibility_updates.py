@@ -269,6 +269,45 @@ def _update_config(relative: str, notebook) -> None:
             '    dtype="float32",\n)',
             '    restore_best_checkpoint=False,\n    dtype="float32",\n)',
         )
+        if relative == "cross_sample_alignment_mouse_kidney_alignment_nb.ipynb":
+            for cell in notebook.cells:
+                if (
+                    cell.cell_type == "markdown"
+                    and "## Selected manual pre-alignment" in cell.source
+                ):
+                    cell.source = (
+                        "## Automatic shared-structure pre-alignment\n\n"
+                        "The reported kidney benchmark estimates rotation, scale and "
+                        "translation automatically from the four fixed-seed shared "
+                        "spatial structures. Cluster-size weighting is enabled and "
+                        "reflection is disabled."
+                    )
+                if cell.cell_type == "code" and "manual_config = " in cell.source:
+                    cell.source = (
+                        "prealignment = spAlignDE.prealign_cross_sample(\n"
+                        "    adata_scaled,\n"
+                        "    query_sample=QUERY,\n"
+                        "    reference_sample=REFERENCE,\n"
+                        "    config=spAlignDE.PrealignmentConfig(\n"
+                        "        allow_scaling=True,\n"
+                        "        allow_reflection=False,\n"
+                        "        use_cluster_size_weights=True,\n"
+                        "        min_cluster_size=10,\n"
+                        "    ),\n"
+                        ")\n"
+                        "for key in (\n"
+                        "    \"scale\", \"theta_deg\", \"translation_x\", "
+                        "\"translation_y\", \"n_shared_clusters\", "
+                        "\"weighted_centroid_rmse\",\n"
+                        "):\n"
+                        "    print(f\"{key}: {prealignment.params[key]}\")\n"
+                        "spAlignDE.plot_prealignment_result(\n"
+                        "    prealignment,\n"
+                        "    point_size=3.0,\n"
+                        "    point_alpha=0.35,\n"
+                        "    figsize=(8, 4.5),\n"
+                        ")"
+                    )
     elif relative == "cross_sample_alignment_mouse_kidney_clustering_nb.ipynb":
         _replace_once(notebook, "    random_state=1000,", "    random_state=WORKFLOW_SEED,")
         _replace_once(

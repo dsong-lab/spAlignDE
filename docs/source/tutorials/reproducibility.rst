@@ -104,6 +104,13 @@ post-alignment inference from packaged fixed-alignment coordinates; the full
 five-section alignment workflow remains outside the public tutorial execution
 set.
 
+The public spAlignDE 0.1.0 environment pins AnnData ``0.10.9``. Some archived
+manuscript-scale cross-sample validation receipts were generated with AnnData
+``0.10.8`` and retain that version in their run manifests. Manuscript Methods
+should therefore distinguish the public pinned environment from the exact
+environment recorded for each archived analysis instead of implying that one
+AnnData patch version was used for every historical run.
+
 What should reproduce exactly
 -----------------------------
 
@@ -150,8 +157,8 @@ Validated fixed-seed results
      - 28 raw and 27 refined/final shared clusters
      - Exact labels; scale-aware coordinate tolerance.
    * - Kidney IL3 to NL3
-     - 4 raw/refined/final shared clusters
-     - Exact labels; scale-aware coordinate tolerance.
+     - 4 raw/refined/final shared clusters; automatic weighted-centroid transform; label agreement 0.569→0.606
+     - Exact labels, observation order and pre-alignment; final coordinates differed by at most ``3.91e-4`` original units (tolerance ``0.01``).
    * - Breast cancer Rep2 to Rep1
      - 10 shared clusters
      - Exact labels; scale-aware coordinate tolerance.
@@ -175,6 +182,56 @@ Allen selections and deformation groups are preserved from the validated UI
 session, while ST cluster IDs are revalidated by cell overlap against the
 fixed-seed labels. This avoids restoring an older uncontrolled label vector
 inside an otherwise fixed-seed workflow.
+
+Manuscript-specific validation scope
+------------------------------------
+
+The manuscript mouse-brain structure-resolution sweep used Leiden resolutions
+``0.6``, ``0.8``, ``1.0``, ``1.2`` and ``1.4``. These produced
+``15/17/21/24/28`` raw clusters and ``15/17/21/24/27`` refined/final
+structures, respectively. The manuscript reports the refined/final range
+``15–27`` because those labels define the alignment channels.
+
+The selected cross-sample clustering configurations are dataset specific.
+Mouse brain used BANKSY ``lambda=0.8``, 20 principal components, 50 SNN
+neighbors, Harmony ``theta=2``/``max_iter=30`` and Leiden resolution ``1.4``.
+Kidney used ``lambda=0.2``, 30 principal components, 100 SNN neighbors,
+Harmony ``theta=2``/``max_iter=20`` and resolution ``0.2``. Aging brain used
+``lambda=0.8``, 20 principal components, 50 SNN neighbors, Harmony
+``theta=2``/``max_iter=30`` and resolution ``0.8``. Breast cancer used
+``lambda=0.2``, 30 principal components, 50 SNN neighbors, Harmony
+``theta=4``/``max_iter=30`` and resolution ``0.3``; its locked igraph Leiden
+configuration used two iterations and no boundary refinement.
+
+The public Atlas notebook executes the primary S2R1 example. The additional
+S1R1 and S3R1 manuscript analyses use the same fixed-seed automatic pipeline
+but are not separate public tutorial notebooks. Their final fixed results are
+12 pairs for S1R1 (stage counts ``3/7/11``, followed by ``12→12``) and 11
+pairs for S3R1 (stage counts ``4/5/10``, followed by ``10→11`` and
+``11→11``).
+
+The full 20-section aging-brain alignment is likewise a manuscript-scale
+analysis rather than a public executable tutorial. The reported result uses
+Leiden resolution ``0.8`` (19 joint structures), seed ``1000`` and 800
+S-LDDMM iterations for each of the 19 source-to-4.3-month alignments. The
+public aging-brain notebook demonstrates post-alignment inference from
+packaged fixed-alignment coordinates. An independent full-cohort repeat through
+the public API kept the fixed joint labels and reproduced pre-alignment to
+within ``2.28e-12`` original coordinate units. All 19 final aligned coordinate
+sets were within ``2.17`` units of the selected outputs. Validation therefore
+uses a ``3.0``-unit tolerance, one tenth of the 30-unit raster spacing; GPU
+interpolation can prevent bitwise identity even when all random seeds and
+discrete inputs are fixed. With the current public API, the timed scope from
+automatic pre-alignment through rasterization and synchronized S-LDDMM took
+``2.100`` minutes in total (mean ``6.633`` seconds for 19 alignments), with a
+peak PyTorch allocation of ``96.994`` MiB (``0.0947`` GiB) on the recorded
+NVIDIA RTX PRO 6000 Blackwell Max-Q system. Clustering, coordinate-quality
+checks, plotting and serialization were outside this timing scope.
+
+The manuscript simulation uses base seed ``2026`` and replicate identifier
+``1`` (main seed ``2027``), with deterministic operation-specific offsets. The
+executed fitted-model bank contains 300 genes including *Gamt*, and the locked
+negative-effect multiplier is ``0.25``.
 
 Reporting checklist
 -------------------

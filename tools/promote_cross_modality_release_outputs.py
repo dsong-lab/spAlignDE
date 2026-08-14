@@ -22,6 +22,7 @@ import matplotlib.pyplot as plt
 import nbformat
 import numpy as np
 import pandas as pd
+from sklearn.neighbors import NearestNeighbors
 
 import spAlignDE
 from spalignde.alignment import _atlas_core
@@ -62,6 +63,36 @@ def sha256(path: Path) -> str:
 def read_pairs(path: Path) -> list[dict[str, str]]:
     with path.open(newline="", encoding="utf-8") as stream:
         return list(csv.DictReader(stream))
+
+
+def neighborhood_preservation(
+    before: np.ndarray,
+    after: np.ndarray,
+    k_values: tuple[int, ...] = (10, 20, 30, 50),
+) -> dict[str, float]:
+    """Return mean within-query kNN preservation for each requested k."""
+    maximum_k = max(k_values)
+    before_indices = (
+        NearestNeighbors(n_neighbors=maximum_k + 1)
+        .fit(before)
+        .kneighbors(before, return_distance=False)[:, 1:]
+    )
+    after_indices = (
+        NearestNeighbors(n_neighbors=maximum_k + 1)
+        .fit(after)
+        .kneighbors(after, return_distance=False)[:, 1:]
+    )
+    return {
+        str(k): float(
+            np.mean(
+                [
+                    len(set(left[:k]).intersection(right[:k])) / float(k)
+                    for left, right in zip(before_indices, after_indices)
+                ]
+            )
+        )
+        for k in k_values
+    }
 
 
 def parse_atlas_labels(value) -> list[int]:
@@ -366,6 +397,11 @@ def promote_atac(args: argparse.Namespace, static_dir: Path) -> dict:
     if max(x_diff, y_diff) >= 1e-12:
         raise AssertionError(f"ATAC coordinate repeat tolerance failed: {x_diff}, {y_diff}")
 
+    local_neighborhood_preservation = neighborhood_preservation(
+        np.asarray(aligned.obsm["spatial"], dtype=float),
+        aligned.obs[["x_aligned", "y_aligned"]].to_numpy(dtype=float),
+    )
+
     return {
         "seed": 1234,
         "input_st_observations": int(manifest["prealignment"]["reference_observations_before_crop"]),
@@ -381,6 +417,7 @@ def promote_atac(args: argparse.Namespace, static_dir: Path) -> dict:
         "pair_score_repeat_max_abs_difference": score_diff,
         "coordinate_repeat_max_abs_difference": {"x": x_diff, "y": y_diff},
         "coordinate_repeat_tolerance": 1e-12,
+        "local_neighborhood_preservation": local_neighborhood_preservation,
         "aligned_h5ad_sha256": sha256(aligned_path),
     }
 

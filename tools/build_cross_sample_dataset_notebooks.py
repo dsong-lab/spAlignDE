@@ -67,7 +67,7 @@ def kidney_clustering_cells() -> list:
             ```
 
             Download the IL3 and NL3 Visium matrices, coordinates and region
-            annotations from the [STcompare Zenodo record](https://zenodo.org/records/19486091).
+            annotations from the [STcompare Zenodo record](https://zenodo.org/records/20647680).
             The input may also be a directory using the standard paired-CSV
             contract described in the main cross-sample tutorial.
             """
@@ -351,6 +351,7 @@ def kidney_alignment_cells() -> list:
 
             PROJECT_ROOT = find_project_root(Path.cwd())
             OUTPUT_DIR = PROJECT_ROOT / "tutorials" / "cross_sample" / "kidney" / "output"
+            OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
             default_path = OUTPUT_DIR / "kidney_IL3_NL3_joint_clustered.h5ad"
             clustered_path = Path(
                 os.environ.get("SPALIGNDE_KIDNEY_CLUSTERED_H5AD", default_path)
@@ -372,34 +373,31 @@ def kidney_alignment_cells() -> list:
         ),
         markdown(
             """
-            ## Selected manual pre-alignment
+            ## Automatic shared-structure pre-alignment
 
-            Automatic shared-cluster centroid fitting is disabled for this
-            spot-level pair. The selected manual transform preserves scale and
-            orientation and applies the center-to-center translation used by
-            the original kidney workflow. The four values remain explicit and
-            may be overridden for another pair.
+            The reported kidney benchmark estimates rotation, scale and
+            translation automatically from the four fixed-seed shared spatial
+            structures. Cluster-size weighting is enabled and reflection is
+            disabled.
             """
         ),
         code(
             """
-            manual_config = spAlignDE.ManualPrealignmentConfig(
-                scale=float(os.environ.get("SPALIGNDE_MANUAL_SCALE", 1.0)),
-                theta_deg=float(os.environ.get("SPALIGNDE_MANUAL_THETA_DEG", 0.0)),
-                translation_x=float(
-                    os.environ.get("SPALIGNDE_MANUAL_TX", -36.20040965)
-                ),
-                translation_y=float(
-                    os.environ.get("SPALIGNDE_MANUAL_TY", -153.38356513)
-                ),
-            )
-            prealignment = spAlignDE.prealign_cross_sample_manual(
+            prealignment = spAlignDE.prealign_cross_sample(
                 adata_scaled,
                 query_sample=QUERY,
                 reference_sample=REFERENCE,
-                config=manual_config,
+                config=spAlignDE.PrealignmentConfig(
+                    allow_scaling=True,
+                    allow_reflection=False,
+                    use_cluster_size_weights=True,
+                    min_cluster_size=10,
+                ),
             )
-            for key in ("scale", "theta_deg", "translation_x", "translation_y"):
+            for key in (
+                "scale", "theta_deg", "translation_x", "translation_y",
+                "n_shared_clusters", "weighted_centroid_rmse",
+            ):
                 print(f"{key}: {prealignment.params[key]}")
             spAlignDE.plot_prealignment_result(
                 prealignment,
