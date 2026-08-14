@@ -94,6 +94,10 @@ public NL3/IL3 raw 10x count matrices and tissue-position tables. It joins spots
 barcode, tests `Cbr1`, `Cd44`, and `Myo5a`, and uses the sample-size- and
 tissue-occupancy-aware automatic shared-grid rule. Pass an integer `grid_n`
 only when an explicit Cartesian resolution is scientifically justified.
+Set `SPALIGNDE_KIDNEY_ALIGNED_H5AD` to the
+`kidney_IL3_to_NL3_aligned.h5ad` written by the public kidney alignment
+notebook to continue directly from its `x_aligned`/`y_aligned` coordinates;
+the packaged coordinates are a compact copy of that same fixed-seed output.
 The notebook delegates barcode matching, raw-count loading, per-gene support
 summaries, risk-gene filtering and long-table construction to
 `spAlignDE.build_visium_inference_table`; it defines no dataset-processing
@@ -105,7 +109,8 @@ The package includes their raw counts, original coordinates, cell-type
 annotations and coordinates from the validated fixed-seed aging-brain
 cross-sample workflow (seed `1000`). The notebook starts from those aligned
 coordinates, tests `Gamt` for four age-versus-4.3-month contrasts, and does not
-rerun alignment or require an external download.
+rerun alignment or require an external download. This is the reproducible
+five-section website example, not the manuscript's full 20-section analysis.
 
 Mismatch-aware inference calibrates each gene from its first-pass local
 statistics. Statistics are grouped by normalized local risk, median-centered,

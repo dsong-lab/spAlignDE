@@ -6,6 +6,25 @@ have been transformed into a common coordinate frame. Both examples begin with
 coordinates produced by spAlignDE and then construct mismatch risk, fit local
 differential-expression tests and display the resulting spatial statistics.
 
+Alignment-to-inference handoff
+------------------------------
+
+The alignment notebooks save ``x_aligned`` and ``y_aligned`` as the explicit
+handoff to inference; the inference notebooks consume these coordinates
+without estimating another transformation. For kidney, the full public chain
+runs from fixed-seed clustering and alignment (seed ``1000``), through
+``kidney_IL3_to_NL3_aligned.h5ad``, to inference with seed ``1`` and
+``n_jobs=1``. Set ``SPALIGNDE_KIDNEY_ALIGNED_H5AD`` to that H5AD to run the
+handoff directly. The default packaged coordinates are a compact copy of the
+same validated output and reproduce the recorded website result.
+
+The aging-brain notebook is explicitly a five-section website example. It
+starts from the fixed-seed aligned coordinates for the 4.3-, 6.6-, 15.8-,
+30.9- and 34.5-month sections and reproduces that five-section result; it is
+not the manuscript's full 20-section analysis. See
+:doc:`../tutorials/post_alignment_inference` for the coordinate contract,
+scaling rule and complete kidney handoff.
+
 Injured Mouse Kidney
 --------------------
 
@@ -15,7 +34,7 @@ the public NL3 and IL3 10x counts by terminal barcode, then fits local tests for
 and ``Myo5a``. The raw count matrices and tissue-position tables are available
 from `Zenodo record 17676992 <https://zenodo.org/records/17676992>`_. Users can
 replace the packaged coordinates with their own spAlignDE output through
-``SPALIGNDE_ALIGNMENT_DIR``.
+``SPALIGNDE_KIDNEY_ALIGNED_H5AD`` or ``SPALIGNDE_ALIGNMENT_DIR``.
 
 .. toctree::
    :maxdepth: 1

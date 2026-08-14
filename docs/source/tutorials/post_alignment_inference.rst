@@ -5,6 +5,51 @@ spAlignDE tests location-resolved expression differences after samples have
 been transformed into a common coordinate frame. The public tutorials cover
 two aligned-tissue examples: injured mouse kidney and aging mouse brain.
 
+Alignment-to-inference handoff
+------------------------------
+
+Alignment and post-alignment inference are consecutive but modular stages.
+The alignment notebooks write ``x_aligned`` and ``y_aligned`` for every
+retained observation; the inference notebooks consume those coordinates
+directly, join them to the original count data by stable observation identity,
+and do not estimate another spatial transformation. Thus the fixed-seed
+alignment output is the explicit handoff artifact between the two stages.
+
+For kidney, the public workflow is complete and executable end to end:
+
+.. code-block:: text
+
+   cross_sample_alignment_mouse_kidney_clustering_nb.ipynb
+       -> cross_sample_alignment_mouse_kidney_alignment_nb.ipynb
+       -> tutorials/cross_sample/kidney/output/kidney_IL3_to_NL3_aligned.h5ad
+       -> post_alignment_inference_nb.ipynb
+
+The clustering and alignment stages use seed ``1000``. The inference stage
+uses seed ``1`` and ``n_jobs=1``. Set
+``SPALIGNDE_KIDNEY_ALIGNED_H5AD`` to the H5AD written by the alignment
+notebook to exercise this handoff directly. The inference notebook extracts
+``sample_id``, ``x_aligned`` and ``y_aligned``, restores the documented
+50-fold inference coordinate scale, and joins the coordinates one-to-one to
+the public NL3/IL3 Visium counts by terminal 10x barcode. It reloads the
+original raw count matrices because the alignment H5AD contains the
+gene-filtered matrix used for clustering and registration.
+
+The packaged kidney coordinates are a compact copy of the same validated
+fixed-seed alignment output. They are the default so the website reproduces
+the recorded result without first running the upstream alignment notebooks.
+The direct-H5AD and packaged-coordinate paths therefore represent the same
+alignment-to-inference workflow, not two different analyses. Standardized
+coordinate CSV files remain supported through ``SPALIGNDE_ALIGNMENT_DIR``.
+
+For aging brain, the website intentionally provides a compact five-section
+example: the 4.3-month reference and the 6.6-, 15.8-, 30.9- and 34.5-month
+queries. It continues directly from their fixed-seed aligned coordinates and
+reproduces the five-section website result. This executable example
+demonstrates the same alignment-output-to-inference contract, but it is not
+the manuscript's full 20-section aging-brain analysis. Reproducing that
+analysis requires the fixed-seed aligned coordinates for all 20 sections and
+the 19 query-versus-reference contrasts.
+
 Injured Mouse Kidney
 --------------------
 
@@ -44,7 +89,14 @@ Configure their directory without editing the notebook:
    export SPALIGNDE_KIDNEY_DATA_DIR=/path/to/raw_kidney_files
    export SPALIGNDE_TUTORIAL_WORK_DIR=/path/to/tutorial_work
 
-To replace the packaged alignment, provide standardized coordinate files named
+To continue directly from the public kidney alignment notebook, point the
+inference notebook to its H5AD output:
+
+.. code-block:: bash
+
+   export SPALIGNDE_KIDNEY_ALIGNED_H5AD=/path/to/kidney_IL3_to_NL3_aligned.h5ad
+
+Alternatively, provide standardized coordinate files named
 ``aligned_coords_NL3.csv`` and ``aligned_coords_IL3.csv``:
 
 .. code-block:: bash
