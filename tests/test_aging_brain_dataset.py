@@ -35,6 +35,11 @@ class AgingBrainDatasetTests(unittest.TestCase):
             "Five coronal sections selected from the public aging cohorts",
         )
         self.assertEqual(metadata["alignment"]["method"], "spAlignDE")
+        self.assertEqual(metadata["alignment"]["random_seed"], 1000)
+        self.assertEqual(
+            metadata["alignment"]["verification"],
+            "two independent fixed-seed runs",
+        )
         self.assertEqual(len(genes), 300)
         self.assertEqual(len(set(genes)), len(genes))
         self.assertIn("Gamt", genes)
