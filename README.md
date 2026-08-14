@@ -88,9 +88,9 @@ analysis workflows listed below.
 | Spatial ATAC to ST | `source_notebooks/cross_modality/atac_st_single_clustering_nb.ipynb` → `source_notebooks/cross_modality/atac_st_alignment_nb.ipynb` |
 | Post-alignment inference | `source_notebooks/post_alignment_inference_nb.ipynb` for injured kidney; `source_notebooks/post_alignment_inference_aging_brain_nb.ipynb` for aging brain |
 
-The post-alignment notebook retains the standard website input handoff:
-the packaged manuscript `aligned_317` coordinates plus the public NL3/IL3 raw
-10x count matrices and tissue-position tables. It joins spots by terminal
+The post-alignment notebook continues from the validated fixed-seed kidney
+cross-sample alignment (seed `1000`) packaged with the repository, plus the
+public NL3/IL3 raw 10x count matrices and tissue-position tables. It joins spots by terminal
 barcode, tests `Cbr1`, `Cd44`, and `Myo5a`, and uses the sample-size- and
 tissue-occupancy-aware automatic shared-grid rule. Pass an integer `grid_n`
 only when an explicit Cartesian resolution is scientifically justified.
@@ -102,9 +102,10 @@ functions of its own.
 The aging-brain workflow uses five sections derived from the public 300-gene
 MERFISH dataset on [Zenodo record 13883177](https://doi.org/10.5281/zenodo.13883177).
 The package includes their raw counts, original coordinates, cell-type
-annotations and coordinates precomputed by spAlignDE. The notebook starts from
-those aligned coordinates, tests `Gamt` for four age-versus-4.3-month
-contrasts, and does not rerun alignment or require an external download.
+annotations and coordinates from the validated fixed-seed aging-brain
+cross-sample workflow (seed `1000`). The notebook starts from those aligned
+coordinates, tests `Gamt` for four age-versus-4.3-month contrasts, and does not
+rerun alignment or require an external download.
 
 Mismatch-aware inference calibrates each gene from its first-pass local
 statistics. Statistics are grouped by normalized local risk, median-centered,

@@ -9,9 +9,9 @@ differential-expression tests and display the resulting spatial statistics.
 Injured Mouse Kidney
 --------------------
 
-The kidney workflow continues from the Visium cross-sample alignment. It joins
-the packaged manuscript ``aligned_317`` coordinates to the public NL3 and IL3
-10x counts by terminal barcode, then fits local tests for ``Cbr1``, ``Cd44``
+The kidney workflow continues from the validated fixed-seed Visium
+cross-sample alignment (seed ``1000``). It joins the packaged coordinates to
+the public NL3 and IL3 10x counts by terminal barcode, then fits local tests for ``Cbr1``, ``Cd44``
 and ``Myo5a``. The raw count matrices and tissue-position tables are available
 from `Zenodo record 17676992 <https://zenodo.org/records/17676992>`_. Users can
 replace the packaged coordinates with their own spAlignDE output through
@@ -39,10 +39,11 @@ clocks reveal cell proximity effects in brain ageing
 record 13883177 <https://doi.org/10.5281/zenodo.13883177>`_.
 
 The package contains a compact five-section subset with public raw counts,
-original coordinates and cell-type labels, plus coordinates precomputed by
-spAlignDE. The notebook therefore starts from the aligned ``x_aligned`` and
-``y_aligned`` fields and does not rerun alignment. No external download is
-required to execute the packaged example.
+original coordinates and cell-type labels, plus coordinates from the validated
+fixed-seed cross-sample workflow (seed ``1000``). The notebook therefore
+starts from the aligned ``x_aligned`` and ``y_aligned`` fields and does not
+rerun alignment. No external download is required to execute the packaged
+example.
 
 .. toctree::
    :maxdepth: 1
@@ -63,7 +64,7 @@ cleanup guidance.
 
 The public kidney and aging-brain notebooks use workflow seed 1 and
 ``n_jobs=1`` for both inference preparation and fitting. Independent clean
-runs reproduced all sanitized saved outputs exactly: 6,169 shared-grid
-locations for kidney and 74,908 for aging brain. Parallel workers can be used
+runs reproduced all sanitized saved outputs exactly: 6,187 shared-grid
+locations for kidney and 76,124 for aging brain. Parallel workers can be used
 for exploratory acceleration, but their diagnostic messages may be emitted in
 a different order even when the fitted scientific results are unchanged.

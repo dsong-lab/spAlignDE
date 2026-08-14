@@ -5,8 +5,8 @@
       "role": "reference",
       "n_spots": 3215,
       "source_coordinate_columns": [
-        "x_100",
-        "y_100"
+        "x_aligned",
+        "y_aligned"
       ]
     },
     "IL3": {
@@ -18,7 +18,10 @@
       ]
     }
   },
-  "coordinate_version": "manuscript aligned_317",
+  "coordinate_version": "fixed-seed cross-sample tutorial alignment",
+  "alignment_seed": 1000,
+  "inference_seed": 1,
+  "coordinate_scale_factor": 50,
   "public_raw_data": {
     "repository": "Zenodo",
     "record": "17676992"
@@ -29,5 +32,5 @@
     "x",
     "y"
   ],
-  "note": "These precomputed alignment coordinates are provided for the real-data tutorial. Raw expression matrices and tissue-position files remain available from the public Zenodo record."
+  "note": "These coordinates come from the validated fixed-seed kidney cross-sample tutorial. The saved H5AD coordinates are multiplied by the tutorial's scale factor of 50 for post-alignment inference. Raw expression matrices and tissue-position files remain available from the public Zenodo record."
 }

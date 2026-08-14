@@ -372,8 +372,8 @@ def _update_config(relative: str, notebook) -> None:
         )
         _replace_once(
             notebook,
-            'USER_ALIGNMENT_DIR if USER_ALIGNMENT_DIR is not None else "packaged manuscript aligned_317",',
-            '"user-provided coordinates" if USER_ALIGNMENT_DIR is not None else "packaged manuscript aligned_317",',
+            'USER_ALIGNMENT_DIR if USER_ALIGNMENT_DIR is not None else "packaged fixed-seed alignment",',
+            '"user-provided coordinates" if USER_ALIGNMENT_DIR is not None else "packaged fixed-seed alignment",',
         )
 
 
