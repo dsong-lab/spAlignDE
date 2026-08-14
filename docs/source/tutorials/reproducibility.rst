@@ -99,8 +99,10 @@ computational workflows.
 The external inputs used for the release execution are recorded by logical
 role, filename, size and SHA-256 in the :download:`tutorial execution input
 manifest <../_static/tutorial_execution_manifest.json>`. Local absolute paths
-are deliberately excluded. Aging-brain analysis is part of the manuscript
-benchmark, but not part of the public tutorial execution set.
+are deliberately excluded. The public aging-brain notebook reproduces
+post-alignment inference from packaged fixed-alignment coordinates; the full
+five-section alignment workflow remains outside the public tutorial execution
+set.
 
 What should reproduce exactly
 -----------------------------
@@ -139,7 +141,7 @@ Validated fixed-seed results
      - ST levels 7/16/25; stage pairs 3/8/16; continuation 17→18 and 18→18
      - Exact discrete tables; float64 coordinates within tolerance.
    * - Xenium S2R1 to H&E
-     - 26 image structures; 2 accepted pairs
+     - 26-region merge target; 21 final cleaned image structures; 2 accepted pairs
      - Exact masks/pairs; float64 coordinates within tolerance.
    * - Spatial ATAC to MERFISH S3R1
      - 17 ATAC structures; 8 accepted pairs
@@ -153,6 +155,9 @@ Validated fixed-seed results
    * - Breast cancer Rep2 to Rep1
      - 10 shared clusters
      - Exact labels; scale-aware coordinate tolerance.
+   * - MERFISH subsampling-based transformation variability
+     - 10 independent 80% repeats; median ``dist_var`` 429.54; 95th percentile 2,352.74
+     - Two full final-iterate executions produced identical pointwise tables.
 
 Atlas terminology
 -----------------

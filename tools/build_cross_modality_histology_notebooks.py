@@ -412,7 +412,8 @@ UNI is an **optional advanced representation**. The paper result reproduced
 by these notebooks intentionally uses the unmasked HIPT/ViT-only
 `embeddings-hist-vit.pickle`; no Hugging Face login or UNI weights are needed.
 Do not replace the input to notebook 2 with a merged feature file when trying
-to reproduce the reported 26-structure result.
+to reproduce the reported 26-cluster merge target and 21 final cleaned
+structures.
 """
             ),
             markdown(

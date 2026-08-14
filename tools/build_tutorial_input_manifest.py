@@ -51,9 +51,10 @@ def main() -> None:
         print(f"HASH {path.name}", flush=True)
 
     payload = {
-        "schema_version": 1,
+        "schema_version": 2,
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
-        "aging_brain_included": False,
+        "aging_brain_alignment_included": False,
+        "aging_brain_post_alignment_inference_included": True,
         "inputs": sorted(records, key=lambda item: (item["notebook"], item["role"], item["filename"])),
     }
     output = args.output.resolve()

@@ -39,6 +39,11 @@ inputs and labels are exact-repeat targets; transformation coordinates are
 summarized as empirical variability rather than described as bitwise
 deterministic CUDA output.
 
+The S-LDDMM runs explicitly use ``restore_best=False`` and therefore retain the
+final optimizer iterate. Two complete fixed-seed executions of all ten
+replicates produced identical pointwise uncertainty tables. The checkpoint
+policy must not be changed when reproducing the reported spatial pattern.
+
 The executable notebook starts from the replicate-specific pseudo-images and
 prealigned coordinates produced by steps 1--5. It runs or loads S-LDDMM,
 validates all ten replicate alignments, and regenerates the pointwise
@@ -110,3 +115,7 @@ every replicate, then evaluate all learned transformations on one fixed
 support. Record the retained fraction, seeds, number of repeats and full
 alignment configuration. See :doc:`../tutorials/parameter_tuning` before
 changing the S-LDDMM scale or grid resolution.
+
+The release input hashes, final configuration, numerical summary and second-run
+comparison are archived in the :download:`uncertainty reproducibility manifest
+<../_static/cross_sample_uncertainty_reproducibility_manifest.json>`.
