@@ -1,6 +1,7 @@
 {
-  "aging_brain_included": false,
-  "generated_at_utc": "2026-08-12T00:02:41.044029+00:00",
+  "aging_brain_alignment_included": false,
+  "aging_brain_post_alignment_inference_included": true,
+  "generated_at_utc": "2026-08-14T02:30:47+00:00",
   "inputs": [
     {
       "bytes": 20147881,
@@ -276,5 +277,5 @@
       "sha256": "9d2c77c9fabd603bc6418ec51a7bfcd3212fdfcaeef210f8e04930a5d87926ab"
     }
   ],
-  "schema_version": 1
+  "schema_version": 2
 }

@@ -275,7 +275,7 @@ GUIDANCE: dict[str, list[tuple[str, str]]] = {
         ("JointClusteringConfig(", CLUSTERING_GUIDANCE)
     ],
     "cross_sample_alignment_breast_cancer_clustering_nb.ipynb": [
-        ("JointClusteringConfig(", CLUSTERING_GUIDANCE)
+        ("subprocess.run(command", CLUSTERING_GUIDANCE)
     ],
     "atac_st_single_clustering_nb.ipynb": [
         ("SingleClusteringConfig(", CLUSTERING_GUIDANCE)
@@ -304,7 +304,10 @@ GUIDANCE: dict[str, list[tuple[str, str]]] = {
         ("ATACSTAlignmentConfig(", ATAC_ALIGNMENT_GUIDANCE),
     ],
     "post_alignment_inference_nb.ipynb": [
-        ("prepared = spAlignDE.prepare_inference(", INFERENCE_GUIDANCE)
+        ("prepared = prepare_inference(", INFERENCE_GUIDANCE)
+    ],
+    "post_alignment_inference_aging_brain_nb.ipynb": [
+        ("prepared = prepare_inference(", INFERENCE_GUIDANCE)
     ],
     "cross_sample_uncertainty_report.ipynb": [
         ("## 1. Experimental design", UNCERTAINTY_GUIDANCE)

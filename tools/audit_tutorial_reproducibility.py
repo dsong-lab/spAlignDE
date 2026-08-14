@@ -52,6 +52,19 @@ def source_hash(notebook) -> str:
     return hashlib.sha256(payload).hexdigest()
 
 
+def saved_text(notebook) -> str:
+    """Flatten saved textual outputs for result-level contract checks."""
+    chunks: list[str] = []
+    for cell in notebook.cells:
+        for output in cell.get("outputs", []):
+            if output.get("output_type") == "stream":
+                chunks.append(str(output.get("text", "")))
+            data = output.get("data", {})
+            plain = data.get("text/plain", "")
+            chunks.append("".join(plain) if isinstance(plain, list) else str(plain))
+    return "\n".join(chunks)
+
+
 def audit_notebook(relative: str, seed: int) -> list[str]:
     problems: list[str] = []
     source_path = SOURCE / relative
@@ -104,11 +117,44 @@ def audit_notebook(relative: str, seed: int) -> list[str]:
             "restore_best_checkpoint=False",
             "continuation_iterations=200",
             "continuation_restore_best_checkpoint=False",
+            "pairing_weight_sdf=0.05",
+            "pairing_weight_chamfer=0.05",
+            "pairing_weight_dice=0.20",
+            "pairing_weight_area=0.50",
+            "pairing_weight_thickness=0.20",
         ):
             if required not in code:
                 problems.append(
                     f"{relative}: missing automatic Atlas optimizer control {required}"
                 )
+    if relative == "cross_modality/st_he_alignment_nb.ipynb":
+        for required in (
+            "kernel_scale=60.0",
+            "velocity_grid_spacing=6.0",
+            "restore_best_checkpoint=False",
+            'dtype="float64"',
+        ):
+            if required not in code:
+                problems.append(f"{relative}: missing validated H&E control {required}")
+    if relative == "cross_modality/atac_st_alignment_nb.ipynb":
+        for required in (
+            "pair_score_threshold=0.21",
+            "kernel_scale=100.0",
+            "velocity_grid_spacing=50.0",
+            "restore_best_checkpoint=False",
+            'dtype="float64"',
+        ):
+            if required not in code:
+                problems.append(f"{relative}: missing validated ATAC control {required}")
+    if relative == "cross_sample_uncertainty_report.ipynb":
+        for required in (
+            "WORKFLOW_SEED = 1000",
+            '"niter": 500',
+            '"lrM": 2e3',
+            '"restore_best": False',
+        ):
+            if required not in code:
+                problems.append(f"{relative}: missing validated uncertainty control {required}")
     if relative in {
         "post_alignment_inference_aging_brain_nb.ipynb",
         "post_alignment_inference_nb.ipynb",
@@ -162,6 +208,36 @@ def audit_notebook(relative: str, seed: int) -> list[str]:
     output_hash = hashlib.sha256(rendered.encode("utf-8")).hexdigest()
     if execution.get("saved_output_sha256") != output_hash:
         problems.append(f"{relative}: saved output hash does not match notebook outputs")
+
+    outputs = saved_text(notebook)
+    expected_output_markers = {
+        "cross_modal_atlas_alignment_nb.ipynb": (
+            "Final matched structure pairs: 18",
+        ),
+        "cross_modality/atac_st_alignment_nb.ipynb": (
+            "Accepted structure pairs: 8",
+        ),
+        "cross_modality/st_he_feature_clustering_nb.ipynb": (
+            "final cleaned regions",
+            "21",
+        ),
+        "cross_modality/st_he_alignment_nb.ipynb": (
+            "Reference: 21 image-derived structures",
+        ),
+        "cross_sample_uncertainty_report.ipynb": (
+            "429.54",
+            "2352.74",
+            "Checkpoint policy: final optimizer iterate (restore_best=False)",
+        ),
+    }
+    for marker in expected_output_markers.get(relative, ()):
+        if marker not in outputs:
+            problems.append(f"{relative}: saved outputs lack current result marker {marker!r}")
+    if relative == "cross_sample_uncertainty_report.ipynb":
+        if "median  68.43" in outputs or "300.01" in outputs:
+            problems.append(
+                f"{relative}: saved outputs still contain the retired restore_best=True result"
+            )
     return problems
 
 

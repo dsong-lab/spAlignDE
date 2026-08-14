@@ -214,7 +214,23 @@ def _update_config(relative: str, notebook) -> None:
             "The four-level package workflow": "The three-level package workflow",
         }
         for old, new in replacements.items():
-            _replace_once(notebook, old, new)
+            _replace_once(notebook, old, new, required=False)
+        atlas_source = "\n".join(
+            cell.source for cell in notebook.cells if cell.cell_type == "code"
+        )
+        for required in (
+            "n_levels=3",
+            "pairing_weight_sdf=0.05",
+            "pairing_weight_chamfer=0.05",
+            "pairing_weight_dice=0.20",
+            "pairing_weight_area=0.50",
+            "pairing_weight_thickness=0.20",
+            "continuation_kernel_scale=200",
+            "continuation_velocity_grid_spacing=50",
+            "continuation_restore_best_checkpoint=False",
+        ):
+            if required not in atlas_source:
+                raise RuntimeError(f"Atlas notebook lacks validated setting: {required}")
         _replace_once(
             notebook,
             "    pairing_weight_asd=0.00,\n",
@@ -303,6 +319,11 @@ def _update_config(relative: str, notebook) -> None:
             notebook,
             "FORCE_RERUN = False",
             'FORCE_RERUN = os.environ.get("SPALIGNDE_FORCE_UNCERTAINTY_RERUN", "0") == "1"',
+        )
+        _replace_once(
+            notebook,
+            '    "lrM_min": 2e3,\n}',
+            '    "lrM_min": 2e3,\n    "restore_best": False,\n}',
         )
     elif relative == "post_alignment_inference_nb.ipynb":
         _replace_once(

@@ -111,7 +111,13 @@ def run_or_load_alignments(
     if model_cfg is None:
         model_cfg = {"a": 300, "p": 2.0, "expand": 2.0, "nt": 3, "grid_step": 100}
     if optim_cfg is None:
-        optim_cfg = {"niter": 500, "lrM": 4e3, "lrM_min": 4e3, "grad_clip_m0": 1e3}
+        optim_cfg = {
+            "niter": 500,
+            "lrM": 4e3,
+            "lrM_min": 4e3,
+            "grad_clip_m0": 1e3,
+            "restore_best": False,
+        }
 
     requested_config = {
         "model_cfg": model_cfg,

@@ -27,6 +27,12 @@ def build_notebook():
         "kernelspec": {"display_name": "Python 3", "language": "python", "name": "python3"},
         "language_info": {"name": "python", "version": "3"},
     }
+    notebook["metadata"]["spAlignDE_reproducibility"] = {
+        "workflow_seed": 1000,
+        "seed_scope": "Python, NumPy, Torch and configured stochastic methods",
+        "discrete_repeat_contract": "exact",
+        "cuda_coordinate_contract": "workflow-specific numerical tolerance",
+    }
     notebook.cells = [
         md(
             r"""
@@ -43,6 +49,11 @@ rasterization, and S-LDDMM. The analysis measures the stability of those learned
 transformations; it is not a calibrated probability or confidence interval.
 
 Data source: [Vizgen Mouse Brain Receptor Map](https://info.vizgen.com/mouse-brain-map).
+
+**Fixed-seed reproducibility.** This workflow uses seed `1000`. Launch Python
+with `PYTHONHASHSEED=1000` before kernel startup, keep the documented input
+order and pinned environment fixed, and retain `restore_best=False`. Two full
+executions of all ten replicates produced identical pointwise tables.
 """
         ),
         md(
@@ -63,6 +74,16 @@ The prepared `.npz` files used below are the outputs of steps 1–5 for each
 independent replicate. This report runs or loads step 6, applies all ten saved
 transformations to a common evaluation support, and regenerates the pointwise
 variability figures and tables.
+
+### Adapting the subsampling design
+
+The ten 80% replicates are an experimental design choice, not an S-LDDMM
+default. For another dataset, retain enough observations to preserve important
+structures and use enough independent repeats to stabilize the distribution
+tail. Re-run clustering, pre-alignment, rasterization and S-LDDMM independently
+for every replicate, then evaluate every learned transformation on one fixed
+support. Report the retained fraction, replicate seeds, input ordering and full
+alignment configuration.
 """
         ),
         md("## 2. Setup"),
@@ -74,6 +95,14 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import spAlignDE
+
+WORKFLOW_SEED = 1000
+seed_controls = spAlignDE.set_random_seed(
+    WORKFLOW_SEED,
+    deterministic_torch=True,
+)
+
 from spAlignDE import uncertainty as uq
 
 PROJECT_ROOT = Path.cwd().resolve()
@@ -145,6 +174,11 @@ display(replicate_table)
 parameters. Set it to `True` to re-estimate all ten transformations. The output
 directory is controlled by ``SPALIGNDE_UNCERTAINTY_OUTPUT_DIR`` and defaults to
 ``outputs/cross_sample_uncertainty`` under the notebook working directory.
+
+The reported workflow explicitly retains the final optimizer iterate
+(`restore_best=False`). This setting is part of the analysis contract: changing
+it returns different transformations even though the logged final energy
+history is unchanged.
 """
         ),
         code(
@@ -168,6 +202,7 @@ optim_cfg = {
     "grad_clip_m0": None,
     "lrM_decay": 1.0,
     "lrM_min": 2e3,
+    "restore_best": False,
 }
 
 aligned_by_repeat, run_summary = uq.run_or_load_alignments(
@@ -185,6 +220,7 @@ display(
         ["repeat", "status", "n_source_points", "n_target_points", "prealign_method", "finalE", "elapsed_sec"]
     ]
 )
+print("Checkpoint policy: final optimizer iterate (restore_best=False)")
 """
         ),
         md(
@@ -307,6 +343,19 @@ summary_table = pd.DataFrame(
 )
 display(summary_table.round(2))
 
+validated_summary = pd.DataFrame(
+    {
+        "metric": ["median dist_var", "95th-percentile dist_var", "top-5% points"],
+        "observed": [
+            point_var_df["dist_var"].median(),
+            point_var_df["dist_var"].quantile(0.95),
+            int((point_var_df["dist_var"] >= p95_dist_var).sum()),
+        ],
+        "validated fixed-seed result": [429.538350756525, 2352.74032676407, 3439],
+    }
+)
+display(validated_summary)
+
 report_path = uq.write_brief_report(
     output_dir=OUTPUT_DIR,
     summary=run_summary,
@@ -325,6 +374,12 @@ Most of the section has low pointwise distance variance, showing that the
 estimated correspondence is stable to cell subsampling. Elevated variability
 is spatially concentrated near the weakly or incompletely overlapping tissue
 boundary, where the transformation has less shared anatomical support.
+
+Two independent fixed-seed executions of all ten replicates with
+`restore_best=False` produced identical pointwise uncertainty tables
+(`max absolute difference = 0`). For the validated inputs, the median
+`dist_var` is 429.54 and its 95th percentile is 2,352.74; the elevated tail is
+concentrated at the incompletely overlapping lower-left boundary.
 
 This result should be read as **empirical subsampling-based transformation
 stability**. It flags locations where downstream comparisons deserve caution;
