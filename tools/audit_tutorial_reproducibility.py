@@ -148,20 +148,20 @@ def audit_notebook(relative: str, seed: int) -> list[str]:
                 problems.append(f"{relative}: missing validated ATAC control {required}")
     if relative == "cross_sample_alignment_mouse_kidney_alignment_nb.ipynb":
         for required in (
-            "spAlignDE.prealign_cross_sample(",
-            "spAlignDE.PrealignmentConfig(",
-            "allow_scaling=True",
-            "allow_reflection=False",
-            "use_cluster_size_weights=True",
-            "min_cluster_size=10",
+            "spAlignDE.ManualPrealignmentConfig(",
+            "spAlignDE.prealign_cross_sample_manual(",
+            'SPALIGNDE_MANUAL_SCALE", 1.0',
+            'SPALIGNDE_MANUAL_THETA_DEG", 0.0',
+            'SPALIGNDE_MANUAL_TX", -36.20040965',
+            'SPALIGNDE_MANUAL_TY", -153.38356513',
         ):
             if required not in code:
                 problems.append(
-                    f"{relative}: missing reported automatic kidney control {required}"
+                    f"{relative}: missing validated manual kidney control {required}"
                 )
-        if "prealign_cross_sample_manual(" in code:
+        if "prealignment = spAlignDE.prealign_cross_sample(" in code:
             problems.append(
-                f"{relative}: still uses the retired manual kidney initialization"
+                f"{relative}: still uses the unstable automatic kidney initialization"
             )
     if relative == "cross_sample_uncertainty_report.ipynb":
         for required in (
@@ -242,8 +242,8 @@ def audit_notebook(relative: str, seed: int) -> list[str]:
             "Reference: 21 image-derived structures",
         ),
         "cross_sample_alignment_mouse_kidney_alignment_nb.ipynb": (
-            "nearest_label_agreement_prealigned: 0.5689713322091062",
-            "nearest_label_agreement_aligned: 0.6057335581787521",
+            "nearest_label_agreement_prealigned: 0.6586846543001686",
+            "nearest_label_agreement_aligned: 0.7416526138279933",
         ),
         "cross_sample_uncertainty_report.ipynb": (
             "429.54",
