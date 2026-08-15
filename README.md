@@ -3,7 +3,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 <p align="center">
-  <img src="assets/Figure_1_08132026_DS.png" alt="Overview of the spAlignDE spatial alignment and mismatch-aware local inference framework" width="300">
+  <img src="assets/Figure_1_08132026_DS.png" alt="Overview of the spAlignDE spatial alignment and mismatch-aware local inference framework" width="600">
 </p>
 
 spAlignDE is a structure-guided framework for spatial alignment and
