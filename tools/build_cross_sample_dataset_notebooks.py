@@ -373,31 +373,36 @@ def kidney_alignment_cells() -> list:
         ),
         markdown(
             """
-            ## Automatic shared-structure pre-alignment
+            ## Selected manual pre-alignment
 
-            The reported kidney benchmark estimates rotation, scale and
-            translation automatically from the four fixed-seed shared spatial
-            structures. Cluster-size weighting is enabled and reflection is
-            disabled.
+            Automatic shared-cluster centroid fitting is disabled for this
+            spot-level pair because only four shared structures are available
+            and the automatic similarity fit is unstable. The fixed manual
+            transform preserves scale and orientation and applies the selected
+            center-to-center translation used by the validated kidney workflow.
+            The four values remain explicit and may be overridden for another
+            pair.
             """
         ),
         code(
             """
-            prealignment = spAlignDE.prealign_cross_sample(
+            manual_config = spAlignDE.ManualPrealignmentConfig(
+                scale=float(os.environ.get("SPALIGNDE_MANUAL_SCALE", 1.0)),
+                theta_deg=float(os.environ.get("SPALIGNDE_MANUAL_THETA_DEG", 0.0)),
+                translation_x=float(
+                    os.environ.get("SPALIGNDE_MANUAL_TX", -36.20040965)
+                ),
+                translation_y=float(
+                    os.environ.get("SPALIGNDE_MANUAL_TY", -153.38356513)
+                ),
+            )
+            prealignment = spAlignDE.prealign_cross_sample_manual(
                 adata_scaled,
                 query_sample=QUERY,
                 reference_sample=REFERENCE,
-                config=spAlignDE.PrealignmentConfig(
-                    allow_scaling=True,
-                    allow_reflection=False,
-                    use_cluster_size_weights=True,
-                    min_cluster_size=10,
-                ),
+                config=manual_config,
             )
-            for key in (
-                "scale", "theta_deg", "translation_x", "translation_y",
-                "n_shared_clusters", "weighted_centroid_rmse",
-            ):
+            for key in ("scale", "theta_deg", "translation_x", "translation_y"):
                 print(f"{key}: {prealignment.params[key]}")
             spAlignDE.plot_prealignment_result(
                 prealignment,
