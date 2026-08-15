@@ -246,9 +246,6 @@ link, fragment and image reference.
 
 ## Citation
 
-Please cite the software and associated manuscript. The author, version,
-license and repository metadata are available in [`CITATION.cff`](CITATION.cff)
-and through GitHub's **Cite this repository** menu.
 
 ## License
 
