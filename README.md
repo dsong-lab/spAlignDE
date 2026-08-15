@@ -228,9 +228,6 @@ and image reference.
 
 ## Citation
 
-GitHub renders the repository's [CITATION.cff](CITATION.cff) as **Cite this
-repository**. Add the journal/DOI metadata there when the associated manuscript
-is published.
 
 ## License
 
