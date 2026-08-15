@@ -52,6 +52,14 @@ def source_hash(notebook) -> str:
     return hashlib.sha256(payload).hexdigest()
 
 
+def code_hash(notebook) -> str:
+    """Hash executable code independently of explanatory Markdown."""
+    payload = "\n\n".join(
+        cell.source for cell in notebook.cells if cell.cell_type == "code"
+    ).encode("utf-8")
+    return hashlib.sha256(payload).hexdigest()
+
+
 def saved_text(notebook) -> str:
     """Flatten saved textual outputs for result-level contract checks."""
     chunks: list[str] = []
@@ -202,9 +210,18 @@ def audit_notebook(relative: str, seed: int) -> list[str]:
     if not recorded_source_hash:
         problems.append(f"{relative}: executed source hash is missing")
     elif recorded_source_hash != source_hash(notebook):
-        problems.append(
-            f"{relative}: source changed after the saved outputs were executed"
-        )
+        if not execution.get("documentation_only_refresh"):
+            problems.append(
+                f"{relative}: source changed after the saved outputs were executed"
+            )
+        elif execution.get("documentation_source_sha256") != source_hash(notebook):
+            problems.append(
+                f"{relative}: documentation-only source hash is inconsistent"
+            )
+        elif execution.get("executed_code_sha256") != code_hash(notebook):
+            problems.append(
+                f"{relative}: executable code changed during a documentation-only refresh"
+            )
     if not execution.get("repository_commit"):
         problems.append(f"{relative}: execution source revision is missing")
 
@@ -242,8 +259,8 @@ def audit_notebook(relative: str, seed: int) -> list[str]:
             "Reference: 21 image-derived structures",
         ),
         "cross_sample_alignment_mouse_kidney_alignment_nb.ipynb": (
-            "nearest_label_agreement_prealigned: 0.6586846543001686",
-            "nearest_label_agreement_aligned: 0.7416526138279933",
+            "nearest_label_agreement_prealigned: 0.663743676222597",
+            "nearest_label_agreement_aligned: 0.736593591905565",
         ),
         "cross_sample_uncertainty_report.ipynb": (
             "429.54",

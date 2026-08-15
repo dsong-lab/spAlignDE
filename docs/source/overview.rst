@@ -2,10 +2,10 @@ Overview
 ========
 
 spAlignDE is an integrated framework that connects **structure-guided spatial
-alignment** with **Mismatch-aware local differential-expression analysis**.
-It places spatial datasets in a common coordinate system and then uses the
-aligned coordinates to make location-resolved comparisons while accounting for
-residual correspondence errors.
+alignment** with **mismatch-aware post-alignment local differential-expression
+analysis**. It first places spatial datasets in a common coordinate system and
+then uses those aligned coordinates for location-resolved comparisons while
+accounting for residual correspondence errors.
 
 The framework has two linked components:
 
@@ -89,8 +89,8 @@ For repeated or multi-sample analyses, subsampling-based uncertainty
 quantification can additionally summarize the positional stability of the
 estimated transformation.
 
-Mismatch-aware local inference
-------------------------------
+mismatch-aware post-alignment local inference
+---------------------------------------------
 
 For aligned transcriptomic samples, spAlignDE defines fixed locations on a
 shared spatial grid and constructs kernel-weighted neighborhoods around each
@@ -105,7 +105,7 @@ reliability of each comparison using:
 - optional inconsistency in cell-type or anatomical-compartment support; and
 - optional technical covariates such as local library size and detection rate.
 
-The Mismatch-aware model inflates local variance in poorly supported regions
+The mismatch-aware model inflates local variance in poorly supported regions
 without changing the estimated expression contrast. Those comparisons
 therefore contribute less precise evidence instead of being interpreted as
 confident biological differential expression. This adjustment complements
@@ -137,7 +137,7 @@ The documented workflows cover the main settings evaluated in the manuscript:
 - Xenium breast-cancer technical-replicate alignment;
 - alignment of spatial transcriptomics to histology, the Allen Common
   Coordinate Framework and spatial ATAC-seq; and
-- Mismatch-aware local inference for spatial expression trajectories,
+- mismatch-aware local inference for spatial expression trajectories,
   cell-neighborhood remodeling and compartment-specific programs.
 
 Where to go next
@@ -151,7 +151,7 @@ Where to go next
 - :doc:`Parameter Tuning Guide <tutorials/parameter_tuning>` explains the
   deformation, rasterization, clustering and cross-modality matching settings.
 - :doc:`Post-Alignment Inference <tutorials/post_alignment_inference>` describes
-  shared-grid local testing and Mismatch-aware adjustment.
+  shared-grid local testing and mismatch-aware adjustment.
 - :doc:`Source Notebooks <source_notebooks>` provides executable workflow
   examples.
 - :doc:`Python API <api>` lists the currently exposed package interfaces.

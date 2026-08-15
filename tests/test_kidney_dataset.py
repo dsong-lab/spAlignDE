@@ -1,4 +1,6 @@
+import hashlib
 import unittest
+from importlib.resources import files
 
 import numpy as np
 
@@ -41,11 +43,37 @@ class KidneyDatasetTests(unittest.TestCase):
         self.assertEqual(metadata["alignment_seed"], 1000)
         self.assertEqual(metadata["inference_seed"], 1)
         self.assertEqual(metadata["coordinate_scale_factor"], 50)
+        self.assertEqual(
+            metadata["public_data"]["alignment_source"]["record"],
+            "20647680",
+        )
+        self.assertEqual(
+            metadata["public_data"]["inference_expression_source"][
+                "record"
+            ],
+            "17676992",
+        )
+        self.assertEqual(
+            metadata["validation"]["nearest_label_agreement_aligned"],
+            0.736593591905565,
+        )
+        self.assertFalse(metadata["slddmm"]["restore_best_checkpoint"])
         for sample_id in KIDNEY_SAMPLES:
             frame = load_kidney_aligned_coordinates(sample_id)
             self.assertEqual(
                 metadata["samples"][sample_id]["n_spots"],
                 len(frame),
+            )
+            resource = files("spAlignDE.datasets.kidney").joinpath(
+                f"aligned_coords_{sample_id}.csv.gz"
+            )
+            with resource.open("rb") as stream:
+                digest = hashlib.sha256(stream.read()).hexdigest()
+            self.assertEqual(
+                metadata["samples"][sample_id][
+                    "coordinate_file_sha256"
+                ],
+                digest,
             )
 
     def test_unknown_sample_is_rejected(self):

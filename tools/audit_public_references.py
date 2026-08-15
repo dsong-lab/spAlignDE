@@ -71,6 +71,30 @@ def main() -> int:
         )
         failures.append(f"BANKSY commit pins disagree: {rendered}")
 
+    downloadable_mirrors = {
+        ROOT / "environment.yml": (
+            ROOT / "docs/source/_static/environment/environment.yml"
+        ),
+        ROOT / "ENVIRONMENT.md": (
+            ROOT / "docs/source/_static/environment/ENVIRONMENT.md"
+        ),
+        ROOT / "tools/check_notebook_environment.py": (
+            ROOT
+            / "docs/source/_static/environment/check_notebook_environment.py"
+        ),
+    }
+    for canonical, mirror in downloadable_mirrors.items():
+        if not mirror.is_file():
+            failures.append(
+                "missing downloadable environment mirror: "
+                f"{mirror.relative_to(ROOT)}"
+            )
+        elif _sha256(canonical) != _sha256(mirror):
+            failures.append(
+                "downloadable environment mirror is stale: "
+                f"{mirror.relative_to(ROOT)}"
+            )
+
     license_path = ROOT / "LICENSE"
     pyproject_text = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
     citation_text = (ROOT / "CITATION.cff").read_text(encoding="utf-8")
@@ -109,6 +133,7 @@ def main() -> int:
     print(f"Public notebook references: {len(checked_references)}")
     print(f"Canonical notebook mirrors: {len(notebook_paths)}")
     print(f"BANKSY pin files: {len(pins)}")
+    print(f"Downloadable environment mirrors: {len(downloadable_mirrors)}")
     print(f"Release version files: {len(versions)}")
     print("License metadata: MIT")
     if failures:

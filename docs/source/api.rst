@@ -356,8 +356,8 @@ evaluates it at the original query locations. It returns a
 ``CrossSampleAlignmentResult``.
 
 ``SLDDMMConfig`` contains the deformation-kernel, shooting, optimizer,
-mismatch-aware EM and numeric-precision settings. CUDA is selected
-automatically when available unless ``device`` is supplied.
+matched/unmatched EM intensity-model and numeric-precision settings. CUDA is
+selected automatically when available unless ``device`` is supplied.
 
 Cross-sample subsampling stability
 ----------------------------------
@@ -536,6 +536,12 @@ runs shifted-tile HIPT feature extraction. The histology-side dataset input is
 the image only. Set ``SPALIGNDE_HIPT_DIR`` or ``extractor_dir`` to the HIPT
 script and checkpoints.
 
+``prepare_histology_image`` exposes image conversion, optional physical-scale
+resampling and padding without running HIPT. ``load_histology_features``
+constructs a ``HistologyFeatureResult`` from an already prepared image and
+feature pickle, which is useful for resuming a checked run without repeating
+feature extraction.
+
 ``cluster_histology_features``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -551,7 +557,8 @@ Clusters HIPT, RGB and spatial feature blocks, fills tissue holes, merges
 symmetry-compatible regions and cleans small disconnected islands. It returns
 a ``HistologyClusteringResult`` with the tissue mask and raw, merged and
 cleaned label rasters. ``plot_histology_feature_clusters`` displays the full
-image-to-structure evidence chain.
+image-to-structure evidence chain. ``load_histology_clustering`` reloads the
+saved compact clustering output into the same result type.
 
 ``build_st_histology_structures``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -578,6 +585,8 @@ Set ``method="manual"`` with a ``ManualPrealignmentConfig`` when automatic
 overlap is anatomically unreliable. ``interactive_histology_prealignment``
 provides notebook sliders and returns the same typed result; selected values
 are persisted in ``uns["spAlignDE"]``.
+``plot_histology_prealignment_preview`` is the non-interactive static preview
+for a supplied ``ManualPrealignmentConfig``.
 
 ``align_st_to_histology``
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -747,7 +756,7 @@ coordinates, batch identity and non-negative expression columns. It builds the
 fixed shared grid, sample-specific local neighborhoods, technical
 quality-control profiles, stable-gene/density mismatch-risk maps and optional
 cell-type support maps. The returned ``PreparedInference`` is reusable across
-genes and Naive/Mismatch-aware fits. With ``grid_n=None``, the R-driven
+genes and naive/mismatch-aware fits. With ``grid_n=None``, the R-driven
 resolution is retained when the actual tissue-valid location count lies
 between ``N_typ`` and ``2 * N_typ``; otherwise it is adjusted toward the
 nearest bound. An explicit integer ``grid_n`` overrides this automatic rule.
@@ -781,13 +790,13 @@ Signature::
 
 Fits one local test per valid grid location and gene. ``contrast`` may be
 ``"vs_reference"`` or ``"sequential"``. ``mismatch_aware=False`` provides the
-Naive test on the same prepared geometry; enabling it inflates local variance
+naive test on the same prepared geometry; enabling it inflates local variance
 according to post-alignment risk without changing the estimated contrast.
 Complete cell-type annotations are required before
 ``cell_type_adjustment=True`` can be used. BH adjustment is applied within
 each gene and contrast across tested grid locations.
 
-For every gene, Mismatch-aware fitting starts from first-pass local statistics,
+For every gene, mismatch-aware fitting starts from first-pass local statistics,
 bins them by normalized local risk, removes each bin median, and divides the
 bin MAD by the Student-t null MAD. Nonnegative excess variance is constrained
 to be nondecreasing, fitted as a quadratic through the origin, and boundedly
@@ -836,6 +845,29 @@ Cauchy-tail branch for extremely small P values.
 adjusted-expression trajectories across ordered query samples. These are
 downstream summaries and do not replace the location-level q-value maps or
 genome-wide gene-level multiple-testing control.
+
+Packaged examples and public result contracts
+---------------------------------------------
+
+``make_cross_sample_example`` returns the small two-sample AnnData object used
+by the README smoke test. The fixed kidney handoff is exposed through
+``KIDNEY_SAMPLES``, ``load_kidney_aligned_coordinates`` and
+``kidney_alignment_metadata``. The compact five-section aging-brain example
+is exposed through ``AGING_BRAIN_REFERENCE``, ``AGING_BRAIN_QUERIES``,
+``AGING_BRAIN_SAMPLES``, ``load_aging_brain``, ``aging_brain_genes`` and
+``aging_brain_metadata``. These loaders return packaged data only; they do not
+download the manuscript-scale raw inputs.
+
+Workflow functions return typed objects so data, configuration provenance and
+diagnostics remain together. Relevant public contracts include
+``ATACSTAlignmentResult``, ``HistologyFeatureResult``,
+``HistologyPrealignmentResult``, ``HistologyPrealignmentUI`` and
+``TrajectoryResult``. Their fields are populated by the corresponding
+functions described above; users normally do not instantiate them directly.
+
+``spAlignDE.__version__`` reports the installed release. The tuple
+``REQUIRED_OUTPUT_COLUMNS`` lists the four standardized coordinate columns
+required from a completed point-based alignment.
 
 Visualization
 -------------
