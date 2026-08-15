@@ -35,6 +35,10 @@ and ``Myo5a``. The raw count matrices and tissue-position tables are available
 from `Zenodo record 17676992 <https://zenodo.org/records/17676992>`_. Users can
 replace the packaged coordinates with their own spAlignDE output through
 ``SPALIGNDE_KIDNEY_ALIGNED_H5AD`` or ``SPALIGNDE_ALIGNMENT_DIR``.
+The upstream clustering/alignment input and region annotations are documented
+separately under `STcompare record 20647680
+<https://zenodo.org/records/20647680>`_; aligned coordinates and source 10x
+tables are joined by terminal barcode rather than row order.
 
 .. toctree::
    :maxdepth: 1
@@ -42,7 +46,7 @@ replace the packaged coordinates with their own spAlignDE output through
    post_alignment_inference_nb
 
 The saved notebook is fully executed. For every representative gene it shows
-NL3 expression, IL3 expression, the zero-centered Mismatch-aware local
+NL3 expression, IL3 expression, the zero-centered mismatch-aware local
 statistic, direct ``q < 0.05`` contours and the gene-level ACAT P value. The
 complete input contract and statistical model are documented in
 :doc:`../tutorials/post_alignment_inference`.
@@ -83,7 +87,7 @@ cleanup guidance.
 
 The public kidney and aging-brain notebooks use workflow seed 1 and
 ``n_jobs=1`` for both inference preparation and fitting. Independent clean
-runs reproduced all sanitized saved outputs exactly: 6,187 shared-grid
+runs reproduced all sanitized saved outputs exactly: 6,205 shared-grid
 locations for kidney and 76,124 for aging brain. Parallel workers can be used
 for exploratory acceleration, but their diagnostic messages may be emitted in
 a different order even when the fitted scientific results are unchanged.

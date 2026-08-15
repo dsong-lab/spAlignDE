@@ -113,3 +113,25 @@ Run notebooks in the order shown on each workflow page because downstream
 notebooks consume the AnnData and coordinate outputs generated upstream.
 Small floating-point differences between GPU models are expected; changes in
 tissue orientation, matched structures or local geometry require review.
+
+What the installation includes
+------------------------------
+
+The Python wheel contains the public clustering, alignment, uncertainty and
+post-alignment inference modules, together with compact kidney, aging-brain
+and synthetic example data. The optional dependency groups install the
+libraries required by those modules; they do not download large biological
+datasets, Allen CCF volumes or pretrained HIPT weights.
+
+The executed notebooks, Sphinx source, Streamlit application, tutorial figures
+and validation tools are repository resources rather than wheel contents.
+Clone the repository and use the editable installation above when following
+the published workflows or running the UI. A wheel-only installation is
+sufficient when calling the Python API with user-provided inputs.
+
+The manuscript-scale Nissl and full 20-section aging-brain analyses are not
+bundled as end-to-end public notebooks. The website provides the complete H&E,
+automatic/UI Atlas, spatial-ATAC and kidney workflows, plus a five-section
+aging-brain alignment-to-inference example. This distinction keeps the public
+workflow scope clear without implying that large third-party data are shipped
+inside the package.

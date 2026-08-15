@@ -35,11 +35,12 @@ workflow identifies four refined shared clusters.
 With seed ``1000``, both fresh-process runs produced the same four raw,
 refined and final cluster labels.
 
-The alignment notebook estimates rotation, scale and translation automatically
-from the four fixed-seed shared spatial structures. Cluster-size weighting is
-enabled and reflection is disabled. It then shows:
+Because only four shared structures are available for this spot-level pair,
+the automatic similarity fit is unstable. The validated workflow therefore
+uses an explicit manual transform: unit scale, zero rotation and a fixed
+center-to-center translation. It then shows:
 
-1. automatic weighted shared-structure-centroid pre-alignment;
+1. the fixed manual pre-alignment;
 2. rasterized shared-cluster and density fields;
 3. overlays before and after S-LDDMM without cluster colors; and
 4. overlays before and after S-LDDMM with cluster colors.
@@ -62,15 +63,16 @@ The requested kidney S-LDDMM settings are used exactly:
    )
 
 Coordinates are multiplied by 50 internally, rasterized with grid spacing 30,
-and returned in the original coordinate scale. The executed alignment improves
-nearest-neighbor cluster agreement from 0.569 to 0.606. The independent kidney
-annotation benchmark gives a five-neighbor same-region fraction of 0.636.
+and returned in the original coordinate scale. The recorded manual values in
+the internally scaled coordinate system are ``scale=1.0``, ``theta=0.0``,
+``tx=-36.20040965`` and ``ty=-153.38356513``. The executed alignment improves
+nearest-neighbor shared-cluster agreement from ``0.6637`` to ``0.7366``.
 
-Independent fresh-kernel executions retained the same observation order,
-cluster labels and automatic pre-alignment parameters. Across the validated
-executions, final coordinates differed by at most ``3.91e-4`` original
-array-coordinate units, below the
-predeclared ``0.01``-unit tolerance and far below one coordinate unit.
+Independent fresh-process validation uses the same fixed cluster labels,
+observation order, manual transform and S-LDDMM configuration. Continuous
+float32 CUDA coordinates are compared with a predeclared ``0.01``-unit
+tolerance in the original coordinate system rather than requiring bitwise
+identity.
 
 Here ``a`` controls deformation smoothness and ``grid_step`` controls velocity
 field resolution. Increasing either makes the warp more global/coarse;

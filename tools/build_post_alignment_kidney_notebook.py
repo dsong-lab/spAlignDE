@@ -25,6 +25,13 @@ TARGETS = (
     ROOT / "source_notebooks/post_alignment_inference_nb.ipynb",
     WEBSITE_SOURCE / "source_notebooks/post_alignment_inference_nb.ipynb",
 )
+KIDNEY_RECORD_HANDOFF = (
+    "The alignment input and region annotations come from STcompare record "
+    "`20647680`; this inference stage reloads the NL3/IL3 10x matrices and "
+    "tissue-position tables from source record `17676992` and joins them to "
+    "the aligned coordinates by terminal barcode. The two records therefore "
+    "serve different handoff roles."
+)
 
 
 def _source_notebook() -> Path:
@@ -84,6 +91,16 @@ def build_notebook(source: Path | None = None):
                 "### Optional: use coordinates from your own alignment",
                 "## Optional: use coordinates from your own alignment",
             )
+            if (
+                cell.source.startswith("## Alignment-to-inference handoff")
+                and KIDNEY_RECORD_HANDOFF not in cell.source
+            ):
+                marker = "\n\nThe H5AD route extracts"
+                cell.source = cell.source.replace(
+                    marker,
+                    f"\n\n{KIDNEY_RECORD_HANDOFF}{marker}",
+                    1,
+                )
         if "outputs" in cell:
             cell.outputs = nbformat.from_dict(_scrub_saved_output(cell.outputs))
     return notebook

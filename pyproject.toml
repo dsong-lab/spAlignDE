@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "spAlignDE"
 version = "0.1.0"
-description = "Structure-guided spatial alignment and mismatch-aware local differential expression"
+description = "Structure-guided spatial alignment and mismatch-aware post-alignment local differential expression"
 readme = "README.md"
 license = {file = "LICENSE"}
 requires-python = ">=3.10"

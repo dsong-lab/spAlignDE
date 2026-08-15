@@ -114,11 +114,12 @@ tolerance; a random seed alone does not imply bitwise-identical deformation
 fields.
 
 The public August 2026 validation used float64 for Atlas, H&E and ATAC
-manuscript-grade alignments and observed repeat differences below `1e-6`
-(below `1e-12` for H&E and ATAC). Large cross-sample float32 runs were accepted
-within one coordinate unit, no more than one thirtieth of their 30-unit raster
-spacing. Large changes in discrete pairs, tissue orientation or local geometry
-are failures, not acceptable numeric drift.
+manuscript-grade alignments. The largest observed coordinate differences were
+`7.32e-7` for Atlas, `0.00114` feature-grid unit for H&E and `9.10e-13` for
+ATAC. Large cross-sample float32 runs were accepted within one coordinate unit,
+no more than one thirtieth of their 30-unit raster spacing. Large changes in
+discrete pairs, tissue orientation or local geometry are failures, not
+acceptable numeric drift.
 
 ## Updating the environment
 

@@ -1,4 +1,4 @@
-"""Mismatch-aware post-alignment spatial differential expression."""
+"""Tools for mismatch-aware post-alignment spatial differential expression."""
 
 from ._types import LocalDEResult, PreparedInference, TrajectoryResult
 from .plotting import plot_local_result

@@ -4,10 +4,11 @@
 [![Documentation](https://github.com/dsong-lab/spAlignDE/actions/workflows/docs.yml/badge.svg)](https://github.com/dsong-lab/spAlignDE/actions/workflows/docs.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-spAlignDE is a structure-guided framework for spatial alignment and
-mismatch-aware local inference. It accepts AnnData/H5AD and standardized CSV
-inputs and provides reproducible workflows across samples, modalities and
-post-alignment analyses.
+**spAlignDE** is an integrated framework for structure-guided spatial alignment
+and mismatch-aware post-alignment local differential-expression analysis. It
+supports cross-sample spatial transcriptomics alignment, cross-modality
+registration to histology, anatomical atlases and spatial ATAC-seq, and
+shared-grid local inference after alignment.
 
 **[Documentation](https://dsong-lab.github.io/spAlignDE/) · [Tutorials](https://dsong-lab.github.io/spAlignDE/tutorial.html) · [Executable notebooks](https://dsong-lab.github.io/spAlignDE/source_notebooks.html)**
 
@@ -20,12 +21,12 @@ post-alignment analyses.
 
 ## What spAlignDE does
 
-- cross-sample spatial-transcriptomics alignment;
+- cross-sample spatial transcriptomics alignment;
 - ST-to-Allen-CCF alignment and label transfer;
 - ST-to-histology-image alignment through HIPT image features;
 - spatial-ATAC-to-ST alignment;
 - interactive many-to-many region pairing and refinement; and
-- post-alignment local differential-expression inference.
+- mismatch-aware post-alignment local differential-expression inference.
 
 ## Quick start
 
@@ -72,13 +73,19 @@ and `obsm["spatial"]`.
 
 ## Installation
 
-### Package and workflow dependencies
+### Complete repository environment
 
 ```bash
 git clone https://github.com/dsong-lab/spAlignDE.git
 cd spAlignDE
 python -m pip install -e ".[clustering,atlas,histology,ui,tutorial]"
 ```
+
+This editable installation is the recommended route for the published
+workflows because the clone also contains the executed notebooks, Streamlit
+interface, documentation source and validation tools. A wheel installation
+contains the Python API and bundled small example data, but not those
+repository-level resources.
 
 ### Validated notebook environment
 
@@ -107,24 +114,24 @@ See [ENVIRONMENT.md](ENVIRONMENT.md) for the validated CUDA/CPU variants,
 external HIPT and Allen CCF assets, reproducibility expectations and update
 policy.
 
-## Workflow tutorials
+## Choose a workflow
 
 Run notebooks in workflow order. The canonical, executed copies are under
 [`source_notebooks/`](source_notebooks/); the documentation contains the same
 saved outputs. The public notebook collection contains only the full data
 analysis workflows listed below.
 
-| Workflow | Notebook order |
-|---|---|
-| MERFISH mouse-brain cross-sample | [`clustering_joint_nb.ipynb`](source_notebooks/clustering/clustering_joint_nb.ipynb) → [`cross_sample_alignment_nb.ipynb`](source_notebooks/cross_sample_alignment_nb.ipynb) |
-| Mouse-kidney cross-sample | [`cross_sample_alignment_mouse_kidney_clustering_nb.ipynb`](source_notebooks/cross_sample_alignment_mouse_kidney_clustering_nb.ipynb) → [`cross_sample_alignment_mouse_kidney_alignment_nb.ipynb`](source_notebooks/cross_sample_alignment_mouse_kidney_alignment_nb.ipynb) |
-| Breast-cancer cross-sample | [`cross_sample_alignment_breast_cancer_clustering_nb.ipynb`](source_notebooks/cross_sample_alignment_breast_cancer_clustering_nb.ipynb) → [`cross_sample_alignment_breast_cancer_alignment_nb.ipynb`](source_notebooks/cross_sample_alignment_breast_cancer_alignment_nb.ipynb) |
-| Transformation uncertainty | [`cross_sample_uncertainty_report.ipynb`](source_notebooks/cross_sample_uncertainty_report.ipynb), after the MERFISH workflow |
-| ST to Allen CCF | [`clustering_single_nb.ipynb`](source_notebooks/clustering/clustering_single_nb.ipynb) → [`cross_modal_atlas_alignment_nb.ipynb`](source_notebooks/cross_modal_atlas_alignment_nb.ipynb) |
-| UI-curated ST to Allen CCF | [`interactive_region_pairing_nb.ipynb`](source_notebooks/cross_modality/interactive_region_pairing_nb.ipynb) → [`ui_paired_atlas_alignment_nb.ipynb`](source_notebooks/cross_modality/ui_paired_atlas_alignment_nb.ipynb) |
-| ST to histology image | [`st_he_feature_extraction_nb.ipynb`](source_notebooks/cross_modality/st_he_feature_extraction_nb.ipynb) → [`st_he_feature_clustering_nb.ipynb`](source_notebooks/cross_modality/st_he_feature_clustering_nb.ipynb) → [`st_he_alignment_nb.ipynb`](source_notebooks/cross_modality/st_he_alignment_nb.ipynb) |
-| Spatial ATAC to ST | [`atac_st_single_clustering_nb.ipynb`](source_notebooks/cross_modality/atac_st_single_clustering_nb.ipynb) → [`atac_st_alignment_nb.ipynb`](source_notebooks/cross_modality/atac_st_alignment_nb.ipynb) |
-| Post-alignment inference | [`post_alignment_inference_nb.ipynb`](source_notebooks/post_alignment_inference_nb.ipynb) for injured kidney; [`post_alignment_inference_aging_brain_nb.ipynb`](source_notebooks/post_alignment_inference_aging_brain_nb.ipynb) for aging brain |
+| Goal | Run in this order | Main handoff or result |
+|---|---|---|
+| MERFISH mouse-brain cross-sample alignment | [`clustering_joint_nb.ipynb`](source_notebooks/clustering/clustering_joint_nb.ipynb) → [`cross_sample_alignment_nb.ipynb`](source_notebooks/cross_sample_alignment_nb.ipynb) | aligned AnnData with query coordinates in the reference frame |
+| Mouse-kidney cross-sample alignment | [`cross_sample_alignment_mouse_kidney_clustering_nb.ipynb`](source_notebooks/cross_sample_alignment_mouse_kidney_clustering_nb.ipynb) → [`cross_sample_alignment_mouse_kidney_alignment_nb.ipynb`](source_notebooks/cross_sample_alignment_mouse_kidney_alignment_nb.ipynb) | fixed-manual-initialization aligned AnnData |
+| Breast-cancer cross-sample alignment | [`cross_sample_alignment_breast_cancer_clustering_nb.ipynb`](source_notebooks/cross_sample_alignment_breast_cancer_clustering_nb.ipynb) → [`cross_sample_alignment_breast_cancer_alignment_nb.ipynb`](source_notebooks/cross_sample_alignment_breast_cancer_alignment_nb.ipynb) | aligned Rep2-to-Rep1 AnnData |
+| Transformation stability | [`cross_sample_uncertainty_report.ipynb`](source_notebooks/cross_sample_uncertainty_report.ipynb), after preparing the ten MERFISH subsamples | pointwise empirical transformation-variability table |
+| ST to Allen CCF | [`clustering_single_nb.ipynb`](source_notebooks/clustering/clustering_single_nb.ipynb) → [`cross_modal_atlas_alignment_nb.ipynb`](source_notebooks/cross_modal_atlas_alignment_nb.ipynb) | aligned ST coordinates, 18 final pairs and transferred Allen labels |
+| UI-curated ST to Allen CCF | [`interactive_region_pairing_nb.ipynb`](source_notebooks/cross_modality/interactive_region_pairing_nb.ipynb) → [`ui_paired_atlas_alignment_nb.ipynb`](source_notebooks/cross_modality/ui_paired_atlas_alignment_nb.ipynb) | curated pairing CSV and aligned ST AnnData |
+| ST to H&E | [`st_he_feature_extraction_nb.ipynb`](source_notebooks/cross_modality/st_he_feature_extraction_nb.ipynb) → [`st_he_feature_clustering_nb.ipynb`](source_notebooks/cross_modality/st_he_feature_clustering_nb.ipynb) → [`st_he_alignment_nb.ipynb`](source_notebooks/cross_modality/st_he_alignment_nb.ipynb) | 21 image structures, 2 accepted pairs and aligned Xenium AnnData |
+| Spatial ATAC to ST | [`atac_st_single_clustering_nb.ipynb`](source_notebooks/cross_modality/atac_st_single_clustering_nb.ipynb) → [`atac_st_alignment_nb.ipynb`](source_notebooks/cross_modality/atac_st_alignment_nb.ipynb) | aligned ATAC AnnData and 8 accepted pairs |
+| Post-alignment local inference | [`post_alignment_inference_nb.ipynb`](source_notebooks/post_alignment_inference_nb.ipynb) for injured kidney; [`post_alignment_inference_aging_brain_nb.ipynb`](source_notebooks/post_alignment_inference_aging_brain_nb.ipynb) for aging brain | local statistics, P values, q values, connected regions and gene-level ACAT summaries |
 
 ### Alignment-to-inference handoff
 
@@ -140,11 +147,12 @@ aggregation.
 
 ## Reproducibility
 
-The public workflows set every stochastic stage explicitly: seed `1234` for
-single-sample BANKSY, seed `1000` for joint cross-sample clustering, seed `0`
-for histology feature processing and clustering, and seed `1` for
-post-alignment reference subsampling. `spAlignDE.set_random_seed()` resets
-Python, NumPy and Torch before randomized PCA.
+Every published workflow declares its seed before the first randomized step:
+seed `1234` for single-sample BANKSY and the Atlas/ATAC workflows, seed `1000`
+for joint cross-sample workflows, seed `0` for histology processing and
+alignment, and seed `1` for stochastic post-alignment inference and RCTD
+reference subsampling. `spAlignDE.set_random_seed()` resets Python, NumPy and
+Torch before randomized PCA or sampling.
 
 Discrete outputs are expected to reproduce exactly. Continuous CUDA
 deformation coordinates are validated within a declared numerical tolerance
@@ -198,11 +206,18 @@ grids, `kernel_scale` (legacy `a`), `velocity_grid_spacing` (legacy
 `grid_step`), time steps, iterations, momentum learning rate and
 workflow-specific pairing controls.
 
-## Data and pretrained models
+## Package contents and external inputs
 
-Large datasets, generated H5AD files, HIPT checkpoints and the Allen annotation
-volume are deliberately excluded from Git. Each workflow page links its public
-data source and defines the required environment variables. In particular:
+The built wheel contains the complete public Python API for clustering,
+cross-sample and cross-modality alignment, transformation-stability analysis
+and mismatch-aware post-alignment inference. It also includes the compact
+kidney coordinate handoff, the five-section aging-brain example and synthetic
+test data. The GitHub clone additionally contains the executed notebooks,
+documentation, Streamlit UI, figures and validation tools.
+
+Large datasets and third-party model assets are kept outside both the wheel
+and Git. Each workflow links its public data source and validates the expected
+input contract. In particular:
 
 - HIPT source/checkpoints: set `SPALIGNDE_HIPT_DIR`;
 - Allen CCF: set `SPALIGNDE_ALLEN_CCF_DIR`;
@@ -217,17 +232,23 @@ python -m pytest -q
 python tools/audit_source_notebooks.py source_notebooks
 python tools/audit_tutorial_reproducibility.py
 python tools/audit_public_references.py
+python tools/audit_api_documentation.py
+python -m pip wheel . --no-deps --no-build-isolation --wheel-dir dist
+python tools/audit_distribution_contents.py dist/*.whl
 sphinx-build -W --keep-going -b html docs/source docs/build/html
 python tools/audit_built_html.py docs/build/html
 ```
 
 These checks validate package contracts, the CPU alignment implementation,
 notebook portability and saved execution state, public notebook paths and
-mirrors, strict Sphinx construction, and every generated local link, fragment
-and image reference.
+mirrors, wheel contents, strict Sphinx construction, and every generated local
+link, fragment and image reference.
 
 ## Citation
 
+Please cite the software and associated manuscript. The author, version,
+license and repository metadata are available in [`CITATION.cff`](CITATION.cff)
+and through GitHub's **Cite this repository** menu.
 
 ## License
 

@@ -24,6 +24,7 @@ S-LDDMM. See :doc:`../tutorials/st_histology_image_processing` for the exact
 handoff files and :doc:`../tutorials/parameter_tuning` for parameter failure
 modes.
 
-The three notebooks use seed ``0``. The fixed result contains 26 cleaned
-image structures and two accepted ST/H&E pairs; manuscript-grade S-LDDMM is
-run in float64 and checked with a numerical coordinate tolerance.
+The three notebooks use seed ``0``. Image clustering first targets 26 merged
+regions; reflection-aware and post-symmetry cleanup leaves 21 final image
+structures. Two ST/H&E structure pairs are accepted. Manuscript-grade S-LDDMM
+is run in float64 and checked with a numerical coordinate tolerance.

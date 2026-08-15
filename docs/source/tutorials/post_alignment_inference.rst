@@ -82,6 +82,12 @@ Download these files from `Zenodo record 17676992
 - ``NL3_tissue_positions.csv``; and
 - ``IL3_tissue_positions.csv``.
 
+The upstream alignment notebook uses the same NL3/IL3 sections plus region
+annotations from the `STcompare record 20647680
+<https://zenodo.org/records/20647680>`_. The inference notebook deliberately
+reloads the source 10x files above and joins them to aligned coordinates by
+terminal barcode, so the two records have distinct and explicit roles.
+
 Configure their directory without editing the notebook:
 
 .. code-block:: bash
@@ -146,36 +152,47 @@ Cartesian points per axis, not the number of tissue-valid locations. The
 selected value, its ``automatic`` or ``manual`` source, the target interval and
 the final valid count are recorded in ``prepared.metadata``.
 
-Gene-specific local-only calibration
+Gene-specific local-risk calibration
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-For each gene, Mismatch-aware fitting first obtains local statistics without
-mismatch inflation. Let :math:`r_i` denote normalized local risk. The
-calibration then:
+For each gene, mismatch-aware fitting begins with initial local statistics
+obtained without mismatch inflation. Let :math:`r_i` denote normalized local
+risk. The calibration then:
 
-1. groups first-pass statistics by :math:`r_i`;
+1. groups these initial local statistics by :math:`r_i`;
 2. subtracts the median within each risk bin;
 3. divides each raw MAD by the Student-t null MAD at the corresponding degrees
    of freedom;
-4. truncates excess variance below at zero and constrains it to be
-   nondecreasing with risk by isotonic regression;
-5. fits a quadratic :math:`B r^2` through the origin; and
+4. sets negative excess-dispersion estimates to zero and constrains the
+   remaining excess dispersion to be nondecreasing with risk by isotonic
+   regression;
+5. fits a quadratic relation through the origin; and
 6. applies a bounded anchor adjustment at the retained risk bin nearest the
    80th percentile.
 
-The resulting mismatch factor for gene :math:`g` and location :math:`i` is
+This comparison of the observed risk-stratified dispersion with the Student-t
+null scale estimates one nonnegative, gene-specific coefficient
+:math:`\lambda_g`, helping to calibrate the local null distribution. The
+resulting alignment-mismatch variance factor for gene :math:`g` and location
+:math:`i` is
 
 .. math::
 
    \phi_{ig}^{\mathrm{align}}
-   =1+\lambda_{\mathrm{local},g}r_i^2,
-   \qquad \lambda_{\mathrm{global},g}=0.
+   =1+\lambda_g r_i^2,
+   \qquad \lambda_g\geq 0.
 
-The comparison-level global risk score remains in metadata as provenance but
-does not create a spatially uniform variance penalty. Consequently, a location
-with zero local risk receives no mismatch inflation. This avoids the former
-failure mode in which a small number of genes were over-shrunk everywhere by a
-large gene-specific global factor.
+Because the fitted relation passes through the origin, zero-risk locations
+retain their base variance. The comparison-level global risk score is retained
+only for diagnostics and does not impose a spatially uniform variance penalty.
+
+Cell-type-composition adjustment is independent of this gene-specific
+calibration. When enabled, spAlignDE compares kernel-smoothed local cell-type
+proportion vectors using the normalized Jensen--Shannon distance
+:math:`D_i=\sqrt{\operatorname{JS}(p_{\mathrm{target},i},
+p_{\mathrm{reference},i})/\log 2}` and applies the additional variance factor
+:math:`\exp(D_i)`. Identical local compositions therefore receive factor 1,
+whereas the maximum normalized distance gives factor :math:`e`.
 
 Public workflow
 ~~~~~~~~~~~~~~~
@@ -229,11 +246,11 @@ standardized outputs of ``build_visium_coordinate_table`` into
 ``detected_spots`` and ``total_counts`` table directly. The kidney notebook
 does not reimplement that summary or any dataset-processing helper locally.
 
-``mismatch_aware=False`` runs the Naive comparison on the same prepared grid.
+``mismatch_aware=False`` runs the naive comparison on the same prepared grid.
 For multiple queries, the first available contrast calibrates each gene's
 local coefficient, which is then reused across its remaining contrasts.
-Requested and actual calibration modes plus local/global coefficients are
-stored in ``result.metadata``.
+The requested and actual calibration modes and the fitted gene-specific
+coefficients are stored in ``result.metadata``.
 
 Grid-level regions and gene-level ACAT
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -254,7 +271,7 @@ P value nor a genome-wide FDR-adjusted gene discovery value.
 Recorded result
 ~~~~~~~~~~~~~~~
 
-The executed notebook retains 6,187 tissue-valid shared-grid locations and
+The executed notebook retains 6,205 tissue-valid shared-grid locations and
 reports:
 
 .. list-table::
@@ -267,23 +284,23 @@ reports:
      - Minimum q-value
      - Median absolute statistic
    * - ``Cbr1``
-     - :math:`1.676437\times10^{-14}`
-     - 2,954
-     - :math:`7.773957\times10^{-32}`
-     - 2.435356
+     - :math:`1.648681\times10^{-14}`
+     - 2,919
+     - :math:`2.071116\times10^{-30}`
+     - 2.439278
    * - ``Cd44``
-     - :math:`4.101237\times10^{-6}`
-     - 1,452
-     - :math:`1.018439\times10^{-5}`
-     - 1.747979
+     - :math:`3.249936\times10^{-6}`
+     - 1,471
+     - :math:`7.756156\times10^{-6}`
+     - 1.729534
    * - ``Myo5a``
-     - :math:`7.355228\times10^{-14}`
-     - 2,268
-     - :math:`6.608013\times10^{-21}`
-     - 1.946808
+     - :math:`7.632783\times10^{-14}`
+     - 2,306
+     - :math:`2.887182\times10^{-20}`
+     - 1.934904
 
 For each gene, the saved notebook displays NL3 expression, IL3 expression, the
-zero-centered Mismatch-aware local statistic, the red ``q < 0.05`` contours,
+zero-centered mismatch-aware local statistic, the red ``q < 0.05`` contours,
 and the gene-level ACAT P value. Figures are preserved as genuine execution
 outputs inside the notebook; no separate precomputed image file is required.
 
@@ -433,8 +450,8 @@ library controls and ``n_jobs=1`` for preparation and fitting.
      - Saved-output SHA256
      - Repeat result
    * - Kidney NL3 versus IL3
-     - 6,187
-     - ``a6f06b87bb36...``
+     - 6,205
+     - ``6db9790e8bde...``
      - Exact saved-output match
    * - Aging brain versus 4.3 months
      - 76,124

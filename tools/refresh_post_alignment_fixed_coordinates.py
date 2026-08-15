@@ -187,19 +187,16 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--kidney-h5ad",
         type=Path,
-        required=True,
         help="Fixed-seed kidney alignment H5AD.",
     )
     parser.add_argument(
         "--aging-h5ad",
         type=Path,
-        required=True,
         help="Original aging-brain H5AD supplying the 4.3-month reference.",
     )
     parser.add_argument(
         "--aging-alignment-root",
         type=Path,
-        required=True,
         help="Directory containing <age>_to_4.3/query_coordinates.csv.gz.",
     )
     return parser.parse_args()
@@ -207,10 +204,20 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
-    digests = refresh_kidney(args.kidney_h5ad)
-    digests.update(
-        refresh_aging_brain(args.aging_h5ad, args.aging_alignment_root)
-    )
+    if args.kidney_h5ad is None and args.aging_h5ad is None:
+        raise SystemExit("Provide --kidney-h5ad and/or the two aging-brain inputs.")
+    if (args.aging_h5ad is None) != (args.aging_alignment_root is None):
+        raise SystemExit(
+            "--aging-h5ad and --aging-alignment-root must be supplied together."
+        )
+
+    digests: dict[str, str] = {}
+    if args.kidney_h5ad is not None:
+        digests.update(refresh_kidney(args.kidney_h5ad))
+    if args.aging_h5ad is not None:
+        digests.update(
+            refresh_aging_brain(args.aging_h5ad, args.aging_alignment_root)
+        )
     for relative_path, digest in sorted(digests.items()):
         print(f"{digest}  {relative_path}")
 

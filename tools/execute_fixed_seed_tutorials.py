@@ -68,6 +68,14 @@ def _source_hash(notebook) -> str:
     return hashlib.sha256(payload).hexdigest()
 
 
+def _code_hash(notebook) -> str:
+    """Hash executable code separately from explanatory Markdown."""
+    payload = "\n\n".join(
+        cell.source for cell in notebook.cells if cell.cell_type == "code"
+    ).encode("utf-8")
+    return hashlib.sha256(payload).hexdigest()
+
+
 def _output_hash(notebook) -> str:
     payload = [
         cell.get("outputs", [])
@@ -129,6 +137,7 @@ def execute(relative: str, seed: int, timeout: int) -> None:
         "fully_executed": True,
         "workflow_seed": seed,
         "source_sha256": source_hash,
+        "executed_code_sha256": _code_hash(executed),
         "saved_output_sha256": _output_hash(executed),
         "repository_commit": _git_revision(),
         "executed_at_utc": datetime.now(timezone.utc).isoformat(),
@@ -187,6 +196,7 @@ def refresh_source_hash(relative: str, seed: int) -> None:
             "fully_executed": False,
             "workflow_seed": seed,
             "source_sha256": source_hash,
+            "executed_code_sha256": _code_hash(notebook),
             "saved_output_sha256": _output_hash(notebook),
             "repository_commit": _git_revision(),
             "executed_at_utc": datetime.now(timezone.utc).isoformat(),

@@ -127,9 +127,10 @@ reports that ``grid_sampler_2d_backward_cuda`` has no deterministic CUDA
 implementation, so setting a seed does not justify a claim of bitwise-identical
 deformation fields. With final-iterate checkpoint handling, repeated float64
 ATAC runs differed by at most ``9.10e-13`` coordinate units; repeated H&E runs
-differed by at most ``0.0203`` units and are assessed against a conservative
-``0.05``-unit tolerance. Large cross-sample runs in float32 reproduced within
-one coordinate unit, at most one thirtieth of the 30-unit raster grid.
+differed by at most ``0.00114`` feature-grid unit and are assessed against a
+conservative ``0.05``-unit tolerance. Large cross-sample runs in float32
+reproduced within one coordinate unit, at most one thirtieth of the 30-unit
+raster grid.
 
 Validated fixed-seed results
 ----------------------------
@@ -157,8 +158,9 @@ Validated fixed-seed results
      - 28 raw and 27 refined/final shared clusters
      - Exact labels; scale-aware coordinate tolerance.
    * - Kidney IL3 to NL3
-     - 4 raw/refined/final shared clusters; automatic weighted-centroid transform; label agreement 0.569→0.606
-     - Exact labels, observation order and pre-alignment; final coordinates differed by at most ``3.91e-4`` original units (tolerance ``0.01``).
+     - 4 raw/refined/final shared clusters; fixed manual transform; label agreement 0.6637→0.7366
+     - Exact labels, observation order and manual pre-alignment; float32 CUDA
+       coordinates use an original-unit tolerance of ``0.01``.
    * - Breast cancer Rep2 to Rep1
      - 10 shared clusters
      - Exact labels; scale-aware coordinate tolerance.

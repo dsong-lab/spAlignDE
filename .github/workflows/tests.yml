@@ -36,5 +36,13 @@ jobs:
         run: python tools/audit_source_notebooks.py source_notebooks
       - name: Audit public paths, notebook mirrors and pins
         run: python tools/audit_public_references.py
+      - name: Audit public API documentation coverage
+        run: python tools/audit_api_documentation.py
+      - name: Audit fixed-seed notebook contracts
+        run: python tools/audit_tutorial_reproducibility.py
+      - name: Build and audit the public wheel
+        run: |
+          python -m pip wheel . --no-deps --no-build-isolation --wheel-dir dist
+          python tools/audit_distribution_contents.py dist/*.whl
       - name: Compile the UI entry point
         run: python -m py_compile ui/app.py
