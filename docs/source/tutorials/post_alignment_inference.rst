@@ -15,23 +15,30 @@ directly, join them to the original count data by stable observation identity,
 and do not estimate another spatial transformation. Thus the fixed-seed
 alignment output is the explicit handoff artifact between the two stages.
 
-For kidney, the recorded inference example starts from the package's
-precomputed manuscript ``aligned_317`` coordinate tables:
+For kidney, the recorded inference example starts from the public fixed-seed
+manual-alignment workflow:
 
 .. code-block:: text
 
-   packaged aligned_coords_NL3.csv.gz and aligned_coords_IL3.csv.gz
+   cross_sample_alignment_mouse_kidney_alignment_nb.ipynb
+       -> fixed-seed manual-alignment coordinates
+       -> packaged aligned_coords_NL3.csv.gz and aligned_coords_IL3.csv.gz
        -> barcode-validated coordinate tables
        -> post_alignment_inference_nb.ipynb
 
-The inference stage uses seed ``1`` and requests ``n_jobs=1``. The notebook
-loads the packaged coordinates through the public dataset API and joins them
-one-to-one to public Visium counts by terminal 10x barcode.
+Upstream clustering and alignment use seed ``1000``, Leiden resolution ``0.2``
+and a selected manual similarity pre-alignment with scale ``1``, rotation ``0``
+degrees and translation ``(-36.20040965, -153.38356513)`` in the scaled
+alignment coordinates. The workflow then runs 5,000 S-LDDMM iterations with
+``restore_best_checkpoint=False``. The inference stage uses seed ``1`` and
+requests ``n_jobs=1``. The notebook loads the packaged, hash-tracked coordinate
+copy through the public dataset API and joins it one-to-one to public Visium
+counts by terminal 10x barcode.
 
 Standardized coordinate CSV inputs remain supported through
 ``SPALIGNDE_ALIGNMENT_DIR``. They reproduce the website numbers only when
 their evaluated spot identities and coordinates are identical to the packaged
-manuscript handoff.
+manual-alignment handoff.
 
 For aging brain, the executable website example uses the current PyPI
 five-section Figure 5A package: the 6.6-, 15.8-, 30.9- and 34.5-month queries
@@ -48,7 +55,7 @@ reference and an injured section (``IL3``) as query. It reports local results
 for ``Cbr1``, ``Cd44`` and ``Myo5a`` together with one gene-level ACAT omnibus
 P value per gene.
 
-The fully executed notebook uses the package's manuscript ``aligned_317``
+The fully executed notebook uses the package's fixed-seed manual-alignment
 coordinate tables.
 Raw expression and tissue-position tables remain external public inputs, and
 users can substitute coordinates from their own spAlignDE run.
@@ -252,7 +259,7 @@ P value nor a genome-wide FDR-adjusted gene discovery value.
 Recorded result
 ~~~~~~~~~~~~~~~
 
-The executed notebook retains 6,169 tissue-valid shared-grid locations and
+The executed notebook retains 6,187 tissue-valid shared-grid locations and
 reports:
 
 .. list-table::
@@ -265,20 +272,20 @@ reports:
      - Minimum q-value
      - Median absolute statistic
    * - ``Cbr1``
-     - :math:`1.482148\times10^{-14}`
-     - 2,989
-     - :math:`5.184571\times10^{-31}`
-     - 2.456205
+     - :math:`1.676437\times10^{-14}`
+     - 2,954
+     - :math:`7.780664\times10^{-32}`
+     - 2.435333
    * - ``Cd44``
-     - :math:`6.146148\times10^{-6}`
-     - 1,449
-     - :math:`1.764949\times10^{-5}`
-     - 1.762186
+     - :math:`4.099926\times10^{-6}`
+     - 1,452
+     - :math:`1.018210\times10^{-5}`
+     - 1.747929
    * - ``Myo5a``
-     - :math:`8.038015\times10^{-14}`
-     - 2,438
-     - :math:`1.397810\times10^{-19}`
-     - 2.010681
+     - :math:`7.355228\times10^{-14}`
+     - 2,268
+     - :math:`6.605387\times10^{-21}`
+     - 1.946836
 
 For each gene, the saved notebook displays NL3 expression, IL3 expression, the
 zero-centered mismatch-aware local statistic, the red ``q < 0.05`` contours,
@@ -466,7 +473,7 @@ the aging row refers only to the compact five-section example.
      - Saved-output SHA256
      - Repeat result
    * - Kidney NL3 versus IL3
-     - 6,169
+     - 6,187
      - Recorded in notebook metadata
      - Current public-API execution
    * - Aging-brain five-section example
