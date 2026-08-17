@@ -12,7 +12,7 @@ KIDNEY_SAMPLES = ("NL3", "IL3")
 
 
 def load_kidney_aligned_coordinates(sample_id: str) -> pd.DataFrame:
-    """Load the packaged manuscript alignment coordinates for one sample."""
+    """Load the packaged fixed-seed manual-alignment coordinates for one sample."""
 
     sample_id = str(sample_id).upper()
     if sample_id not in KIDNEY_SAMPLES:

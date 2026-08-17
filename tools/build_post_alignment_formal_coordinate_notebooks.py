@@ -69,19 +69,22 @@ def _record_execution(notebook, *, aging_brain: bool) -> None:
         "coordinate_provenance": (
             "current PyPI five-section aging-brain precomputed coordinates"
             if aging_brain
-            else "packaged manuscript kidney aligned_317 coordinates"
+            else (
+                "fixed-seed kidney manual-prealignment coordinates, "
+                "resolution 0.2, 5000 iterations"
+            )
         ),
         "aging_brain_included": aging_brain,
     }
 
 
-KIDNEY_INTRO = r"""# Mouse kidney local inference from precomputed spAlignDE coordinates
+KIDNEY_INTRO = r"""# Mouse kidney local inference from fixed-seed manual-alignment coordinates
 
-This real-data notebook uses the NL3 normal and IL3 injured mouse-kidney Visium sections and runs post-alignment local inference with the current public `spalignde` API. The raw count matrices and tissue-position files come from Zenodo record `17676992`; the package supplies the precomputed manuscript `aligned_317` coordinates. IL3 is the 2,965-spot query and NL3 is the 3,215-spot reference.
+This real-data notebook continues from the validated fixed-seed NL3/IL3 kidney workflow and runs post-alignment local inference with the current public `spalignde` API. Upstream clustering and alignment use seed `1000`, Leiden resolution `0.2`, and a selected manual similarity pre-alignment (`scale=1`, `theta=0`, `translation_x=-36.20040965`, `translation_y=-153.38356513`) before 5,000 S-LDDMM iterations with `restore_best_checkpoint=False`. The raw count matrices and tissue-position files come from Zenodo record `17676992`. IL3 is the 2,965-spot query and NL3 is the unchanged 3,215-spot reference.
 
 The analysis proceeds through one continuous handoff:
 
-1. load public expression data and the packaged manuscript coordinates;
+1. load public expression data and the packaged fixed-seed manual-alignment coordinates;
 2. match spots by terminal Visium barcode;
 3. construct the shared grid and local neighborhoods;
 4. estimate stable-gene and density-based mismatch risk;
@@ -90,12 +93,12 @@ The analysis proceeds through one continuous handoff:
 
 NL3 defines the reference coordinate system and IL3 is the query. Users may replace the packaged coordinates with their own standardized spAlignDE output, but a custom alignment is not expected to reproduce the recorded numerical results unless its evaluated spot set and coordinates are identical.
 
-**Fixed-seed reproducibility.** This inference workflow uses seed `1` and requests `n_jobs=1`. During `prepare_inference`, the two seeded per-sample auto-geometry subsampling and parameter-estimation passes always use one worker so thread scheduling cannot change which sample consumes each RNG draw. All later preparation and fitting stages use the caller-requested `n_jobs` value, so this safeguard does not make the complete analysis single-threaded. The preparation metadata records `n_jobs`, `auto_geometry_n_jobs=1`, and `random_state`. For the closest numerical reproduction, set `PYTHONHASHSEED=1` before kernel startup and keep the documented input order, package version, and configuration fixed. Small floating-point differences in the last displayed digits can remain across numerical-library builds."""
+**Fixed-seed reproducibility.** Upstream clustering and alignment use seed `1000`; this inference workflow uses seed `1` and requests `n_jobs=1`. During `prepare_inference`, the two seeded per-sample auto-geometry subsampling and parameter-estimation passes always use one worker so thread scheduling cannot change which sample consumes each RNG draw. All later preparation and fitting stages use the caller-requested `n_jobs` value, so this safeguard does not make the complete analysis single-threaded. The preparation metadata records `n_jobs`, `auto_geometry_n_jobs=1`, and `random_state`. For the closest numerical reproduction, set `PYTHONHASHSEED=1` before kernel startup and keep the documented input order, package version, and configuration fixed. Small floating-point differences in the last displayed digits can remain across numerical-library builds."""
 
 
 KIDNEY_HANDOFF = r"""## Alignment-to-inference handoff
 
-No path configuration is required for the recorded example because the package includes the manuscript `aligned_317` coordinates as `aligned_coords_NL3.csv.gz` and `aligned_coords_IL3.csv.gz`. The inference stage reloads the public NL3/IL3 10x matrices and tissue-position tables from Zenodo record `17676992` and joins them to the packaged coordinates one-to-one by terminal Visium barcode, never by row order.
+No path configuration is required for the recorded example because the package includes a compact, hash-tracked copy of the fixed-seed manual-alignment coordinates as `aligned_coords_NL3.csv.gz` and `aligned_coords_IL3.csv.gz`. They come from `kidney_IL3_to_NL3_aligned.h5ad`, the output of the public kidney manual-alignment notebook. The inference stage reloads the public NL3/IL3 10x matrices and tissue-position tables from Zenodo record `17676992` and joins them to the packaged coordinates one-to-one by terminal Visium barcode, never by row order.
 
 For a custom alignment, point `SPALIGNDE_ALIGNMENT_DIR` to a directory containing `aligned_coords_NL3.csv` and `aligned_coords_IL3.csv`. Each file must contain one row per retained spot and the standardized columns `cell_id`, `x`, and `y`; `barcode` may be used instead of `cell_id`. `SPALIGNDE_KIDNEY_DATA_DIR` and `SPALIGNDE_TUTORIAL_WORK_DIR` can redirect the raw-data and working directories.
 
@@ -105,6 +108,11 @@ os.environ["SPALIGNDE_ALIGNMENT_DIR"] = "/path/to/custom_alignment_output"
 ```
 
 Raw 10x matrices are always reloaded because an alignment output may contain only the gene-filtered matrix used for clustering and registration."""
+
+
+KIDNEY_INTERPRETATION = r"""## 7. Interpretation and extensions
+
+This example demonstrates the complete alignment-output $\rightarrow$ shared-grid inference $\rightarrow$ local DE maps $\rightarrow$ gene-level ACAT P value handoff. It is a single matched-section NL3-versus-IL3 comparison and should not be interpreted as replicate-level population inference. The packaged coordinates reproduce the public fixed-seed manual-alignment handoff by default, and `SPALIGNDE_ALIGNMENT_DIR` remains available for standardized coordinate CSV files. Users with reliable cell-type annotations can add a `celltype` column and enable `cell_type_adjustment=True`. Multiple query sections can be analyzed against one reference and summarized with gene-level ACAT or trajectory clustering."""
 
 
 KIDNEY_IMPORTS = r"""%matplotlib inline
@@ -170,7 +178,7 @@ alignment_metadata = kidney_alignment_metadata()
 alignment_source = (
     "user-provided standardized coordinate CSV files"
     if USER_ALIGNMENT_DIR is not None
-    else "packaged manuscript aligned_317 coordinates"
+    else "packaged fixed-seed manual-alignment coordinates"
 )
 print("spalignde version:", spalignde.__version__)
 print("Raw-data source: Zenodo record 17676992 (local cache configured)")
@@ -462,6 +470,7 @@ def build_kidney(*, record_execution: bool) -> None:
     cells_by_id["87f4a039"].source = KIDNEY_IMPORTS
     cells_by_id["b28c1a97"].source = KIDNEY_RAW_INPUTS
     cells_by_id["16100433"].source = KIDNEY_COORDINATES
+    cells_by_id["a9ba1f99"].source = KIDNEY_INTERPRETATION
     for cell in notebook.cells:
         if cell.cell_type == "code":
             if (

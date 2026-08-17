@@ -36,8 +36,14 @@ class KidneyDatasetTests(unittest.TestCase):
 
         self.assertEqual(
             metadata["coordinate_version"],
-            "manuscript aligned_317",
+            "fixed-seed manual-prealignment cross-sample tutorial",
         )
+        self.assertEqual(metadata["clustering_seed"], 1000)
+        self.assertEqual(metadata["alignment_seed"], 1000)
+        self.assertEqual(metadata["inference_seed"], 1)
+        self.assertEqual(metadata["clustering"]["leiden_resolution"], 0.2)
+        self.assertEqual(metadata["slddmm"]["iterations"], 5000)
+        self.assertFalse(metadata["slddmm"]["restore_best_checkpoint"])
         for sample_id in KIDNEY_SAMPLES:
             frame = load_kidney_aligned_coordinates(sample_id)
             self.assertEqual(
