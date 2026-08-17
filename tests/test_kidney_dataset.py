@@ -38,7 +38,7 @@ class KidneyDatasetTests(unittest.TestCase):
 
         self.assertEqual(
             metadata["coordinate_version"],
-            "formal fixed-seed reproducibility-audit run_1",
+            "fixed-seed manual-prealignment cross-sample tutorial",
         )
         self.assertEqual(metadata["alignment_seed"], 1000)
         self.assertEqual(metadata["inference_seed"], 1)
@@ -55,7 +55,21 @@ class KidneyDatasetTests(unittest.TestCase):
         )
         self.assertEqual(
             metadata["validation"]["nearest_label_agreement_aligned"],
-            0.6057335581787521,
+            0.7416526138279933,
+        )
+        self.assertEqual(metadata["manual_prealignment"]["scale"], 1.0)
+        self.assertEqual(metadata["manual_prealignment"]["theta_degrees"], 0.0)
+        self.assertEqual(
+            metadata["manual_prealignment"][
+                "translation_x_internal_coordinates"
+            ],
+            -36.20040965,
+        )
+        self.assertEqual(
+            metadata["manual_prealignment"][
+                "translation_y_internal_coordinates"
+            ],
+            -153.38356513,
         )
         self.assertFalse(metadata["slddmm"]["restore_best_checkpoint"])
         for sample_id in KIDNEY_SAMPLES:

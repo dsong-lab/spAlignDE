@@ -13,6 +13,7 @@ import hashlib
 import io
 from pathlib import Path
 
+import anndata as ad
 import numpy as np
 import pandas as pd
 
@@ -85,42 +86,38 @@ def _validate_coordinates(frame: pd.DataFrame, *, label: str, expected: int) -> 
         raise RuntimeError(f"{label}: non-finite aligned coordinates")
 
 
-def _terminal_id(values: pd.Series) -> pd.Series:
-    return values.astype(str).str.split("|", n=1, regex=False).str[0]
+def refresh_kidney(aligned_h5ad: Path) -> dict[str, str]:
+    """Package the selected fixed-seed manual kidney alignment."""
 
+    aligned = ad.read_h5ad(aligned_h5ad, backed="r")
+    try:
+        required = {"sample_id", "x_aligned", "y_aligned"}
+        missing = required.difference(aligned.obs.columns)
+        if missing:
+            raise RuntimeError(f"Kidney H5AD is missing columns: {sorted(missing)}")
+        observations = aligned.obs[
+            ["sample_id", "x_aligned", "y_aligned"]
+        ].copy()
+    finally:
+        aligned.file.close()
 
-def refresh_kidney(
-    query_coordinates: Path,
-    cluster_labels: Path,
-) -> dict[str, str]:
-    """Package the formal run-1 IL3 query and unchanged NL3 reference."""
-
-    query = pd.read_csv(
-        query_coordinates,
-        usecols=["cell_id", "sample_id", "x_aligned", "y_aligned"],
-    )
-    query = query.loc[query["sample_id"].astype(str).eq("IL3")].copy()
-    reference = pd.read_csv(
-        cluster_labels,
-        usecols=["cell_id", "sample_id", "x", "y"],
-    )
-    reference = reference.loc[
-        reference["sample_id"].astype(str).eq("NL3")
-    ].copy()
-    sources = {
-        "NL3": reference.rename(columns={"x": "x_aligned", "y": "y_aligned"}),
-        "IL3": query,
-    }
+    observations["source_cell_id"] = observations.index.astype(str)
+    observations["barcode"] = observations["source_cell_id"].str.split(
+        "|", n=1, regex=False
+    ).str[0]
 
     digests: dict[str, str] = {}
     for sample_id, expected in KIDNEY_COUNTS.items():
-        selected = sources[sample_id]
+        selected = observations.loc[
+            observations["sample_id"].astype(str).eq(sample_id)
+        ]
         frame = pd.DataFrame(
             {
-                "cell_id": sample_id + "__" + _terminal_id(selected["cell_id"]),
+                "cell_id": sample_id + "__" + selected["barcode"].astype(str),
                 "sample_id": sample_id,
-                # The reproducibility audit stores coordinates after division
-                # by 50; inference uses the original Visium plotting scale.
+                # The cross-sample tutorial returns coordinates to the compact
+                # array scale before saving; inference uses the corresponding
+                # 50-fold Visium plotting scale.
                 "x": selected["x_aligned"].to_numpy(dtype=float) * 50.0,
                 "y": selected["y_aligned"].to_numpy(dtype=float) * 50.0,
             }
@@ -220,14 +217,9 @@ def refresh_aging_brain(
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "--kidney-query-coordinates",
+        "--kidney-h5ad",
         type=Path,
-        help="Formal run-1 IL3-to-NL3 query_coordinates.csv.gz.",
-    )
-    parser.add_argument(
-        "--kidney-cluster-labels",
-        type=Path,
-        help="Formal kidney run-1 cluster_labels.csv.gz supplying NL3.",
+        help="Fixed-seed manual kidney alignment H5AD.",
     )
     parser.add_argument(
         "--aging-reference-cluster-labels",
@@ -244,21 +236,12 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
-    kidney_values = (
-        args.kidney_query_coordinates,
-        args.kidney_cluster_labels,
-    )
     aging_values = (
         args.aging_reference_cluster_labels,
         args.aging_alignment_root,
     )
-    if not any(kidney_values) and not any(aging_values):
-        raise SystemExit("Provide the two kidney and/or two aging-brain inputs.")
-    if any(kidney_values) and not all(kidney_values):
-        raise SystemExit(
-            "--kidney-query-coordinates and --kidney-cluster-labels "
-            "must be supplied together."
-        )
+    if args.kidney_h5ad is None and not any(aging_values):
+        raise SystemExit("Provide --kidney-h5ad and/or the two aging-brain inputs.")
     if any(aging_values) and not all(aging_values):
         raise SystemExit(
             "--aging-reference-cluster-labels and --aging-alignment-root "
@@ -266,13 +249,8 @@ def main() -> None:
         )
 
     digests: dict[str, str] = {}
-    if args.kidney_query_coordinates is not None:
-        digests.update(
-            refresh_kidney(
-                args.kidney_query_coordinates,
-                args.kidney_cluster_labels,
-            )
-        )
+    if args.kidney_h5ad is not None:
+        digests.update(refresh_kidney(args.kidney_h5ad))
     if args.aging_reference_cluster_labels is not None:
         digests.update(
             refresh_aging_brain(

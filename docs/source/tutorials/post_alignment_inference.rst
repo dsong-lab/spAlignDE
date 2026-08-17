@@ -15,32 +15,33 @@ directly, join them to the original count data by stable observation identity,
 and do not estimate another spatial transformation. Thus the fixed-seed
 alignment output is the explicit handoff artifact between the two stages.
 
-For kidney, the recorded inference example starts from the formal fixed-seed
-reproducibility audit:
+For kidney, the recorded inference example starts from the public fixed-seed
+manual-alignment tutorial:
 
 .. code-block:: text
 
-   reproducibility_audit_0810/.../kidney/run_1/
-       -> alignments/IL3_to_NL3/query_coordinates.csv.gz
-       +  cluster_labels.csv.gz (unchanged NL3 reference)
+   cross_sample_alignment_mouse_kidney_alignment_nb.ipynb
+       -> tutorials/cross_sample/kidney/output/
+          kidney_IL3_to_NL3_aligned.h5ad
        -> packaged, hash-tracked coordinate tables
        -> post_alignment_inference_nb.ipynb
 
-The formal run uses clustering/alignment seed ``1000``, Leiden resolution
-``0.2``, 5,000 S-LDDMM iterations and
-``restore_best_checkpoint=False``. The inference stage uses seed ``1`` and
-``n_jobs=1``. The compact package copies IL3 ``x_aligned`` and ``y_aligned``
-from ``run_1`` and the unchanged NL3 ``x`` and ``y`` from the same run's
-cluster table, then restores the recorded 50-fold inference coordinate scale.
-The notebook joins these coordinates one-to-one to public Visium counts by
-terminal 10x barcode. ``run_2`` is the reproducibility repeat and is not used
-for the reported inference result.
+The upstream workflow uses clustering/alignment seed ``1000``, Leiden
+resolution ``0.2`` and a selected manual similarity pre-alignment with scale
+``1``, rotation ``0`` degrees and translation
+``(-36.20040965, -153.38356513)`` in the scaled coordinates. It then runs
+5,000 S-LDDMM iterations with ``restore_best_checkpoint=False``. The inference
+stage uses seed ``1`` and ``n_jobs=1``. The compact package copies IL3
+``x_aligned`` and ``y_aligned`` and the unchanged NL3 coordinates from that
+H5AD, then restores the recorded 50-fold inference coordinate scale. The
+notebook joins these coordinates one-to-one to public Visium counts by terminal
+10x barcode.
 
 Custom alignment H5AD or standardized coordinate CSV inputs remain supported
 through ``SPALIGNDE_KIDNEY_ALIGNED_H5AD`` and
 ``SPALIGNDE_ALIGNMENT_DIR``. They reproduce the website numbers only when
-their evaluated spot identities and coordinates are identical to formal
-``run_1``.
+their evaluated spot identities and coordinates are identical to the packaged
+manual-alignment handoff.
 
 For aging brain, the formal archive contains 19 fixed-seed query-age
 alignments to the unchanged 4.3-month reference, using resolution ``0.8`` and
@@ -59,8 +60,9 @@ reference and an injured section (``IL3``) as query. It reports local results
 for ``Cbr1``, ``Cd44`` and ``Myo5a`` together with one gene-level ACAT omnibus
 P value per gene.
 
-The fully executed notebook uses coordinates from formal fixed-seed kidney
-``run_1``. The package records the source coordinate and cluster-label hashes.
+The fully executed notebook uses coordinates from the fixed-seed Kidney
+manual-alignment H5AD. The package records the source H5AD and packaged
+coordinate hashes.
 Raw expression and tissue-position tables remain external public inputs, and
 users can substitute coordinates from their own spAlignDE run.
 
@@ -95,7 +97,8 @@ Configure their directory without editing the notebook:
    export SPALIGNDE_KIDNEY_DATA_DIR=/path/to/raw_kidney_files
    export SPALIGNDE_TUTORIAL_WORK_DIR=/path/to/tutorial_work
 
-To evaluate a custom alignment H5AD instead of formal ``run_1``, set:
+To evaluate a custom alignment H5AD instead of the packaged manual-alignment
+result, set:
 
 .. code-block:: bash
 
@@ -269,7 +272,7 @@ P value nor a genome-wide FDR-adjusted gene discovery value.
 Recorded result
 ~~~~~~~~~~~~~~~
 
-The executed notebook retains 6,127 tissue-valid shared-grid locations and
+The executed notebook retains 6,187 tissue-valid shared-grid locations and
 reports:
 
 .. list-table::
@@ -282,20 +285,20 @@ reports:
      - Minimum q-value
      - Median absolute statistic
    * - ``Cbr1``
-     - :math:`5.606626\times10^{-15}`
-     - 2,142
-     - :math:`1.766371\times10^{-38}`
-     - 2.497326
+     - :math:`1.676437\times10^{-14}`
+     - 2,954
+     - :math:`7.780664\times10^{-32}`
+     - 2.435333
    * - ``Cd44``
-     - :math:`8.333126\times10^{-8}`
-     - 1,318
-     - :math:`2.030000\times10^{-7}`
-     - 1.877514
+     - :math:`4.099926\times10^{-6}`
+     - 1,452
+     - :math:`1.018210\times10^{-5}`
+     - 1.747929
    * - ``Myo5a``
-     - :math:`5.151435\times10^{-14}`
-     - 2,222
-     - :math:`4.889250\times10^{-22}`
-     - 2.428649
+     - :math:`7.355228\times10^{-14}`
+     - 2,268
+     - :math:`6.605387\times10^{-21}`
+     - 1.946836
 
 For each gene, the saved notebook displays NL3 expression, IL3 expression, the
 zero-centered mismatch-aware local statistic, the red ``q < 0.05`` contours,
@@ -471,7 +474,7 @@ the aging row refers only to the compact five-section example.
      - Saved-output SHA256
      - Repeat result
    * - Kidney NL3 versus IL3
-     - 6,127
+     - 6,187
      - Recorded in notebook metadata
      - Current public-API execution
    * - Aging-brain five-section example

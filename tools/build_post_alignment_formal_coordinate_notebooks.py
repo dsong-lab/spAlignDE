@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Bind the public inference notebooks to the formal fixed-seed coordinates."""
+"""Bind the public inference notebooks to the validated fixed-seed coordinates."""
 
 from __future__ import annotations
 
@@ -63,27 +63,30 @@ def _record_execution(notebook, *, aging_brain: bool) -> None:
         "saved_output_sha256": _output_hash(notebook),
         "repository_commit": _base_revision(),
         "executed_at_utc": datetime.now(timezone.utc).isoformat(),
-        "execution_root": "repository root with formal fixed-seed coordinate handoff",
+        "execution_root": "repository root with validated fixed-seed coordinate handoff",
         "package_source": "current integrated checkout (public version 0.1.0)",
         "input_manifest": "docs/source/_static/tutorial_execution_manifest.json",
         "coordinate_provenance": (
             "formal 19-query aging-brain archive, resolution 0.8, 800 iterations"
             if aging_brain
-            else "formal kidney run_1, resolution 0.2, 5000 iterations"
+            else (
+                "fixed-seed kidney manual prealignment, resolution 0.2, "
+                "5000 iterations"
+            )
         ),
         "aging_brain_included": aging_brain,
     }
 
 
-KIDNEY_INTRO = r"""# Mouse kidney local inference from formal fixed-seed spAlignDE coordinates
+KIDNEY_INTRO = r"""# Mouse kidney local inference from fixed-seed manual-alignment coordinates
 
-This real-data notebook continues from the reported fixed-seed NL3/IL3 kidney alignment and runs post-alignment local inference with the current public `spalignde` API. The formal coordinate source is kidney `run_1` from `reproducibility_audit_0810`: Leiden resolution `0.2`, alignment seed `1000`, 5,000 S-LDDMM iterations, and `restore_best_checkpoint=False`. IL3 is the 2,965-spot query and NL3 is the unchanged 3,215-spot reference. `run_2` is the independent reproducibility repeat and is not used as the reported coordinate source.
+This real-data notebook continues from the reported fixed-seed NL3/IL3 kidney alignment and runs post-alignment local inference with the current public `spalignde` API. The upstream Kidney workflow uses Leiden resolution `0.2`, seed `1000`, and a selected manual similarity pre-alignment (`scale=1`, `theta=0`, `translation_x=-36.20040965`, `translation_y=-153.38356513`) before 5,000 S-LDDMM iterations with `restore_best_checkpoint=False`. IL3 is the 2,965-spot query and NL3 is the unchanged 3,215-spot reference.
 
-The raw count matrices and tissue-position files come from Zenodo record `17676992`. The checked-out repository supplies compact coordinate tables generated directly from the formal `run_1` `query_coordinates.csv.gz` and `cluster_labels.csv.gz` files. Their source SHA-256 values are recorded in the packaged metadata.
+The raw count matrices and tissue-position files come from Zenodo record `17676992`. The checked-out repository supplies compact coordinate tables generated directly from `kidney_IL3_to_NL3_aligned.h5ad`, the output of the public manual-alignment notebook. The source H5AD and packaged coordinate SHA-256 values are recorded in the metadata.
 
 The analysis proceeds through one continuous handoff:
 
-1. load public expression data and the formal fixed-seed aligned coordinates;
+1. load public expression data and the fixed-seed manual-alignment coordinates;
 2. match spots by terminal Visium barcode;
 3. construct the shared grid and local neighborhoods;
 4. estimate stable-gene and density-based mismatch risk;
@@ -97,14 +100,14 @@ NL3 defines the reference coordinate system and IL3 is the query. Users may repl
 
 KIDNEY_HANDOFF = r"""## Alignment-to-inference handoff
 
-The recorded website example starts from the formal fixed-seed coordinate audit rather than rerunning alignment inside this notebook:
+The recorded website example starts from the output of the public fixed-seed Kidney alignment notebook rather than rerunning alignment inside this inference notebook:
 
-- query: `reproducibility_audit_0810/.../kidney/run_1/alignments/IL3_to_NL3/query_coordinates.csv.gz`;
-- unchanged reference: `reproducibility_audit_0810/.../kidney/run_1/cluster_labels.csv.gz`;
-- evaluated coordinate columns: `x_aligned` and `y_aligned` for IL3, and unchanged `x` and `y` for NL3;
-- coordinate scale: the audit coordinates are multiplied by the recorded factor of 50 for inference.
+- upstream notebook: `cross_sample_alignment_mouse_kidney_alignment_nb.ipynb`;
+- handoff artifact: `tutorials/cross_sample/kidney/output/kidney_IL3_to_NL3_aligned.h5ad`;
+- evaluated coordinate columns: `x_aligned` and `y_aligned` for IL3 and the unchanged NL3 reference;
+- coordinate scale: the saved compact array coordinates are multiplied by the recorded factor of 50 for inference.
 
-The repository packages a compact, hash-tracked copy of this exact handoff as `src/spalignde/datasets/kidney/aligned_coords_IL3.csv.gz` and `aligned_coords_NL3.csv.gz`. The alignment input and region annotations come from STcompare record `20647680`; this inference stage reloads the NL3/IL3 10x matrices and tissue-position tables from source record `17676992` and joins them to the saved coordinates by terminal barcode. The two records therefore serve different handoff roles.
+The repository packages a compact, hash-tracked copy of this exact manual-alignment handoff as `src/spalignde/datasets/kidney/aligned_coords_IL3.csv.gz` and `aligned_coords_NL3.csv.gz`. The alignment input and region annotations come from STcompare record `20647680`; this inference stage reloads the NL3/IL3 10x matrices and tissue-position tables from source record `17676992` and joins them to the saved coordinates by terminal barcode. The two records therefore serve different handoff roles.
 
 For a custom alignment, either point `SPALIGNDE_KIDNEY_ALIGNED_H5AD` to an H5AD containing `sample_id`, `x_aligned`, and `y_aligned`, or point `SPALIGNDE_ALIGNMENT_DIR` to a directory containing `aligned_coords_NL3.csv` and `aligned_coords_IL3.csv`. Set only one input variable. `SPALIGNDE_KIDNEY_DATA_DIR` and `SPALIGNDE_TUTORIAL_WORK_DIR` can redirect the raw-data and working directories.
 
@@ -237,8 +240,8 @@ def build_kidney(*, record_execution: bool) -> None:
     for cell in notebook.cells:
         if cell.cell_type == "code":
             cell.source = cell.source.replace(
-                'else "checked-in fixed-seed alignment"',
                 'else "checked-in formal run_1 coordinates"',
+                'else "checked-in fixed-seed manual alignment"',
             )
             cell.source = cell.source.replace(
                 'print("spalignde import:", Path(spalignde.__file__).resolve())',
