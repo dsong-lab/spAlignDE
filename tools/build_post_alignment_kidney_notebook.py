@@ -1,7 +1,7 @@
 """Publish the executed mouse-kidney post-alignment inference notebook.
 
 The real-data notebook under ``Post_alignment_inference/tutorials`` is the
-canonical analysis record.  This tool preserves its saved outputs and the
+saved analysis record.  This tool preserves its saved outputs and the
 lowercase public ``spalignde`` imports while writing the two notebook mirrors
 used by the documentation website.
 """

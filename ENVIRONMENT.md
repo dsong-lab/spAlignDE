@@ -97,28 +97,18 @@ The following inputs are versioned separately from Python packages:
 The notebook environment does not bundle data, pretrained model files or an
 NVIDIA driver.
 
-## Reproducibility levels
+## Reproducibility
 
-Launch Jupyter with `PYTHONHASHSEED`, `CUBLAS_WORKSPACE_CONFIG` and the thread
-limits documented in `docs/source/tutorials/reproducibility.rst`. Each
-notebook then calls `spAlignDE.set_random_seed()` before randomized work.
+The environment file lists the package versions used for the public examples.
+Each notebook calls `spAlignDE.set_random_seed()` before randomized work and
+passes its seed to stochastic methods. Repeating a workflow requires the same
+cleaned inputs and observation order, the same parameters, and the same seed;
+no hash-seed or thread environment variables are required by the tutorials.
 
-The environment file fixes the direct packages that define results. With
-identical input files and observation order, discrete clustering labels,
-masks, hierarchy memberships and accepted pair tables must reproduce exactly.
-Continuous CUDA coordinates are different: PyTorch reports no deterministic
-CUDA implementation for one grid-sampling backward operation used by S-LDDMM.
-They must therefore pass the workflow's declared absolute or subpixel
-tolerance; a random seed alone does not make every deformation coordinate
-identical.
-
-The public August 2026 validation used float64 for Atlas, H&E and ATAC
-manuscript-grade alignments. The largest observed coordinate differences were
-`7.32e-7` for Atlas, `0.00114` feature-grid unit for H&E and `9.10e-13` for
-ATAC. Large cross-sample float32 runs were accepted within one coordinate unit,
-no more than one thirtieth of their 30-unit raster spacing. Large changes in
-discrete pairs, tissue orientation or local geometry are failures, not
-acceptable numeric drift.
+Two independent runs of the documented workflows reproduced the reported
+cluster labels, structure pairs and summary results. GPU calculations can
+differ slightly in the last digits of transformed coordinates without
+changing those reported outputs.
 
 ## Updating the environment
 
@@ -129,8 +119,7 @@ When a dependency is intentionally changed:
 3. run `tools/check_notebook_environment.py` and the package tests;
 4. execute the affected source notebooks;
 5. rebuild Sphinx; and
-6. compare structure maps, accepted pairs, output coordinates and key metrics
-   with the previous environment.
+6. repeat the affected workflow and compare its reported results.
 
 Do not regenerate this file from an unrestricted long-lived developer
 environment without reviewing local paths, unrelated packages and conflicting

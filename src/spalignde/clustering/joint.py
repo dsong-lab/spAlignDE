@@ -127,7 +127,7 @@ def cluster_joint(
     source = adata.to_memory() if adata.isbacked else adata
     work = source.copy()
     xy = spatial_coordinates(work, spatial_key=spatial_key)
-    # The public AnnData contract stores the authoritative coordinates in
+    # The public AnnData layout stores the working coordinates in
     # ``obsm[spatial_key]``.  Overwrite (rather than append and rename)
     # conventional ``obs['x']``/``obs['y']`` columns so inputs that already
     # contain them cannot create duplicate column names inside AnnData.

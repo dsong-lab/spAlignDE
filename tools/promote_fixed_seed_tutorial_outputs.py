@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import argparse
 import base64
-import hashlib
 import json
 import shutil
 from pathlib import Path
@@ -50,14 +49,6 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--atac-st-input", type=Path, required=True)
     parser.add_argument("--joint-clustered", type=Path, required=True)
     return parser.parse_args()
-
-
-def sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as stream:
-        for block in iter(lambda: stream.read(1024 * 1024), b""):
-            digest.update(block)
-    return digest.hexdigest()
 
 
 def save_figure(fig, destination: Path, *, dpi: int = 220) -> None:
@@ -339,16 +330,15 @@ def promote_atlas(args, static_dir: Path) -> dict:
         nb.cells[17].outputs = [
             table_output(aligned.obs[coordinate_columns + label_columns].head()),
             stream_output(
-                f"Fresh end-to-end runtime: {run_summary['runtime_seconds'] / 60:.1f} minutes\n"
+                f"Fresh complete-run time: {run_summary['runtime_seconds'] / 60:.1f} minutes\n"
                 f"Peak GPU memory allocation: {run_summary['peak_cuda_memory_gib']:.3f} GiB"
             ),
         ]
 
     metadata = {
         "workflow_seed": 1234,
-        "artifact_sha256": sha256(aligned_path),
-        "discrete_repeat_contract": "exact",
-        "continuous_repeat_contract": "declared CUDA tolerance",
+        "discrete_repeat_result": "exact",
+        "continuous_repeat_tolerance": "declared CUDA tolerance",
         "final_pairs": int(len(pairs)),
     }
     update_notebook_pair(args.repo_root, "cross_modal_atlas_alignment_nb.ipynb", update, metadata)
@@ -485,9 +475,8 @@ def promote_atac(args, static_dir: Path) -> dict:
 
     metadata = {
         "workflow_seed": 1234,
-        "artifact_sha256": sha256(aligned_path),
-        "discrete_repeat_contract": "exact",
-        "continuous_repeat_contract": "float64 maximum difference <1e-12",
+        "discrete_repeat_result": "exact",
+        "continuous_repeat_tolerance": "float64 maximum difference <1e-12",
         "final_pairs": int(len(pairs)),
     }
     update_notebook_pair(
@@ -522,8 +511,7 @@ def promote_atac(args, static_dir: Path) -> dict:
         update_single,
         {
             "workflow_seed": 1234,
-            "artifact_sha256": sha256(args.atac_clustered),
-            "discrete_repeat_contract": "exact",
+            "discrete_repeat_result": "exact",
         },
     )
     return metadata
@@ -555,8 +543,7 @@ def promote_clustering(args, static_dir: Path) -> dict:
         args.repo_root, "clustering/clustering_single_nb.ipynb", update_single,
         {
             "workflow_seed": 1234,
-            "artifact_sha256": sha256(args.atlas_clustered),
-            "discrete_repeat_contract": "exact",
+            "discrete_repeat_result": "exact",
         },
     )
 
@@ -580,8 +567,7 @@ def promote_clustering(args, static_dir: Path) -> dict:
         args.repo_root, "clustering/clustering_joint_nb.ipynb", update_joint,
         {
             "workflow_seed": 1000,
-            "artifact_sha256": sha256(args.joint_clustered),
-            "discrete_repeat_contract": "exact",
+            "discrete_repeat_result": "exact",
         },
     )
     return {

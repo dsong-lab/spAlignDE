@@ -69,7 +69,7 @@ def kidney_clustering_cells() -> list:
             Download the IL3 and NL3 Visium matrices, coordinates and region
             annotations from the [STcompare Zenodo record](https://zenodo.org/records/20647680).
             The input may also be a directory using the standard paired-CSV
-            contract described in the main cross-sample tutorial.
+            format described in the main cross-sample tutorial.
             """
         ),
         code(

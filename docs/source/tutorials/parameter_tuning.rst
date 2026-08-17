@@ -532,7 +532,7 @@ pairs into an alignment.
   ``x_prealigned``/``y_prealigned`` columns; this bypasses only transform
   estimation.
 - Confirm ``atlas_z_slice`` matches the loaded reference. Display flip and
-  rotation fields are provenance from the UI view, not a substitute for the
+  rotation fields record the UI view and do not replace the
   package's whole-mask pre-alignment.
 - Tune source/target mask smoothing and minimum areas before deformation
   settings when thin structures disappear. ``area_weight_power`` and the

@@ -130,7 +130,7 @@ the published workflows or running the UI. A wheel-only installation is
 sufficient when calling the Python API with user-provided inputs.
 
 The manuscript-scale Nissl and full 20-section aging-brain analyses are not
-bundled as end-to-end public notebooks. The website provides the complete H&E,
+bundled as complete public notebooks. The website provides the H&E,
 automatic/UI Atlas, spatial-ATAC and kidney workflows, plus a five-section
 aging-brain alignment-to-inference example. This distinction keeps the public
 workflow scope clear without implying that large third-party data are shipped

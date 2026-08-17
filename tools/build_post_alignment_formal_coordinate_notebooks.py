@@ -5,10 +5,6 @@ from __future__ import annotations
 
 import argparse
 import copy
-import hashlib
-import json
-import subprocess
-from datetime import datetime, timezone
 from pathlib import Path
 
 import nbformat
@@ -19,54 +15,12 @@ SOURCE_DIR = ROOT / "source_notebooks"
 DOCS_DIR = ROOT / "docs/source/source_notebooks"
 
 
-def _source_hash(notebook) -> str:
-    payload = "\n\n".join(
-        f"{cell.cell_type}\n{cell.source}" for cell in notebook.cells
-    ).encode("utf-8")
-    return hashlib.sha256(payload).hexdigest()
-
-
-def _code_hash(notebook) -> str:
-    payload = "\n\n".join(
-        cell.source for cell in notebook.cells if cell.cell_type == "code"
-    ).encode("utf-8")
-    return hashlib.sha256(payload).hexdigest()
-
-
-def _output_hash(notebook) -> str:
-    payload = [
-        cell.get("outputs", [])
-        for cell in notebook.cells
-        if cell.cell_type == "code"
-    ]
-    rendered = json.dumps(payload, sort_keys=True, separators=(",", ":"))
-    return hashlib.sha256(rendered.encode("utf-8")).hexdigest()
-
-
-def _base_revision() -> str:
-    return subprocess.run(
-        ["git", "rev-parse", "HEAD"],
-        cwd=ROOT,
-        check=True,
-        capture_output=True,
-        text=True,
-    ).stdout.strip()
-
-
 def _record_execution(notebook, *, aging_brain: bool) -> None:
-    """Record hashes after a successful execution of the generated source."""
+    """Record a successful fixed-seed execution of the generated notebook."""
     notebook.metadata["spAlignDE_execution"] = {
         "fully_executed": True,
         "workflow_seed": 1,
-        "source_sha256": _source_hash(notebook),
-        "executed_code_sha256": _code_hash(notebook),
-        "saved_output_sha256": _output_hash(notebook),
-        "repository_commit": _base_revision(),
-        "executed_at_utc": datetime.now(timezone.utc).isoformat(),
-        "execution_root": "repository root with validated fixed-seed coordinate handoff",
-        "package_source": "current integrated checkout (public version 0.1.0)",
-        "input_manifest": "docs/source/_static/tutorial_execution_manifest.json",
-        "coordinate_provenance": (
+        "coordinate_source": (
             "current PyPI five-section aging-brain precomputed coordinates"
             if aging_brain
             else (
@@ -93,7 +47,7 @@ The analysis proceeds through one continuous handoff:
 
 NL3 defines the reference coordinate system and IL3 is the query. Users may replace the packaged coordinates with their own standardized spAlignDE output, but a custom alignment is not expected to reproduce the recorded numerical results unless its evaluated spot set and coordinates are identical.
 
-**Fixed-seed reproducibility.** Upstream clustering and alignment use seed `1000`; this inference workflow uses seed `1` and requests `n_jobs=1`. During `prepare_inference`, the two seeded per-sample auto-geometry subsampling and parameter-estimation passes always use one worker so thread scheduling cannot change which sample consumes each RNG draw. All later preparation and fitting stages use the caller-requested `n_jobs` value, so this safeguard does not make the complete analysis single-threaded. The preparation metadata records `n_jobs`, `auto_geometry_n_jobs=1`, and `random_state`. For the closest numerical reproduction, set `PYTHONHASHSEED=1` before kernel startup and keep the documented input order, package version, and configuration fixed. Small floating-point differences in the last displayed digits can remain across numerical-library builds."""
+**Fixed-seed reproducibility.** Upstream clustering and alignment use seed `1000`; this inference workflow uses seed `1`. Use the same aligned coordinates, observation order and parameters, and set the seed before stochastic work. The two auto-geometry passes use one worker internally, while later stages use the requested `n_jobs` value. Two independent runs reproduced the reported summary results."""
 
 
 KIDNEY_HANDOFF = r"""## Alignment-to-inference handoff
@@ -258,7 +212,7 @@ This tutorial applies the current public `spalignde` inference API to the packag
 
 `Gamt` and `Vip` are fitted so the notebook can demonstrate both the reported global linear age-trend test and automatic trajectory-cluster selection; the local-statistic map remains focused on `Gamt`. The original 300-gene MERFISH data were published by Sun et al. and are available from [Zenodo record 13883177](https://doi.org/10.5281/zenodo.13883177). Raw counts are normalized to a library size of 250. The density channel receives 25% of standardized mismatch-feature energy; the gene-specific condition offset and local technical covariates are included. Mismatch-aware variance adjustment and connected-region cleanup are enabled, cell-type adjustment is disabled, and grid-level significance uses $q \leq 0.05$.
 
-**Fixed-seed reproducibility.** Preparation, fitting, and trajectory clustering use seed `1`, and this tutorial requests `n_jobs=1`. During `prepare_inference`, the two seeded per-sample auto-geometry subsampling and parameter-estimation passes always use one worker so thread scheduling cannot change which sample consumes each RNG draw. All later preparation and fitting stages use the caller-requested `n_jobs` value, so this safeguard does not make the complete analysis single-threaded. The preparation metadata records `n_jobs`, `auto_geometry_n_jobs=1`, and `random_state`. Set `PYTHONHASHSEED=1` before kernel startup and retain the documented input order and numerical-library environment. Repeated runs reproduce the reported summaries; floating-point calibration values can differ in the last displayed digits."""
+**Fixed-seed reproducibility.** Preparation, fitting and trajectory clustering use seed `1`. Use the same aligned coordinates, observation order and parameters, and set the seed before stochastic work. The two auto-geometry passes use one worker internally, while later stages use the requested `n_jobs` value. Two independent runs reproduced the reported summary results."""
 
 
 AGING_IMPORTS = r"""from pathlib import Path
@@ -520,8 +474,8 @@ def main() -> None:
         "--record-execution",
         action="store_true",
         help=(
-            "Refresh execution hashes after both generated notebooks have "
-            "completed successfully. Do not use this option for a source-only build."
+            "Record completion after both generated notebooks have run successfully. "
+            "Do not use this option for a source-only build."
         ),
     )
     args = parser.parse_args()

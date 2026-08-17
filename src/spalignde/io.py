@@ -27,7 +27,7 @@ def validate_single_sample_anndata(
     cluster_key: str = "cluster",
     require_cluster: bool = False,
 ) -> None:
-    """Validate the public AnnData contract for one spatial sample.
+    """Validate the public AnnData layout for one spatial sample.
 
     The expression matrix must be cell/spot by gene, observation names must be
     unique, and ``adata.obsm[spatial_key]`` must contain finite x/y coordinates.
@@ -393,8 +393,8 @@ def load_cross_sample_data(
 ) -> ad.AnnData:
     """Load an AnnData object, ``.h5ad`` file or paired-CSV directory.
 
-    All supported inputs are normalized to the public combined-AnnData
-    contract before clustering or alignment.
+    All supported inputs are normalized to the public combined AnnData layout
+    before clustering or alignment.
     """
     if isinstance(data, ad.AnnData):
         source = data.to_memory() if data.isbacked else data
@@ -442,7 +442,7 @@ def validate_cross_sample_anndata(
     cluster_key: str = "cluster",
     require_cluster: bool = True,
 ) -> None:
-    """Validate the public AnnData contract for cross-sample workflows.
+    """Validate the public AnnData layout for cross-sample workflows.
 
     The input must contain a cell/spot-by-gene matrix, globally unique
     observation names, sample labels in ``adata.obs`` and finite two-dimensional
@@ -516,7 +516,7 @@ def spatial_coordinates(
     *,
     spatial_key: str = "spatial",
 ) -> np.ndarray:
-    """Return an independent float64 copy of the canonical input coordinates."""
+    """Return an independent float64 copy of the input coordinates."""
     return np.asarray(adata.obsm[spatial_key], dtype=np.float64).copy()
 
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Audit and cluster the Xenium breast cancer replicates.
+"""Check and cluster the Xenium breast cancer replicates.
 
 The workflow intentionally uses only Xenium ``Gene Expression`` features,
 performs light cell-level QC, normalizes all 313 panel genes, and compares a
@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import argparse
 import gc
-import hashlib
 import json
 import time
 from pathlib import Path
@@ -60,14 +59,6 @@ def log(message: str) -> None:
 
 def decode(values: np.ndarray) -> np.ndarray:
     return np.asarray([value.decode() if isinstance(value, bytes) else str(value) for value in values])
-
-
-def md5sum(path: Path) -> str:
-    digest = hashlib.md5()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
 
 
 def lambda_key(value: float) -> str:
@@ -165,12 +156,10 @@ def read_xenium_sample(
     adata.obsm["spatial"] = obs[["x", "y"]].to_numpy(dtype=np.float64)
 
     q = [0, 0.01, 0.05, 0.1, 0.5, 0.9, 0.95, 0.99, 1]
-    audit = {
+    input_check = {
         "sample_id": sample_id,
         "matrix_path": str(matrix_path),
         "cells_path": str(cells_path),
-        "matrix_md5": md5sum(matrix_path),
-        "cells_md5": md5sum(cells_path),
         "n_cells_h5": int(shape[1]),
         "n_cells_csv": int(len(cells)),
         "barcodes_exact_and_ordered": True,
@@ -201,7 +190,7 @@ def read_xenium_sample(
             }
         ]
     )
-    return adata, audit, qc_row
+    return adata, input_check, qc_row
 
 
 def zscore_float32(values: np.ndarray) -> np.ndarray:
@@ -630,11 +619,11 @@ def main() -> None:
     write_json(args.output_dir / "run_config.json", config)
 
     samples: list[ad.AnnData] = []
-    audits: list[dict[str, Any]] = []
+    input_checks: list[dict[str, Any]] = []
     qc_rows: list[pd.DataFrame] = []
     for rep in (1, 2):
         log(f"Reading and auditing Xenium Rep{rep}")
-        sample, audit, qc_row = read_xenium_sample(
+        sample, input_check, qc_row = read_xenium_sample(
             rep,
             args.data_dir,
             args.source_dir,
@@ -645,10 +634,10 @@ def main() -> None:
             random_state=args.seed,
         )
         samples.append(sample)
-        audits.append(audit)
+        input_checks.append(input_check)
         qc_rows.append(qc_row)
 
-    write_json(args.output_dir / "source_audit.json", audits)
+    write_json(args.output_dir / "input_check.json", input_checks)
     pd.concat(qc_rows, ignore_index=True).to_csv(args.output_dir / "qc_summary.csv", index=False)
 
     joint = ad.concat(samples, join="inner", merge="same", index_unique=None)

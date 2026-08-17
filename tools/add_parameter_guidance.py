@@ -2,7 +2,7 @@
 """Insert task-specific parameter guidance into public source notebooks.
 
 The operation is idempotent and preserves all existing code outputs. Run this
-after a notebook builder regenerates canonical notebooks and before copying
+after a notebook builder regenerates source notebooks and before copying
 them into the Sphinx source tree.
 """
 

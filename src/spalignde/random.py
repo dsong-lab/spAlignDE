@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 import random
 from typing import Any
 
@@ -17,10 +16,8 @@ def set_random_seed(
 ) -> dict[str, Any]:
     """Reset Python, NumPy, and PyTorch random generators.
 
-    This function controls random generators used after it is called. Python's
-    hash seed is fixed only when ``PYTHONHASHSEED`` is set before Python starts;
-    the returned metadata records its launch-time value instead of implying
-    that it can be changed safely at runtime.
+    This function controls random generators used after it is called. Call it
+    before the first stochastic step in a workflow.
 
     Parameters
     ----------
@@ -59,13 +56,11 @@ def set_random_seed(
 
     return {
         "random_state": seed,
-        "pythonhashseed": os.environ.get("PYTHONHASHSEED"),
         "python_seeded": True,
         "numpy_seeded": True,
         "torch_available": torch_available,
         "torch_seeded": torch_available,
         "torch_deterministic_algorithms": torch_deterministic,
-        "cublas_workspace_config": os.environ.get("CUBLAS_WORKSPACE_CONFIG"),
     }
 
 

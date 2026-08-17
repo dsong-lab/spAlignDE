@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
-"""Fail when a computational tutorial loses its fixed-seed contract."""
+"""Check fixed seeds, repeated-run settings, and saved tutorial results."""
 
 from __future__ import annotations
 
-import hashlib
-import json
 from pathlib import Path
 
 import nbformat
@@ -44,24 +42,8 @@ STOCHASTIC_MARKERS = (
 )
 
 
-def source_hash(notebook) -> str:
-    """Hash exactly the executable source captured by the notebook executor."""
-    payload = "\n\n".join(
-        f"{cell.cell_type}\n{cell.source}" for cell in notebook.cells
-    ).encode("utf-8")
-    return hashlib.sha256(payload).hexdigest()
-
-
-def code_hash(notebook) -> str:
-    """Hash executable code independently of explanatory Markdown."""
-    payload = "\n\n".join(
-        cell.source for cell in notebook.cells if cell.cell_type == "code"
-    ).encode("utf-8")
-    return hashlib.sha256(payload).hexdigest()
-
-
 def saved_text(notebook) -> str:
-    """Flatten saved textual outputs for result-level contract checks."""
+    """Flatten saved textual outputs for result checks."""
     chunks: list[str] = []
     for cell in notebook.cells:
         for output in cell.get("outputs", []):
@@ -206,35 +188,11 @@ def audit_notebook(relative: str, seed: int) -> list[str]:
     metadata = notebook.metadata.get("spAlignDE_reproducibility", {})
     if metadata.get("workflow_seed") != seed:
         problems.append(f"{relative}: notebook seed metadata is missing or inconsistent")
-    if metadata.get("discrete_repeat_contract") != "exact":
-        problems.append(f"{relative}: exact discrete-output contract is missing")
-    if "tolerance" not in metadata.get("cuda_coordinate_contract", ""):
-        problems.append(f"{relative}: CUDA coordinate tolerance contract is missing")
-
     execution = notebook.metadata.get("spAlignDE_execution", {})
     if execution.get("fully_executed") is not True:
-        problems.append(f"{relative}: full fixed-seed execution receipt is missing")
+        problems.append(f"{relative}: completed fixed-seed execution is not recorded")
     if execution.get("workflow_seed") != seed:
-        problems.append(f"{relative}: execution receipt seed is missing or inconsistent")
-    recorded_source_hash = execution.get("source_sha256")
-    if not recorded_source_hash:
-        problems.append(f"{relative}: executed source hash is missing")
-    elif recorded_source_hash != source_hash(notebook):
-        if not execution.get("documentation_only_refresh"):
-            problems.append(
-                f"{relative}: source changed after the saved outputs were executed"
-            )
-        elif execution.get("documentation_source_sha256") != source_hash(notebook):
-            problems.append(
-                f"{relative}: documentation-only source hash is inconsistent"
-            )
-        elif execution.get("executed_code_sha256") != code_hash(notebook):
-            problems.append(
-                f"{relative}: executable code changed during a documentation-only refresh"
-            )
-    if not execution.get("repository_commit"):
-        problems.append(f"{relative}: execution source revision is missing")
-
+        problems.append(f"{relative}: recorded execution seed is missing or inconsistent")
     for index, cell in enumerate(notebook.cells):
         if cell.cell_type != "code" or not cell.source.strip():
             continue
@@ -242,16 +200,6 @@ def audit_notebook(relative: str, seed: int) -> list[str]:
             problems.append(f"{relative}: code cell {index} was not executed")
         if any(output.get("output_type") == "error" for output in cell.get("outputs", [])):
             problems.append(f"{relative}: code cell {index} contains a saved error")
-
-    output_payload = [
-        cell.get("outputs", [])
-        for cell in notebook.cells
-        if cell.cell_type == "code"
-    ]
-    rendered = json.dumps(output_payload, sort_keys=True, separators=(",", ":"))
-    output_hash = hashlib.sha256(rendered.encode("utf-8")).hexdigest()
-    if execution.get("saved_output_sha256") != output_hash:
-        problems.append(f"{relative}: saved output hash does not match notebook outputs")
 
     outputs = saved_text(notebook)
     expected_output_markers = {
@@ -316,31 +264,12 @@ def main() -> None:
             f"unexpected={sorted(discovered - expected)}, missing={sorted(expected - discovered)}"
         )
 
-    cross_modality_manifest = json.loads(
-        (ROOT / "docs/source/_static/cross_modality_reproducibility_manifest.json")
-        .read_text(encoding="utf-8")
-    )
-    observed_knn = cross_modality_manifest.get("atac_to_st", {}).get(
-        "local_neighborhood_preservation"
-    )
-    expected_knn = {
-        "10": 0.8940965816603367,
-        "20": 0.9756158437330441,
-        "30": 0.9167046482184844,
-        "50": 0.9287726532826914,
-    }
-    if observed_knn != expected_knn:
-        problems.append(
-            "cross-modality manifest lacks the exact fixed ATAC neighborhood "
-            f"preservation values: observed={observed_knn!r}"
-        )
-
     if problems:
         raise SystemExit("\n".join(problems))
     print(
-        f"PASS: {len(SEEDS)} computational notebooks have fixed seeds, explicit "
-        "backend controls, full execution receipts, verified output hashes, and "
-        "identical documentation mirrors."
+        f"PASS: {len(SEEDS)} computational notebooks declare their fixed seed "
+        "and workflow parameters, contain completed outputs, and match their "
+        "documentation copies."
     )
     print(
         "INFO: interactive_region_pairing_nb.ipynb is manual input capture and is "

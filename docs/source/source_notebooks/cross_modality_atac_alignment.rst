@@ -10,7 +10,7 @@ For a new dataset, validate the partial field of view before changing pair or
 deformation settings. The accepted/rejected masks and cropped overlay are the
 first diagnostics; ``a`` and ``grid_step`` are interpreted in the cropped
 raster-canvas units. See :doc:`../tutorials/cross_modality_atac_alignment` for
-the data/output contract and :doc:`../tutorials/parameter_tuning` for failure-
+the data and output fields and :doc:`../tutorials/parameter_tuning` for failure-
 oriented tuning.
 
 Both notebooks use seed ``1234``. The fixed result contains 17 ATAC

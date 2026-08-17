@@ -85,7 +85,7 @@ def cluster_single(
 ) -> ad.AnnData | tuple[ad.AnnData, dict[str, Any]]:
     """Cluster one spatial sample and add labels to ``adata.obs``.
 
-    The input expression matrix and canonical coordinates are preserved. Raw
+    The input expression matrix and original coordinates are preserved. Raw
     BANKSY labels are stored in ``<cluster_key>_raw``. When boundary-aware
     refinement is enabled, refined labels are stored in
     ``<cluster_key>_refined`` and selected as the final ``cluster_key``.

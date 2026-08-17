@@ -128,7 +128,7 @@ print(f"Required application files found: {len(required_paths)}")
 
 Open **Upload custom dataset** and choose one of the following formats. The
 uploaded dataset is retained in the interface's `uploaded_datasets/` folder
-and registered in `manifest.json`.
+and listed with the saved session details.
 
 | Format | Required content | Interface behavior |
 |---|---|---|
@@ -315,7 +315,7 @@ pairing and the source IDs included in each manually defined structure.
             r"""
 ## 10. Understand the pairing export
 
-The pairing CSV contains detailed provenance for both panels. The most useful
+The pairing CSV contains details for both panels. The most useful
 fields are summarized below. Additional columns preserve selected coordinates,
 region sizes, atlas metadata, rotations, flips, upload filenames, and custom
 region definitions.
@@ -343,7 +343,7 @@ display(export_fields)
         markdown(
             r"""
 Optionally set `SPALIGNDE_PAIRING_CSV` to a downloaded pairing file before
-running the next cell. It checks the core grouping and provenance columns and
+running the next cell. It checks the core grouping and source columns and
 reports the number of saved correspondence groups.
 """
         ),

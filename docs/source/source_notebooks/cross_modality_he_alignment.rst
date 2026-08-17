@@ -2,7 +2,7 @@ ST-to-Histology Image Workflow
 ==============================
 
 These three notebooks implement the complete image-only reference
-workflow. Run them in order. Prepare the query AnnData first with the canonical
+workflow. Run them in order. Prepare the query AnnData first with the standard
 :doc:`single-clustering notebook <clustering/clustering_single_nb>`.
 
 .. toctree::

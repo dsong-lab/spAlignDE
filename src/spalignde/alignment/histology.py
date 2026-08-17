@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
-from hashlib import sha256
 import json
 import os
 from pathlib import Path
@@ -212,14 +211,6 @@ class STHistologyAlignmentResult:
     context: dict[str, Any] | None = None
 
 
-def _file_sha256(path: Path, chunk_size: int = 16 * 1024 * 1024) -> str:
-    digest = sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(chunk_size), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
-
-
 def _json_ready(value: Any) -> Any:
     if isinstance(value, Path):
         return str(value)
@@ -370,8 +361,6 @@ def prepare_histology_image(
             int(padded_height // 16),
             int(padded_width // 16),
         ],
-        "source_sha256": _file_sha256(image_path),
-        "prepared_sha256": _file_sha256(prepared),
     }
     _write_json(output_dir / "histology_image_preparation.json", manifest)
     return prepared, manifest
@@ -494,7 +483,6 @@ def extract_histology_features(
             "vit256_small_dino": {
                 "file": checkpoint256.name,
                 "bytes": int(checkpoint256.stat().st_size),
-                "sha256": _file_sha256(checkpoint256),
                 "source": (
                     "https://github.com/mahmoodlab/HIPT/blob/master/"
                     "HIPT_4K/Checkpoints/vit256_small_dino.pth"
@@ -503,7 +491,6 @@ def extract_histology_features(
             "vit4k_xs_dino": {
                 "file": checkpoint4k.name,
                 "bytes": int(checkpoint4k.stat().st_size),
-                "sha256": _file_sha256(checkpoint4k),
                 "source": (
                     "https://github.com/mahmoodlab/HIPT/blob/master/"
                     "HIPT_4K/Checkpoints/vit4k_xs_dino.pth"
@@ -548,7 +535,6 @@ def extract_histology_features(
         "extractor_python": extractor_python.name,
         "feature_file": feature_path.name,
         "feature_bytes": int(feature_path.stat().st_size),
-        "feature_sha256": _file_sha256(feature_path),
     }
     _write_json(output_dir / "histology_feature_manifest.json", manifest)
     return HistologyFeatureResult(

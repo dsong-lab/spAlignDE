@@ -14,7 +14,7 @@ are publicly available from the `STcompare Zenodo record
 Availability section.
 
 The input may be a combined AnnData file or paired per-sample CSV files
-following the :ref:`cross-sample-csv-contract`. The recorded run starts from
+following the :ref:`cross-sample-csv-format`. The recorded run starts from
 ``kidney_combined.h5ad`` and filters observations using
 ``adata.obs["is_spatial_filtered"]`` before validation. Public paths in both
 notebooks are configured through environment variables.

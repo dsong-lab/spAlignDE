@@ -47,7 +47,7 @@ The alignment input requires:
    * - ``adata.obs["cluster_raw"]``
      - Original single-sample BANKSY labels used to build the paper hierarchy
    * - ``adata.obs["cluster"]``
-     - Selected labels retained for display and provenance
+     - Selected labels retained for display and record keeping
 
 Histology image
 ~~~~~~~~~~~~~~~
@@ -124,7 +124,7 @@ spatial-transcriptomic coordinates are stored in the feature pickle.
 
 `UNI <https://github.com/mahmoodlab/UNI>`_ and its `gated Hugging Face weights
 <https://huggingface.co/MahmoodLab/UNI>`_ provide an optional fine-grained
-pathology representation. The canonical spAlignDE H&E result here uses
+pathology representation. The reported spAlignDE H&E result here uses
 HIPT/ViT only; UNI is not required to reproduce the reported 21 final image
 structures.
 

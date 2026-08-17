@@ -1,7 +1,7 @@
 # Executed source notebooks
 
-This directory is the package-workspace source of truth for every executable
-notebook published under the documentation site's **Source Notebooks** section.
+This directory contains the executable notebooks published under the
+documentation site's **Source Notebooks** section.
 Its folder structure mirrors `docs/source/source_notebooks`:
 
 - `clustering/`: joint and single-sample clustering;
@@ -28,7 +28,7 @@ used for these examples are listed in the documentation by role and filename.
 
 The task-specific **How to adapt...** cells are maintained by
 `tools/add_parameter_guidance.py`. They preserve executed outputs and should be
-reapplied after a notebook builder regenerates a canonical notebook. The full
+reapplied after a notebook builder regenerates a notebook. The full
 cross-workflow reference is the website `Parameter Tuning Guide`.
 
 ## Recommended notebook routes
@@ -46,7 +46,7 @@ or feature hand-off consumed by the next notebook.
 | Transformation variability | [`cross_sample_uncertainty_report.ipynb`](cross_sample_uncertainty_report.ipynb) | 1000 | 10 repeats; median `dist_var` 429.54 |
 | Post-alignment inference | kidney or aging-brain inference notebook | 1 | serial deterministic fit |
 
-Every notebook begins with its input contract and ends with its output contract.
+Every notebook begins with its input format and ends with its output fields.
 For external data, use the documented `SPALIGNDE_*` environment variables rather
 than editing workstation-specific paths into the notebook. Alignment notebooks
 return the final optimizer iterate (`restore_best_checkpoint=False`) unless a

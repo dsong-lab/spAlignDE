@@ -25,7 +25,7 @@ _METADATA_KEY = "spAlignDE"
 
 
 def _metadata(adata: ad.AnnData, *, create: bool = False) -> dict[str, Any]:
-    """Return the canonical spAlignDE metadata namespace."""
+    """Return the spAlignDE metadata namespace."""
     if create:
         adata.uns.pop("spalignde", None)
         return adata.uns.setdefault(_METADATA_KEY, {})

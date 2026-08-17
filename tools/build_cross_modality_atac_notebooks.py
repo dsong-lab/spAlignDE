@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
-"""Build the canonical spatial-ATAC clustering and ATAC-to-ST notebooks."""
+"""Build the spatial-ATAC clustering and ATAC-to-ST notebooks."""
 
 from __future__ import annotations
 
 from pathlib import Path
-import hashlib
 
 import nbformat as nbf
 
@@ -32,17 +31,8 @@ def notebook(cells):
     result.metadata["spAlignDE_reproducibility"] = {
         "workflow_seed": 1234,
         "seed_scope": "Python, NumPy, Torch and configured stochastic methods",
-        "discrete_repeat_contract": "exact",
-        "cuda_coordinate_contract": "workflow-specific numerical tolerance",
     }
     return result
-
-
-def source_hash(result) -> str:
-    payload = "\n\n".join(
-        f"{cell.cell_type}\n{cell.source}" for cell in result.cells
-    ).encode("utf-8")
-    return hashlib.sha256(payload).hexdigest()
 
 
 COMMON_SETUP = r"""
@@ -108,7 +98,7 @@ the pinned BANKSY commit), run from the repository root, and retain seed
             ),
             markdown(
                 r"""
-## Installation, data, and input contract
+## Installation, data, and input format
 
 Install the package from the repository root:
 
@@ -134,7 +124,7 @@ Use an ATAC-derived **gene-activity** matrix, not a peak-by-observation matrix.
 Gene activity gives BANKSY a gene-level representation while the alignment
 itself uses only independently inferred spatial structures. An R/Seurat RDS
 can be used upstream, but it must first be exported to H5AD or the paired CSV
-contract above.
+format above.
 
 Place `p22_atac_gene_activity.h5ad` under
 `data/cross_modality/atac/`, or set `SPALIGNDE_ATAC_INPUT` to its path.
@@ -253,9 +243,9 @@ The output keeps the original gene-activity matrix and
 
 - `obs["cluster_raw"]`: the selected BANKSY partition used for ATAC-to-ST;
 - `obs["cluster_refined"]`: boundary-aware QC labels; and
-- `obs["cluster"]`: the package-selected canonical labels.
+- `obs["cluster"]`: the package-selected labels.
 
-Parameters and provenance are stored under `adata.uns["spAlignDE"]`.
+Parameters and source details are stored under `adata.uns["spAlignDE"]`.
 """
             ),
             code(
@@ -296,11 +286,11 @@ with global geometric criteria, and estimates a smooth ATAC-to-ST deformation.
             ),
             markdown(
                 r"""
-## Notebook order, data, and input contract
+## Notebook order, data, and input format
 
 Run [spatial ATAC single clustering](atac_st_single_clustering_nb.ipynb) first.
 It writes `p22_atac_single_clustered.h5ad`. Prepare the fixed S3R1 reference
-with the canonical single-clustering workflow so that it has one selected
+with the standard single-clustering workflow so that it has one selected
 cluster column and finite coordinates in `obsm["spatial"]`.
 
 | Role | Dataset | Required AnnData content |
@@ -584,18 +574,18 @@ plt.show()
 ## Outputs and interpretation
 
 The aligned ATAC AnnData preserves the original assay and coordinates and
-adds the package-wide coordinate contract:
+adds the package-wide coordinate fields:
 
 - `x_prealigned`, `y_prealigned`: ATAC after the recorded global transform;
 - `x_aligned`, `y_aligned`: final ATAC coordinates in the ST analysis frame.
 
 The cropped ST reference receives the same four columns; because it is fixed,
-its prealigned and aligned values are identical. Provenance is stored under
+its prealigned and aligned values are identical. Parameters and source details are stored under
 `uns["spAlignDE"]["atac_to_st"]`.
 
 `alignment/` also contains the aligned/query and fixed/reference H5AD files,
 all candidate scores, accepted one-to-one pairs, mask summaries, and a JSON
-manifest. The accepted masks are optimization inputs; downstream label
+file containing the run settings. The accepted masks are optimization inputs; downstream label
 agreement or local-neighborhood preservation is an independent evaluation and
 is not used to tune the deformation.
 
@@ -627,7 +617,7 @@ output_summary = pd.DataFrame(
             "accepted one-to-one structure pairs",
             "all global geometric pair scores",
             "mask construction diagnostics",
-            "pre-alignment, pairing, and S-LDDMM provenance",
+            "pre-alignment, pairing, and S-LDDMM settings",
         ],
     }
 )
@@ -660,13 +650,8 @@ def write_notebook(result, *paths: Path, validated_output_path: Path | None = No
             if "language_info" in validated.metadata:
                 result.metadata["language_info"] = validated.metadata["language_info"]
             execution = result.metadata.get("spAlignDE_execution")
-            if isinstance(execution, dict) and execution.get("source_sha256") != source_hash(result):
-                execution["source_sha256"] = source_hash(result)
-                execution["fully_executed"] = False
+            if isinstance(execution, dict):
                 execution["source_refresh_only"] = True
-                execution["output_provenance"] = (
-                    "validated fixed-seed outputs preserved after source refresh"
-                )
     for path in paths:
         path.parent.mkdir(parents=True, exist_ok=True)
         nbf.write(result, path)
@@ -674,20 +659,20 @@ def write_notebook(result, *paths: Path, validated_output_path: Path | None = No
 
 
 def main() -> None:
-    canonical = PROJECT_ROOT / "source_notebooks" / "cross_modality"
+    source_root = PROJECT_ROOT / "source_notebooks" / "cross_modality"
     sphinx = SPHINX_SOURCE / "source_notebooks" / "cross_modality"
 
     write_notebook(
         single_clustering_notebook(),
-        canonical / "atac_st_single_clustering_nb.ipynb",
+        source_root / "atac_st_single_clustering_nb.ipynb",
         sphinx / "atac_st_single_clustering_nb.ipynb",
-        validated_output_path=canonical / "atac_st_single_clustering_nb.ipynb",
+        validated_output_path=source_root / "atac_st_single_clustering_nb.ipynb",
     )
     write_notebook(
         alignment_notebook(),
-        canonical / "atac_st_alignment_nb.ipynb",
+        source_root / "atac_st_alignment_nb.ipynb",
         sphinx / "atac_st_alignment_nb.ipynb",
-        validated_output_path=canonical / "atac_st_alignment_nb.ipynb",
+        validated_output_path=source_root / "atac_st_alignment_nb.ipynb",
     )
 
 

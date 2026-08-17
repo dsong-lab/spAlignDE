@@ -1,24 +1,19 @@
 #!/usr/bin/env python3
-"""Audit public notebook references, mirrors, and reproducibility pins."""
+"""Check public notebook references, mirrors, and reproducibility settings."""
 
 from __future__ import annotations
 
-import hashlib
 import re
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
 NOTEBOOK_COMMAND = re.compile(r"jupyter\s+lab\s+([^\s`]+\.ipynb)")
-CANONICAL_NOTEBOOK = re.compile(r"source_notebooks/[A-Za-z0-9_./-]+\.ipynb")
+SOURCE_NOTEBOOK = re.compile(r"source_notebooks/[A-Za-z0-9_./-]+\.ipynb")
 BANKSY_PIN = re.compile(r"Banksy_py\.git@([0-9a-f]{40})", re.IGNORECASE)
 PYPROJECT_VERSION = re.compile(r'^version\s*=\s*"([^"]+)"', re.MULTILINE)
 PACKAGE_VERSION = re.compile(r'^__version__\s*=\s*"([^"]+)"', re.MULTILINE)
 CITATION_VERSION = re.compile(r"^version:\s*([^\s]+)", re.MULTILINE)
-
-
-def _sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def main() -> int:
@@ -31,7 +26,7 @@ def main() -> int:
     for text_path in text_paths:
         text = text_path.read_text(encoding="utf-8")
         references = set(NOTEBOOK_COMMAND.findall(text))
-        references.update(CANONICAL_NOTEBOOK.findall(text))
+        references.update(SOURCE_NOTEBOOK.findall(text))
         for reference in sorted(references):
             if reference.startswith("/path/to/"):
                 continue
@@ -42,15 +37,15 @@ def main() -> int:
                     f"{relative_source}: notebook reference does not exist: {reference}"
                 )
 
-    canonical_root = ROOT / "source_notebooks"
+    source_root = ROOT / "source_notebooks"
     mirror_root = ROOT / "docs/source/source_notebooks"
-    notebook_paths = sorted(canonical_root.rglob("*.ipynb"))
-    for canonical in notebook_paths:
-        relative = canonical.relative_to(canonical_root)
+    notebook_paths = sorted(source_root.rglob("*.ipynb"))
+    for source_path in notebook_paths:
+        relative = source_path.relative_to(source_root)
         mirror = mirror_root / relative
         if not mirror.is_file():
             failures.append(f"missing documentation notebook mirror: {relative}")
-        elif _sha256(canonical) != _sha256(mirror):
+        elif source_path.read_bytes() != mirror.read_bytes():
             failures.append(f"documentation notebook mirror is stale: {relative}")
 
     pin_paths = (
@@ -83,13 +78,13 @@ def main() -> int:
             / "docs/source/_static/environment/check_notebook_environment.py"
         ),
     }
-    for canonical, mirror in downloadable_mirrors.items():
+    for source_path, mirror in downloadable_mirrors.items():
         if not mirror.is_file():
             failures.append(
                 "missing downloadable environment mirror: "
                 f"{mirror.relative_to(ROOT)}"
             )
-        elif _sha256(canonical) != _sha256(mirror):
+        elif source_path.read_bytes() != mirror.read_bytes():
             failures.append(
                 "downloadable environment mirror is stale: "
                 f"{mirror.relative_to(ROOT)}"
@@ -131,7 +126,7 @@ def main() -> int:
         failures.append(f"release versions disagree: {rendered}")
 
     print(f"Public notebook references: {len(checked_references)}")
-    print(f"Canonical notebook mirrors: {len(notebook_paths)}")
+    print(f"Matching notebook copies: {len(notebook_paths)}")
     print(f"BANKSY pin files: {len(pins)}")
     print(f"Downloadable environment mirrors: {len(downloadable_mirrors)}")
     print(f"Release version files: {len(versions)}")

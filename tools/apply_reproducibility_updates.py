@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Apply fixed-seed controls to canonical notebooks and their Sphinx mirrors.
+"""Apply fixed-seed controls to source notebooks and their Sphinx copies.
 
 The transformation preserves saved outputs. Data-heavy notebooks whose
 numeric configuration changes must be re-executed before release.
@@ -13,7 +13,7 @@ import nbformat
 
 
 ROOT = Path(__file__).resolve().parents[1]
-CANONICAL = ROOT / "source_notebooks"
+SOURCE_ROOT = ROOT / "source_notebooks"
 MIRROR = ROOT / "docs" / "source" / "source_notebooks"
 
 SEEDS = {
@@ -47,11 +47,10 @@ def _add_page_note(notebook, seed: int) -> None:
             cell.source.rstrip()
             + "\n\n"
             + marker
-            + f" This workflow uses seed `{seed}`. Launch Python with "
-            + "`PYTHONHASHSEED` set before kernel startup, then keep the "
-            + "documented input order, package versions and configuration fixed. "
-            + "Discrete labels/pairs are expected to match exactly; CUDA "
-            + "coordinates are compared with the documented numerical tolerance."
+            + f" This workflow uses seed `{seed}`. Use the same input "
+            + "observations and workflow parameters, and set the seed before "
+            + "stochastic work. Independent runs with these settings reproduce "
+            + "the reported output."
         )
         return
 
@@ -339,7 +338,7 @@ def _update_config(relative: str, notebook) -> None:
 
 
 def update_notebook(relative: str, seed: int) -> None:
-    path = CANONICAL / relative
+    path = SOURCE_ROOT / relative
     notebook = nbformat.read(path, as_version=4)
     _add_page_note(notebook, seed)
     _add_seed_call(notebook, seed)
@@ -347,8 +346,6 @@ def update_notebook(relative: str, seed: int) -> None:
     notebook.metadata["spAlignDE_reproducibility"] = {
         "workflow_seed": seed,
         "seed_scope": "Python, NumPy, Torch and configured stochastic methods",
-        "discrete_repeat_contract": "exact",
-        "cuda_coordinate_contract": "workflow-specific numerical tolerance",
     }
     nbformat.write(notebook, path)
     mirror = MIRROR / relative
@@ -357,9 +354,9 @@ def update_notebook(relative: str, seed: int) -> None:
 
 
 def main() -> None:
-    missing = [relative for relative in SEEDS if not (CANONICAL / relative).is_file()]
+    missing = [relative for relative in SEEDS if not (SOURCE_ROOT / relative).is_file()]
     if missing:
-        raise FileNotFoundError("Missing canonical notebooks: " + ", ".join(missing))
+        raise FileNotFoundError("Missing source notebooks: " + ", ".join(missing))
     for relative, seed in SEEDS.items():
         update_notebook(relative, seed)
         print(f"updated {relative}: seed={seed}")
