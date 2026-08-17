@@ -15,10 +15,6 @@ import shutil
 
 
 DOCS_ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_TARGETS = (
-    DOCS_ROOT / "src" / "spalignde",
-    DOCS_ROOT / "Post_alignment_inference" / "spalignde",
-)
 EXCLUDED_DIRECTORY_NAMES = {
     "__pycache__",
     ".ipynb_checkpoints",
@@ -33,6 +29,16 @@ INTEGRATED_COMPATIBILITY_FILES = {
     Path("datasets/aging_brain/__init__.py"),
     Path("datasets/visium.py"),
 }
+
+
+def default_targets() -> tuple[Path, ...]:
+    """Return only vendored package locations present in this checkout."""
+
+    targets = [DOCS_ROOT / "src" / "spalignde"]
+    standalone_parent = DOCS_ROOT / "Post_alignment_inference"
+    if standalone_parent.is_dir():
+        targets.append(standalone_parent / "spalignde")
+    return tuple(targets)
 
 
 def include_file(path: Path, root: Path) -> bool:
@@ -128,7 +134,7 @@ def main() -> None:
     if not source.is_dir() or not (source / "inference" / "__init__.py").is_file():
         raise SystemExit(f"not a spalignde package tree: {source}")
     targets = tuple(
-        path.expanduser().resolve() for path in (args.target or DEFAULT_TARGETS)
+        path.expanduser().resolve() for path in (args.target or default_targets())
     )
     any_differences = False
     for target in targets:
