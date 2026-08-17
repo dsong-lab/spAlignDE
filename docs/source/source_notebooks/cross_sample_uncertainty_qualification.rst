@@ -35,9 +35,9 @@ was re-estimated independently for each replicate:
 6. S-LDDMM registration.
 
 Every replicate uses seed ``1000`` with fixed observation ordering. Discrete
-inputs and labels are exact-repeat targets; transformation coordinates are
-summarized as empirical variability rather than described as bitwise
-deterministic CUDA output.
+inputs and labels should repeat exactly; transformation coordinates are
+summarized by their empirical variability because CUDA calculations can
+introduce small numerical differences.
 
 The S-LDDMM runs explicitly use ``restore_best=False`` and therefore retain the
 final optimizer iterate. Two complete fixed-seed executions of all ten
@@ -116,6 +116,6 @@ support. Record the retained fraction, seeds, number of repeats and full
 alignment configuration. See :doc:`../tutorials/parameter_tuning` before
 changing the S-LDDMM scale or grid resolution.
 
-The release input hashes, final configuration, numerical summary and second-run
-comparison are archived in the :download:`uncertainty reproducibility manifest
+The inputs, final configuration, numerical summary and second-run comparison
+are available in the :download:`saved run summary
 <../_static/cross_sample_uncertainty_reproducibility_manifest.json>`.

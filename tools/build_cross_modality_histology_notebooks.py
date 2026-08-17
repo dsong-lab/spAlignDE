@@ -100,8 +100,8 @@ the image, runs the hierarchical HIPT encoders with shifted tilings, smooths
 the image-feature fields, and saves the result consumed by the clustering
 notebook. Documentation maintainers may set
 `SPALIGNDE_DOCUMENTATION_FEATURE_DIR` to re-render the page from a previously
-validated, checksum-locked completion of this expensive stage; public users do
-not need that variable.
+completed and validated feature-extraction result; public users do not need
+that variable.
 """
             ),
             markdown(
@@ -184,16 +184,6 @@ repository. Before running the notebook, verify this layout:
         └── Checkpoints/
             ├── vit256_small_dino.pth
             └── vit4k_xs_dino.pth
-```
-
-Optional checkpoint verification:
-
-```bash
-sha256sum external/HIPT/HIPT_4K/Checkpoints/vit256_small_dino.pth
-# 6960cd5a8657dc8bb214671aa0c6dbd3f5b698e84386884955836487ddc89e24
-
-sha256sum external/HIPT/HIPT_4K/Checkpoints/vit4k_xs_dino.pth
-# 2b0bd9e9a602a35f2bb3f76da39d2b53a91f23fc3f115dc59a63267d95ad2b7b
 ```
 
 The HIPT environment requires compatible PyTorch and torchvision builds. By
@@ -306,8 +296,8 @@ display(
                 r"""
 ## Inspect image preparation
 
-The manifest makes the transformation from the downloaded image to `he.jpg`
-explicit. If the source provides physical pixel size, `resize_scale` records
+The preparation information describes how the downloaded image was converted
+to `he.jpg`. If the source provides physical pixel size, `resize_scale` records
 the conversion to 0.5 μm per pixel; otherwise spAlignDE preserves the native
 resolution and reports the output physical scale as unavailable.
 """
@@ -348,8 +338,8 @@ plt.show()
                 r"""
 ## Inspect the extracted feature field
 
-The table below is generated from the extraction manifest rather than from an
-expected hard-coded display. For the vendor BTF release input, each channel
+The table below is generated from the saved extraction information rather than
+from an expected hard-coded display. For the vendor BTF release input, each channel
 has shape 1,288 × 798. `cls` is the 192-channel ViT-4K context field, `sub` is the
 384-channel ViT-256 local-morphology field, and `rgb` contains three
 mean-downsampled color channels. The next notebook reads these 579
@@ -389,8 +379,8 @@ Visium spot coordinates, or Xenium coordinates.
 
 Because the pickle is large, inspect `histology_feature_manifest.json` first;
 loading the pickle with `pickle.load` reads the full object into memory. The
-manifest records the schema, grid size, preparation settings, checkpoints,
-execution route, file size, and SHA256 checksum.
+accompanying record lists the schema, grid size, preparation settings,
+checkpoints, execution route and file size.
 
 ### Optional UNI and merged features
 
@@ -428,7 +418,7 @@ The stage writes:
 - `histology_image_preparation.json`: source-image, physical-resolution,
   resizing, padding, and prepared-image provenance; and
 - `histology_feature_manifest.json`: model route, tiling/shift/smoothing
-  parameters, feature schema, file size, and output checksum.
+  parameters, feature schema and file information.
 
 No spatial-transcriptomic values are present in these outputs. Continue with
 **H&E image-feature clustering — 21 final histology structures**.

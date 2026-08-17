@@ -98,7 +98,7 @@ NL3 defines the reference coordinate system and IL3 is the query. Users may repl
 
 KIDNEY_HANDOFF = r"""## Alignment-to-inference handoff
 
-No path configuration is required for the recorded example because the package includes a compact, hash-tracked copy of the fixed-seed manual-alignment coordinates as `aligned_coords_NL3.csv.gz` and `aligned_coords_IL3.csv.gz`. They come from `kidney_IL3_to_NL3_aligned.h5ad`, the output of the public kidney manual-alignment notebook. The inference stage reloads the public NL3/IL3 10x matrices and tissue-position tables from Zenodo record `17676992` and joins them to the packaged coordinates one-to-one by terminal Visium barcode, never by row order.
+No path configuration is required for the recorded example because the package includes the fixed-seed manual-alignment coordinates as `aligned_coords_NL3.csv.gz` and `aligned_coords_IL3.csv.gz`. They come from `kidney_IL3_to_NL3_aligned.h5ad`, the output of the public kidney manual-alignment notebook. The inference stage reloads the public NL3/IL3 10x matrices and tissue-position tables from Zenodo record `17676992` and joins them to the packaged coordinates one-to-one by terminal Visium barcode, never by row order.
 
 For a custom alignment, point `SPALIGNDE_ALIGNMENT_DIR` to a directory containing `aligned_coords_NL3.csv` and `aligned_coords_IL3.csv`. Each file must contain one row per retained spot and the standardized columns `cell_id`, `x`, and `y`; `barcode` may be used instead of `cell_id`. `SPALIGNDE_KIDNEY_DATA_DIR` and `SPALIGNDE_TUTORIAL_WORK_DIR` can redirect the raw-data and working directories.
 

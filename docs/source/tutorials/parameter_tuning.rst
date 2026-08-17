@@ -78,7 +78,7 @@ geometrically implausible runs before looking at downstream biological
 statistics. After selecting a configuration, execute it twice in clean working
 directories. Compare cluster partitions and pair identities exactly; compare
 CUDA coordinates within the documented tolerance. Save the selected config,
-input hashes, seed, accepted-pair table and overlays with the result.
+input file identifiers, seed, accepted-pair table and overlays with the result.
 
 Save the selected configuration under ``adata.uns["spAlignDE"]`` with the
 aligned coordinates. Parameter choices are part of the result, not merely

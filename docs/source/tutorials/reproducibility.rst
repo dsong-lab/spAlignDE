@@ -1,13 +1,14 @@
 Reproducibility and fixed random seeds
 ======================================
 
-The public tutorials use explicit workflow seeds and a pinned environment.
-The seed is set inside the package before BANKSY feature construction and PCA,
-not only at the Leiden partition step. This distinction matters because the
-validated pyBANKSY release delegates large-matrix PCA to randomized SVD.
+The public tutorials use fixed workflow seeds and a specified software
+environment. The seed is set inside the package before BANKSY feature
+construction and PCA, not only at the Leiden partition step. This distinction
+matters because the pyBANKSY version used here delegates large-matrix PCA to
+randomized SVD.
 
-Canonical seeds
----------------
+Seeds used in the tutorials
+---------------------------
 
 .. list-table:: Fixed tutorial controls
    :header-rows: 1
@@ -31,20 +32,19 @@ Canonical seeds
 
 Every executable analysis notebook calls ``spAlignDE.set_random_seed`` before
 its first stochastic operation and also passes ``random_state`` explicitly to
-the corresponding configuration. The returned seed metadata are stored with
-clustering provenance under ``adata.uns["spAlignDE"]``.
+the corresponding configuration. The selected seed is stored with the
+clustering settings under ``adata.uns["spAlignDE"]``.
 
-The general joint-clustering API pins Leiden to ``leidenalg`` with unlimited
-iterations (``-1``), matching the cross-sample validation runs. The dedicated
-large Xenium runner pins Scanpy's ``igraph`` implementation with two
-iterations, matching its 10-cluster validated result. Backend substitution is
-treated as a configuration change, not as an automatic fallback.
+The general joint-clustering API uses ``leidenalg`` with unlimited iterations
+(``-1``), as in the cross-sample analyses. The dedicated large Xenium runner
+uses Scanpy's ``igraph`` implementation with two iterations, as in the
+reported 10-cluster result. Changing the backend may change the clustering.
 
 Launch-time controls
 --------------------
 
-``PYTHONHASHSEED`` must be set before Python starts. For the closest match to
-the validated Linux/CUDA environment, launch Jupyter from the repository root
+``PYTHONHASHSEED`` must be set before Python starts. To match the Linux/CUDA
+environment used for the tutorials, launch Jupyter from the repository root
 with:
 
 .. code-block:: bash
@@ -82,39 +82,30 @@ Before publishing notebook edits, run:
    # Execute each computational notebook in a fresh kernel, in dependency order.
    python tools/execute_fixed_seed_tutorials.py
 
-   # Verify complete execution receipts, outputs, seeds and source mirrors.
+   # Check notebook execution, saved outputs, seeds and documentation copies.
    python tools/audit_tutorial_reproducibility.py
 
-The executor forces the current checkout's absolute ``src`` directory onto
-``PYTHONPATH``. This prevents an older editable installation elsewhere on the
-machine from silently supplying ``spAlignDE``. It starts a fresh kernel per
-notebook, stops on the first failed cell, sanitizes machine-specific paths,
-and saves a source/output SHA-256 receipt only after the complete notebook
-succeeds. The audit rejects partial execution, error outputs, inconsistent
-seeds, stale output hashes, and non-identical ``source_notebooks``/Sphinx
-mirrors. The interactive region-pairing notebook only records manual
-selections and is therefore classified separately from stochastic
-computational workflows.
+The execution script uses the package source in the current checkout and runs
+each notebook in a fresh kernel. It stops if a cell fails and saves the
+notebook only after all cells finish. The checking script reports incomplete
+runs, saved errors, inconsistent seeds or differences between the notebook and
+documentation copies. The interactive region-pairing notebook records manual
+selections and is therefore not included with the computational notebooks.
 
-The external inputs used for the release execution are recorded by logical
-role, filename, size and SHA-256 in the :download:`tutorial execution input
-manifest <../_static/tutorial_execution_manifest.json>`. Local absolute paths
-are deliberately excluded. The public aging-brain notebook reproduces
-post-alignment inference from a five-section selection of the formal 19-query
-fixed-alignment archive; it consumes those packaged coordinates and does not
-rerun alignment.
+Each tutorial's Data section lists the required external inputs. The public
+aging-brain notebook continues from five sections selected from the saved
+fixed-seed alignments for 19 queries; it does not rerun alignment.
 
-The public spAlignDE 0.1.0 environment pins AnnData ``0.10.9``. Some archived
-manuscript-scale cross-sample validation receipts were generated with AnnData
-``0.10.8`` and retain that version in their run manifests. Manuscript Methods
-should therefore distinguish the public pinned environment from the exact
-environment recorded for each archived analysis instead of implying that one
-AnnData patch version was used for every historical run.
+The public spAlignDE 0.1.0 environment uses AnnData ``0.10.9``. Some earlier
+manuscript-scale cross-sample analyses were generated with AnnData ``0.10.8``
+and retain that version in their saved run information. Manuscript Methods
+therefore distinguish the current public environment from the environment used
+for those analyses.
 
-What should reproduce exactly
------------------------------
+Expected repeat behavior
+------------------------
 
-For a fixed input checksum, observation order, configuration and dependency
+With identical input data, observation order, configuration and dependency
 environment, the following are expected to be exact between fresh processes:
 
 - raw, refined and selected cluster labels;
@@ -124,24 +115,24 @@ environment, the following are expected to be exact between fresh processes:
 
 Continuous CUDA coordinates are assessed with a declared tolerance. PyTorch
 reports that ``grid_sampler_2d_backward_cuda`` has no deterministic CUDA
-implementation, so setting a seed does not justify a claim of bitwise-identical
-deformation fields. With final-iterate checkpoint handling, repeated float64
+implementation, so a seed alone cannot make every CUDA coordinate identical.
+With final-iterate checkpoint handling, repeated float64
 ATAC runs differed by at most ``9.10e-13`` coordinate units; repeated H&E runs
 differed by at most ``0.00114`` feature-grid unit and are assessed against a
 conservative ``0.05``-unit tolerance. Large cross-sample runs in float32
 reproduced within one coordinate unit, at most one thirtieth of the 30-unit
 raster grid.
 
-Validated fixed-seed results
-----------------------------
+Results from repeated runs
+--------------------------
 
-.. list-table:: August 2026 two-run validation
+.. list-table:: August 2026 repeated-run checks
    :header-rows: 1
    :widths: 31 31 38
 
    * - Workflow
      - Fixed result
-     - Repeat criterion
+     - Expected agreement
    * - MERFISH S2R1 single clustering
      - 25 raw/refined/final clusters
      - Exact labels.
@@ -185,8 +176,8 @@ session, while ST cluster IDs are revalidated by cell overlap against the
 fixed-seed labels. This avoids restoring an older uncontrolled label vector
 inside an otherwise fixed-seed workflow.
 
-Manuscript-specific validation scope
-------------------------------------
+Manuscript analyses not run in the website tutorials
+----------------------------------------------------
 
 The manuscript mouse-brain structure-resolution sweep used Leiden resolutions
 ``0.6``, ``0.8``, ``1.0``, ``1.2`` and ``1.4``. These produced
@@ -202,7 +193,7 @@ Harmony ``theta=2``/``max_iter=20`` and resolution ``0.2``. Aging brain used
 ``lambda=0.8``, 20 principal components, 50 SNN neighbors, Harmony
 ``theta=2``/``max_iter=30`` and resolution ``0.8``. Breast cancer used
 ``lambda=0.2``, 30 principal components, 50 SNN neighbors, Harmony
-``theta=4``/``max_iter=30`` and resolution ``0.3``; its locked igraph Leiden
+``theta=4``/``max_iter=30`` and resolution ``0.3``; its specified igraph Leiden
 configuration used two iterations and no boundary refinement.
 
 The public Atlas notebook executes the primary S2R1 example. The additional
@@ -220,11 +211,12 @@ public aging-brain notebook demonstrates post-alignment inference from
 packaged fixed-alignment coordinates. An independent full-cohort repeat through
 the public API kept the fixed joint labels and reproduced pre-alignment to
 within ``2.28e-12`` original coordinate units. All 19 final aligned coordinate
-sets were within ``2.17`` units of the selected outputs. Validation therefore
-uses a ``3.0``-unit tolerance, one tenth of the 30-unit raster spacing; GPU
-interpolation can prevent bitwise identity even when all random seeds and
-discrete inputs are fixed. With the current public API, the timed scope from
-automatic pre-alignment through rasterization and synchronized S-LDDMM took
+sets were within ``2.17`` units of the selected outputs. We therefore compare
+coordinates using a ``3.0``-unit tolerance, one tenth of the 30-unit raster
+spacing; GPU interpolation can produce small numerical differences even when
+all random seeds and discrete inputs are fixed. With the current public API,
+the timed scope from automatic pre-alignment through rasterization and
+synchronized S-LDDMM took
 ``2.100`` minutes in total (mean ``6.633`` seconds for 19 alignments), with a
 peak PyTorch allocation of ``96.994`` MiB (``0.0947`` GiB) on the recorded
 NVIDIA RTX PRO 6000 Blackwell Max-Q system. Clustering, coordinate-quality
@@ -232,14 +224,13 @@ checks, plotting and serialization were outside this timing scope.
 
 The manuscript simulation uses base seed ``2026`` and replicate identifier
 ``1`` (main seed ``2027``), with deterministic operation-specific offsets. The
-executed fitted-model bank contains 300 genes including *Gamt*, and the locked
-negative-effect multiplier is ``0.25``.
+executed fitted-model bank contains 300 genes including *Gamt*, and the
+specified negative-effect multiplier is ``0.25``.
 
-Reporting checklist
--------------------
+What to record
+--------------
 
-Archive the input SHA-256 checksums, observation order, full configuration,
-seed metadata, package versions, device, dtype, discrete-output hashes and the
-predeclared continuous-coordinate tolerance with every reported run. Do not
-mix figures or biological metrics produced from a previous uncontrolled
-clustering with a new fixed-seed alignment.
+For each reported run, retain the input file identities, observation order,
+full configuration, random seed, package versions, device, dtype and the
+specified continuous-coordinate tolerance. Figures and biological metrics
+should come from the same fixed-seed clustering and alignment run.

@@ -31,7 +31,7 @@ and a selected manual similarity pre-alignment with scale ``1``, rotation ``0``
 degrees and translation ``(-36.20040965, -153.38356513)`` in the scaled
 alignment coordinates. The workflow then runs 5,000 S-LDDMM iterations with
 ``restore_best_checkpoint=False``. The inference stage uses seed ``1`` and
-requests ``n_jobs=1``. The notebook loads the packaged, hash-tracked coordinate
+requests ``n_jobs=1``. The notebook loads the packaged fixed-seed coordinate
 copy through the public dataset API and joins it one-to-one to public Visium
 counts by terminal 10x barcode.
 
@@ -466,23 +466,18 @@ the aging row refers only to the compact five-section example.
 
 .. list-table::
    :header-rows: 1
-   :widths: 22 22 25 31
+   :widths: 35 30 35
 
    * - Workflow
      - Shared-grid locations
-     - Saved-output SHA256
      - Repeat result
    * - Kidney NL3 versus IL3
      - 6,187
-     - Recorded in notebook metadata
      - Current public-API execution
    * - Aging-brain five-section example
      - 74,908
-     - Recorded in notebook metadata
      - Current public-API execution
 
-The saved-output hash covers all sanitized code-cell outputs, including tables
-and figures, but excludes execution timing metadata. With ``n_jobs>1`` the
-scientific arrays remain deterministic in this workflow, while diagnostic log
-messages from parallel workers may arrive in a different order and therefore
-change a whole-notebook byte/hash comparison.
+With ``n_jobs>1`` the scientific arrays remain deterministic in this workflow,
+although diagnostic messages from parallel workers may appear in a different
+order.

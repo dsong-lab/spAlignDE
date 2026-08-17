@@ -88,8 +88,7 @@ The following inputs are versioned separately from Python packages:
 - **HIPT source and checkpoints** for histology feature extraction. Set
   `SPALIGNDE_HIPT_DIR` to the official HIPT clone containing
   `HIPT_4K/Checkpoints/vit256_small_dino.pth` and
-  `HIPT_4K/Checkpoints/vit4k_xs_dino.pth`. The feature-extraction manifest
-  records both checkpoint SHA-256 hashes.
+  `HIPT_4K/Checkpoints/vit4k_xs_dino.pth`.
 - **Allen CCF 2022** `annotation_10.nrrd` and
   `voxel_count_and_differences.csv`.
 - Dataset files downloaded from Vizgen, 10x Genomics, GEO/UCSC or the Zenodo
@@ -104,14 +103,14 @@ Launch Jupyter with `PYTHONHASHSEED`, `CUBLAS_WORKSPACE_CONFIG` and the thread
 limits documented in `docs/source/tutorials/reproducibility.rst`. Each
 notebook then calls `spAlignDE.set_random_seed()` before randomized work.
 
-The environment file locks the direct packages that define results. With
-fixed input checksums and observation order, discrete clustering labels,
+The environment file fixes the direct packages that define results. With
+identical input files and observation order, discrete clustering labels,
 masks, hierarchy memberships and accepted pair tables must reproduce exactly.
 Continuous CUDA coordinates are different: PyTorch reports no deterministic
 CUDA implementation for one grid-sampling backward operation used by S-LDDMM.
 They must therefore pass the workflow's declared absolute or subpixel
-tolerance; a random seed alone does not imply bitwise-identical deformation
-fields.
+tolerance; a random seed alone does not make every deformation coordinate
+identical.
 
 The public August 2026 validation used float64 for Atlas, H&E and ATAC
 manuscript-grade alignments. The largest observed coordinate differences were

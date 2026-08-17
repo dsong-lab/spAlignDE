@@ -50,8 +50,8 @@ The validated release environment is pinned in the repository-level
 the repository root with that environment and do not reuse a previously
 cropped ``st_reference_analysis_frame.h5ad`` as the S3R1 input: notebook 2
 expects the complete 70,844-cell reference and performs the half-brain crop
-once, yielding 35,422 fixed cells. The input filenames and SHA256 checksums are
-recorded in ``docs/source/_static/tutorial_execution_manifest.json``.
+once, yielding 35,422 fixed cells. Use the input files listed for this tutorial
+rather than a previously cropped intermediate file.
 
 Data sources
 ------------
