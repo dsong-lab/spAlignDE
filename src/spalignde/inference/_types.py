@@ -21,6 +21,7 @@ class PreparedInference:
     alignment_uncertainty_key: str | None
     metadata: dict[str, Any] = field(default_factory=dict)
 
+
 @dataclass(slots=True)
 class LocalDEResult:
     """Local differential-expression result for one or more genes."""

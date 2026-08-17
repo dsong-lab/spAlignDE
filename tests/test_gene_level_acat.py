@@ -35,9 +35,9 @@ def _result(p_by_time):
 
 
 class GeneLevelAcatTests(unittest.TestCase):
-    def test_acat_uses_stable_small_p_branch_and_ignores_boundaries(self):
+    def test_acat_uses_stable_small_p_branch_and_clips_valid_boundaries(self):
         observed = acat_pvalue([1e-30, 0.20, 1.0, 0.0, np.nan])
-        expected = acat_pvalue([1e-15, 0.20])
+        expected = acat_pvalue([1e-15, 0.20, 1.0 - 1e-15, 1e-15])
         self.assertTrue(np.isfinite(observed))
         self.assertAlmostEqual(observed, expected, places=16)
 

@@ -22,7 +22,12 @@ from scipy.interpolate import BSpline
 from scipy.sparse.linalg import spsolve
 from scipy.spatial import cKDTree
 
-from ._calibration import calibrate_mismatch_variance
+from ._calibration import (
+    MULTI_CONTRAST_CALIBRATION_MODE,
+    calibrate_mismatch_variance,
+    huber_center_nonnegative,
+    validate_provisional_calibration,
+)
 
 try:
     import pandas as pd
@@ -152,6 +157,49 @@ def p_adjust_bh(p):
     tmp[order] = q
     out[ok] = tmp
     return out
+
+
+def _celltype_js_adjustment(p_target, p_reference):
+    """Return the normalized Jensen--Shannon cell-type adjustment.
+
+    Rows are shared-grid locations and columns are cell-type proportions.  The
+    square root of the Jensen--Shannon divergence normalized by ``log(2)`` is
+    a bounded distance in ``[0, 1]``.  Its exponential is the variance factor;
+    the reciprocal is the precision multiplier used by the weighted fit.
+    """
+
+    p_target = np.asarray(p_target, dtype=float)
+    p_reference = np.asarray(p_reference, dtype=float)
+    if p_target.shape != p_reference.shape or p_target.ndim != 2:
+        raise ValueError("Cell-type proportion arrays must be two-dimensional and have equal shapes.")
+    if np.any(~np.isfinite(p_target)) or np.any(~np.isfinite(p_reference)):
+        raise ValueError("Cell-type proportion arrays must contain only finite values.")
+    if np.any(p_target < 0) or np.any(p_reference < 0):
+        raise ValueError("Cell-type proportions cannot be negative.")
+
+    p_target = p_target / np.maximum(np.sum(p_target, axis=1, keepdims=True), 1e-12)
+    p_reference = p_reference / np.maximum(np.sum(p_reference, axis=1, keepdims=True), 1e-12)
+    midpoint = 0.5 * (p_target + p_reference)
+    term_target = np.where(
+        p_target > 0,
+        p_target * np.log(np.maximum(p_target, 1e-300) / np.maximum(midpoint, 1e-300)),
+        0.0,
+    )
+    term_reference = np.where(
+        p_reference > 0,
+        p_reference * np.log(np.maximum(p_reference, 1e-300) / np.maximum(midpoint, 1e-300)),
+        0.0,
+    )
+    divergence = np.clip(
+        (0.5 * np.sum(term_target, axis=1) + 0.5 * np.sum(term_reference, axis=1))
+        / np.log(2.0),
+        0.0,
+        1.0,
+    )
+    distance = np.sqrt(divergence)
+    variance_factor = np.exp(distance)
+    precision = np.exp(-distance)
+    return divergence, distance, variance_factor, precision
 
 
 def ecdf_eval(sample, x):
@@ -1154,15 +1202,11 @@ def batch_prepare_once_multi(
             "USE_LIBSIZE_NORM": bool(use_libsize_norm),
             "target_total": float(target_total),
             "lambda_beta": 10.0,
-            "sampling_gap": {
-                "min_target_weight": 0.01,
-                "min_ref_weight": 0.01,
-                "min_type_neff": 2.0,
-                "age_bw": None,
-                "age_bw_min": 4.0,
-                "age_bw_mult": 2.5,
-                "tau_cov": 0.05,
-                "numeric_floor": 1e-3,
+            "celltype_adjustment": {
+                "method": "normalized_jensen_shannon_distance",
+                "variance_link": "exp",
+                "log_base": "natural",
+                "normalizing_constant": "log(2)",
             },
             "auto_geometry": {
                 "cover_target": 18,
@@ -1555,17 +1599,9 @@ def batch_prepare_once_multi(
             levels_all=all_levels,
             alpha0=PARAMS["alpha0_dir"],
         )
-        p_ref = ref_type_stats["p"]
-        neff_ref = ref_type_stats["neff_type"]
+        p_ref = ref_type_stats["p"].to_numpy(dtype=float)
 
-        gap_cfg = PARAMS.get("sampling_gap", {})
-        gap_min_target_weight = float(or_else(gap_cfg.get("min_target_weight"), 0.01))
-        gap_min_ref_weight = float(or_else(gap_cfg.get("min_ref_weight"), 0.01))
-        gap_min_type_neff = float(or_else(gap_cfg.get("min_type_neff"), 2.0))
-        gap_tau_cov = float(or_else(gap_cfg.get("tau_cov"), 0.05))
-        gap_floor = float(or_else(gap_cfg.get("numeric_floor"), 1e-3))
-
-        def build_sampling_gap_current(tt):
+        def build_celltype_proportions(tt):
             XYt = combined.iloc[sample_rows[str(tt)]][["x", "y", "celltype"]].copy()
             stats_t = estimate_type_proportions(
                 tr_tree=trees_time[str(tt)],
@@ -1574,88 +1610,35 @@ def batch_prepare_once_multi(
                 levels_all=all_levels,
                 alpha0=PARAMS["alpha0_dir"],
             )
-            p_t = stats_t["p"].to_numpy(dtype=float)
-            p_r = p_ref.to_numpy(dtype=float)
-            neff_t = stats_t["neff_type"].to_numpy(dtype=float)
-            neff_r = neff_ref.to_numpy(dtype=float)
-            weight_ok = (p_t >= gap_min_target_weight) | (p_r >= gap_min_ref_weight)
-            neff_ok = (neff_t >= gap_min_type_neff) & (neff_r >= gap_min_type_neff)
-            keep = np.isfinite(p_t) & np.isfinite(p_r) & weight_ok & neff_ok
-            current = np.sum(np.maximum(p_t, p_r) * keep, axis=1)
-            current = np.clip(np.asarray(current, dtype=float), 0.0, 1.0)
-            current[~np.isfinite(current)] = 0.0
-            return current.astype(np.float32, copy=False)
+            return stats_t["p"].to_numpy(dtype=np.float32)
 
-        sampling_gap_current_res = parallel_lapply(time_ids, build_sampling_gap_current, core=core)
-        sampling_gap_current_by_time = {str(tt): np.asarray(v, dtype=np.float32) for tt, v in zip(time_ids, sampling_gap_current_res)}
-        gap_mat = np.vstack([sampling_gap_current_by_time[str(tt)] for tt in time_ids]).astype(float) if len(time_ids) else np.zeros((0, Q_grid.shape[0]), dtype=float)
+        celltype_prop_res = parallel_lapply(time_ids, build_celltype_proportions, core=core)
+        celltype_proportions_by_sample = {str(ref_sample_id): p_ref.astype(np.float32, copy=False)}
+        celltype_proportions_by_sample.update(
+            {str(tt): np.asarray(v, dtype=np.float32) for tt, v in zip(time_ids, celltype_prop_res)}
+        )
 
-        def sampling_gap_age_numeric(ids):
-            try:
-                vals = np.asarray(infer_time_numeric([str(x) for x in ids]), dtype=float)
-                if vals.shape[0] == len(ids):
-                    return vals
-            except Exception:
-                pass
-            vals = []
-            for sid in ids:
-                m = re.search(r"[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?", str(sid))
-                vals.append(float(m.group(0)) if m else np.nan)
-            return np.asarray(vals, dtype=float)
-
-        ages_num = sampling_gap_age_numeric(time_ids)
-        if not np.all(np.isfinite(ages_num)):
-            ages_num = np.arange(len(time_ids), dtype=float)
-        bw_cfg = gap_cfg.get("age_bw")
-        if bw_cfg is not None:
-            gap_age_bw = float(bw_cfg)
-        else:
-            uq = np.unique(np.sort(ages_num[np.isfinite(ages_num)]))
-            diffs = np.diff(uq)
-            diffs = diffs[np.isfinite(diffs) & (diffs > 0)]
-            bw_min = float(or_else(gap_cfg.get("age_bw_min"), 4.0))
-            bw_mult = float(or_else(gap_cfg.get("age_bw_mult"), 2.5))
-            gap_age_bw = bw_min if diffs.size == 0 else max(bw_min, float(np.nanmedian(diffs) * bw_mult))
-        if gap_mat.shape[0] > 0:
-            AA = ages_num[:, None] - ages_num[None, :]
-            K = np.exp(-0.5 * (AA / max(gap_age_bw, 1e-8)) ** 2)
-            np.fill_diagonal(K, 0.0)
-            for ii in range(K.shape[0]):
-                if np.sum(K[ii]) <= 0:
-                    K[ii, :] = 1.0
-                    K[ii, ii] = 0.0
-                K[ii, :] = K[ii, :] / max(np.sum(K[ii, :]), 1e-12)
-            mu_cov = K @ gap_mat
-            sd_cov = np.zeros_like(gap_mat, dtype=float)
-            for ii in range(K.shape[0]):
-                diff_cov = gap_mat - mu_cov[ii][None, :]
-                sd_cov[ii, :] = np.sqrt(np.maximum(np.sum(K[ii, :, None] * diff_cov * diff_cov, axis=0), 0.0))
-            z_cov = (gap_mat - mu_cov) / np.maximum(sd_cov + gap_tau_cov, 1e-8)
-            z_cov = np.clip(z_cov, -12.0, 12.0)
-            coverage_new_mat = 1.0 / (1.0 + np.exp(-1.702 * z_cov))
-        else:
-            coverage_new_mat = gap_mat
-        sampling_gap_coverage_by_time = {}
-        sampling_gap_precision_by_time = {}
-        for k, tt in enumerate(time_ids):
-            cov_new = np.clip(np.asarray(coverage_new_mat[k], dtype=float), 0.0, 1.0)
-            sampling_gap_coverage_by_time[str(tt)] = cov_new.astype(np.float32, copy=False)
-            valid_cov = cov_new[np.isfinite(cov_new) & (cov_new > 0)]
-            cov_center = float(np.nanmean(valid_cov)) if valid_cov.size else 1.0
-            if (not np.isfinite(cov_center)) or cov_center <= 0:
-                cov_center = 1.0
-            precision = np.clip(cov_new / cov_center, gap_floor, 1.0)
-            precision[~np.isfinite(precision)] = gap_floor
-            sampling_gap_precision_by_time[str(tt)] = precision.astype(np.float32, copy=False)
-        sampling_gap_info = {
-            "method": "age_aware_relative_coverage_precision",
-            "age_bandwidth": float(gap_age_bw),
-            "tau_cov": float(gap_tau_cov),
-            "numeric_floor": float(gap_floor),
-            "precision_mapping": "min(1, Coverage_new / mean(Coverage_new within age))",
-            "min_target_weight": float(gap_min_target_weight),
-            "min_ref_weight": float(gap_min_ref_weight),
-            "min_type_neff": float(gap_min_type_neff),
+        celltype_js_divergence_by_time = {}
+        celltype_js_distance_by_time = {}
+        celltype_variance_factor_by_time = {}
+        celltype_precision_by_time = {}
+        for tt in time_ids:
+            js_div, js_dist, phi_cell, precision = _celltype_js_adjustment(
+                celltype_proportions_by_sample[str(tt)], p_ref
+            )
+            celltype_js_divergence_by_time[str(tt)] = js_div.astype(np.float32, copy=False)
+            celltype_js_distance_by_time[str(tt)] = js_dist.astype(np.float32, copy=False)
+            celltype_variance_factor_by_time[str(tt)] = phi_cell.astype(np.float32, copy=False)
+            celltype_precision_by_time[str(tt)] = precision.astype(np.float32, copy=False)
+        celltype_adjustment_info = {
+            "method": "normalized_jensen_shannon_distance",
+            "proportion_estimator": "kernel-weighted local proportions with symmetric Dirichlet smoothing",
+            "divergence": "D_JS / log(2), using natural logarithms",
+            "distance": "sqrt(D_JS / log(2))",
+            "variance_factor": "exp(sqrt(D_JS / log(2)))",
+            "precision_factor": "exp(-sqrt(D_JS / log(2)))",
+            "variance_factor_range": [1.0, float(np.e)],
+            "celltype_levels": [str(x) for x in all_levels],
         }
 
         return {
@@ -1670,10 +1653,12 @@ def batch_prepare_once_multi(
             "time_ids": [str(tt) for tt in time_ids],
             "tr_ref": tr_ref,
             "trees_time": trees_time,
-            "sampling_gap_current_by_time": sampling_gap_current_by_time,
-            "sampling_gap_coverage_by_time": sampling_gap_coverage_by_time,
-            "sampling_gap_precision_by_time": sampling_gap_precision_by_time,
-            "sampling_gap_info": sampling_gap_info,
+            "celltype_proportions_by_sample": celltype_proportions_by_sample,
+            "celltype_js_divergence_by_time": celltype_js_divergence_by_time,
+            "celltype_js_distance_by_time": celltype_js_distance_by_time,
+            "celltype_variance_factor_by_time": celltype_variance_factor_by_time,
+            "celltype_precision_by_time": celltype_precision_by_time,
+            "celltype_adjustment_info": celltype_adjustment_info,
             "PARAMS": PARAMS,
             "tr_grid_posthoc": tr_grid_posthoc,
             "hard_radius_loc": hard_radius_loc,
@@ -2206,7 +2191,7 @@ def batch_run_one_gene_and_save_multi_conditional(
     do_plot=None,
     do_expr_plot=None,
     include_Psi=False,
-    sampling_gap_adjust=False,
+    celltype_adjustment=False,
     include_intercept=True,
     time_contrast="vs_ref",
     risk_in_Wv=False,
@@ -2218,6 +2203,11 @@ def batch_run_one_gene_and_save_multi_conditional(
     show_progress=True,
     **kwargs,
 ):
+    if "sampling_gap_adjust" in kwargs:
+        legacy_value = bool(kwargs.pop("sampling_gap_adjust"))
+        if bool(celltype_adjustment) and legacy_value != bool(celltype_adjustment):
+            raise ValueError("Conflicting celltype_adjustment and legacy sampling_gap_adjust values.")
+        celltype_adjustment = legacy_value
     core = max(int(core), 1)
     if seed is not None:
         np.random.seed(int(seed))
@@ -2266,13 +2256,19 @@ def batch_run_one_gene_and_save_multi_conditional(
             "ref_sample_id",
             "risk_global_score_by_time",
             "muA_adj_by_time",
+            "Wv_by_time",
+            "use_by_time",
             "beta_by_time",
             "delta_by_time",
             "gamma_by_time",
             "df_by_time",
             "risk_calibration",
-            "sampling_gap_adjust",
-            "sampling_gap_info",
+            "celltype_adjustment",
+            "celltype_adjustment_info",
+            "celltype_precision_by_time",
+            "celltype_js_divergence_by_time",
+            "celltype_js_distance_by_time",
+            "celltype_variance_factor_by_time",
             "auto_geometry",
             "stat_by_time",
             "p_by_time",
@@ -2342,7 +2338,7 @@ def batch_run_one_gene_and_save_multi_conditional(
                 gene=g,
                 alpha=alpha,
                 include_Psi=include_Psi,
-                sampling_gap_adjust=sampling_gap_adjust,
+                celltype_adjustment=celltype_adjustment,
                 include_intercept=include_intercept,
                 time_contrast=time_contrast,
                 risk_in_Wv=risk_in_Wv,
@@ -2374,10 +2370,10 @@ def batch_run_one_gene_and_save_multi_conditional(
         verbose,
         core,
         _skip_risk_autocalib=False,
-        sampling_gap_adjust_inner=None,
+        celltype_adjustment_inner=None,
     ):
         core = max(int(core), 1)
-        sampling_gap_adjust_use = bool(sampling_gap_adjust) if sampling_gap_adjust_inner is None else bool(sampling_gap_adjust_inner)
+        celltype_adjustment_use = bool(celltype_adjustment) if celltype_adjustment_inner is None else bool(celltype_adjustment_inner)
         STORE_RAW_OUTPUT = bool(_skip_risk_autocalib)
         cleanup_cfg = shared.get("PARAMS", {}).get("drawmask_cleanup", {})
         if drawmask_cleanup is None:
@@ -2743,68 +2739,168 @@ def batch_run_one_gene_and_save_multi_conditional(
                 verbose=False,
                 core=1,
                 _skip_risk_autocalib=True,
-                sampling_gap_adjust_inner=False,
+                celltype_adjustment_inner=False,
             )
-            calib_time_ids = list((dry_fit.get("terrain_data") or {}).get("time_ids", []))
-            time_id_anchor = risk_auto_cfg.get("anchor_time_id")
-            if time_id_anchor is None or time_id_anchor not in calib_time_ids:
-                time_id_anchor = calib_time_ids[0] if calib_time_ids else None
-            risk_names = list((shared.get("risk_time") or {}).keys())
-            time_id_risk = time_id_anchor
-            if time_id_risk is None or time_id_risk not in risk_names:
-                time_id_risk = risk_names[0] if risk_names else None
-            if time_id_anchor is not None and time_id_risk is not None:
-                off_info = get_t_df_use_p_from_fit(dry_fit, time_id_anchor)
-                rr = compute_r01_and_global_score(
-                    risk_vec=shared["risk_time"][time_id_risk],
-                    weight_norm=risk_weight_norm,
-                    cap_q=risk_cap_q,
-                    global_rule=risk_global_rule,
-                    global_thr=risk_global_thr,
-                    global_cap=risk_global_cap,
-                )
-                emp = calibrate_lambdas_empnull_scale(
-                    tvec=off_info["t"],
-                    use_mask=off_info["use"],
-                    r01=rr["r01"],
-                    global_score=rr["global_score"],
-                    df=off_info["df"],
-                    bins=int(or_else(risk_auto_cfg.get("bins"), 10)),
-                    min_bin_n=int(or_else(risk_auto_cfg.get("min_bin_n"), 200)),
-                    p_grid=risk_power_fixed,
-                    tau_anchor_q=float(or_else(risk_auto_cfg.get("tau_anchor_q"), 0.80)),
-                    slack=float(or_else(risk_auto_cfg.get("slack"), 1)),
-                    lam_local_cap=float(or_else(risk_auto_cfg.get("lam_local_cap"), 5e4)),
-                )
-                risk_local_lambda = float(or_else(emp.get("lambda_local_hat"), 0.0))
-                calibrated_global = float(or_else(emp.get("lambda_global_hat"), 0.0))
-                if not np.isclose(calibrated_global, 0.0):
-                    raise RuntimeError(
-                        "The promoted mismatch calibration requires lambda_global_hat=0."
-                    )
-                risk_global_lambda = 0.0
-                risk_calibration = {
-                    "time_id_anchor": time_id_anchor,
-                    "time_id_risk": time_id_risk,
-                    "lambda_local_hat": risk_local_lambda,
-                    "lambda_global_hat": risk_global_lambda,
-                    "r_cap": rr.get("r_cap", np.nan),
-                    "global_score": rr.get("global_score", np.nan),
-                    "calibration": emp,
-                    # Backward-compatible key used by older notebook payloads.
-                    "empnull": emp,
-                }
-            else:
-                risk_calibration = {
-                    "time_id_anchor": time_id_anchor,
-                    "time_id_risk": time_id_risk,
-                    "lambda_local_hat": 0.0,
-                    "lambda_global_hat": 0.0,
+            calib_time_ids = [
+                str(value)
+                for value in (dry_fit.get("terrain_data") or {}).get("time_ids", [])
+            ]
+            risk_time_map = shared.get("risk_time") or {}
+            risk_key_by_id = {str(key): key for key in risk_time_map}
+            bins_auto = int(or_else(risk_auto_cfg.get("bins"), 10))
+            min_bin_n_auto = int(or_else(risk_auto_cfg.get("min_bin_n"), 200))
+            tau_anchor_q_auto = float(or_else(risk_auto_cfg.get("tau_anchor_q"), 0.80))
+            slack_auto = float(or_else(risk_auto_cfg.get("slack"), 1))
+            lam_local_cap_auto = float(or_else(risk_auto_cfg.get("lam_local_cap"), 5e4))
+            huber_kappa_auto = float(or_else(risk_auto_cfg.get("huber_kappa"), 1.345))
+            provisional_by_time = {}
+
+            # First apply the existing within-contrast calibration separately
+            # to every contrast. Failed fallback calibrations are excluded;
+            # a successfully estimated coefficient of zero remains valid.
+            for time_id_contrast in calib_time_ids:
+                record = {
+                    "time_id_contrast": time_id_contrast,
+                    "time_id_risk": time_id_contrast,
+                    "valid": False,
+                    "validity_reasons": tuple(),
+                    "lambda_local_hat": np.nan,
+                    "lambda_global_hat": np.nan,
                     "r_cap": np.nan,
                     "global_score": np.nan,
                     "calibration": None,
                     "empnull": None,
                 }
+                risk_key = risk_key_by_id.get(time_id_contrast)
+                if risk_key is None:
+                    record["validity_reasons"] = (
+                        "missing_contrast_specific_risk_map",
+                    )
+                    provisional_by_time[time_id_contrast] = record
+                    continue
+                try:
+                    off_info = get_t_df_use_p_from_fit(dry_fit, time_id_contrast)
+                    normalized_risk = compute_r01_and_global_score(
+                        risk_vec=risk_time_map[risk_key],
+                        weight_norm=risk_weight_norm,
+                        cap_q=risk_cap_q,
+                        global_rule=risk_global_rule,
+                        global_thr=risk_global_thr,
+                        global_cap=risk_global_cap,
+                    )
+                    calibration = calibrate_lambdas_empnull_scale(
+                        tvec=off_info["t"],
+                        use_mask=off_info["use"],
+                        r01=normalized_risk["r01"],
+                        global_score=normalized_risk["global_score"],
+                        df=off_info["df"],
+                        bins=bins_auto,
+                        min_bin_n=min_bin_n_auto,
+                        p_grid=risk_power_fixed,
+                        tau_anchor_q=tau_anchor_q_auto,
+                        slack=slack_auto,
+                        lam_local_cap=lam_local_cap_auto,
+                        verbose=False,
+                    )
+                    validity = validate_provisional_calibration(
+                        calibration,
+                        min_bin_n=min_bin_n_auto,
+                        lam_local_cap=lam_local_cap_auto,
+                    )
+                    record.update({
+                        "valid": bool(validity["valid"]),
+                        "validity_reasons": validity["reasons"],
+                        "validity": validity,
+                        "lambda_local_hat": float(
+                            or_else(calibration.get("lambda_local_hat"), np.nan)
+                        ),
+                        "lambda_global_hat": float(
+                            or_else(calibration.get("lambda_global_hat"), np.nan)
+                        ),
+                        "at_local_cap": bool(validity["at_local_cap"]),
+                        "r_cap": normalized_risk.get("r_cap", np.nan),
+                        "global_score": normalized_risk.get("global_score", np.nan),
+                        "calibration": calibration,
+                        "empnull": calibration,
+                    })
+                except Exception as error:
+                    record.update({
+                        "validity_reasons": ("calibration_exception",),
+                        "error_type": type(error).__name__,
+                        "error_message": str(error),
+                    })
+                provisional_by_time[time_id_contrast] = record
+
+            # Then obtain one shared coefficient for the gene from an
+            # equal-weight Huber center of the valid provisional estimates.
+            valid_time_ids = [
+                time_id for time_id in calib_time_ids
+                if provisional_by_time[time_id].get("valid", False)
+            ]
+            invalid_time_ids = [
+                time_id for time_id in calib_time_ids
+                if not provisional_by_time[time_id].get("valid", False)
+            ]
+            provisional_values = [
+                provisional_by_time[time_id]["lambda_local_hat"]
+                for time_id in valid_time_ids
+            ]
+            risk_local_lambda, aggregation_diag = huber_center_nonnegative(
+                provisional_values,
+                kappa=huber_kappa_auto,
+            )
+            risk_local_lambda = min(
+                max(float(risk_local_lambda), 0.0),
+                lam_local_cap_auto,
+            )
+            risk_global_lambda = 0.0
+            aggregation_diag.update({
+                "valid_time_ids": tuple(valid_time_ids),
+                "invalid_time_ids": tuple(invalid_time_ids),
+                "equal_weights": (
+                    {
+                        time_id: 1.0 / len(valid_time_ids)
+                        for time_id in valid_time_ids
+                    }
+                    if valid_time_ids
+                    else {}
+                ),
+                "lambda_local_hat": risk_local_lambda,
+                "lambda_global_hat": risk_global_lambda,
+            })
+            sole_time_id = calib_time_ids[0] if len(calib_time_ids) == 1 else None
+            sole_record = (
+                provisional_by_time.get(sole_time_id, {})
+                if sole_time_id is not None
+                else {}
+            )
+            sole_calibration = sole_record.get("calibration")
+            risk_calibration = {
+                "status": aggregation_diag.get("status"),
+                "method": MULTI_CONTRAST_CALIBRATION_MODE,
+                # These two fields remain populated only for a genuine
+                # single-contrast fit for compatibility with older payloads.
+                "time_id_anchor": sole_time_id,
+                "time_id_risk": sole_time_id,
+                "lambda_local_hat": risk_local_lambda,
+                "lambda_global_hat": risk_global_lambda,
+                "n_contrasts_total": int(len(calib_time_ids)),
+                "n_contrasts_valid": int(len(valid_time_ids)),
+                "valid_time_ids": tuple(valid_time_ids),
+                "invalid_time_ids": tuple(invalid_time_ids),
+                "provisional_by_time": provisional_by_time,
+                "aggregation": aggregation_diag,
+                "r_cap": sole_record.get("r_cap", np.nan),
+                "global_score": sole_record.get("global_score", np.nan),
+                "calibration": sole_calibration,
+                "empnull": sole_calibration,
+            }
+            if verbose:
+                print(
+                    f"[risk-calib-aggregate] valid={len(valid_time_ids)}/"
+                    f"{len(calib_time_ids)} method=Huber(kappa={huber_kappa_auto:g}) "
+                    f"lambda_local={risk_local_lambda:.6g}"
+                )
 
         combined = shared["combined"]
         if gene not in combined.columns:
@@ -2848,29 +2944,50 @@ def batch_run_one_gene_and_save_multi_conditional(
             cleanup_bbox_pad = int(or_else(cleanup_cfg.get("bbox_pad"), max(2, auto_cln_cfg_global["close_r"], auto_cln_cfg_global["open_r"], auto_cln_cfg_global["smooth_iter"] + 1)))
 
         zero_comp_by_time_local = {t: np.zeros((N, 0), dtype=float) for t in T_ids}
-        sampling_gap_precision_source = shared.get("sampling_gap_precision_by_time") or {}
-        sampling_gap_precision_local = {}
-        if sampling_gap_adjust_use and not sampling_gap_precision_source:
-            raise ValueError("sampling_gap_adjust=True requires shared['sampling_gap_precision_by_time']; rerun batch_prepare_once_multi.")
+        celltype_precision_source = shared.get("celltype_precision_by_time") or {}
+        celltype_proportion_source = shared.get("celltype_proportions_by_sample") or {}
+        celltype_precision_local = {}
+        celltype_js_divergence_local = {}
+        celltype_js_distance_local = {}
+        celltype_variance_factor_local = {}
+        if celltype_adjustment_use and not celltype_proportion_source:
+            raise ValueError("celltype_adjustment=True requires shared['celltype_proportions_by_sample']; rerun batch_prepare_once_multi.")
+
+        def celltype_precision_for_contrast(target_id, baseline_id):
+            p_t = celltype_proportion_source.get(str(target_id))
+            p_r = celltype_proportion_source.get(str(baseline_id))
+            if p_t is None or p_r is None:
+                raise ValueError(f"Missing local cell-type proportions for contrast {target_id} vs {baseline_id}.")
+            p_t = np.asarray(p_t, dtype=float)
+            p_r = np.asarray(p_r, dtype=float)
+            if p_t.shape != p_r.shape or p_t.ndim != 2 or p_t.shape[0] != N:
+                raise ValueError(f"Invalid local cell-type proportion arrays for contrast {target_id} vs {baseline_id}.")
+            js_div, js_dist, phi_cell, precision = _celltype_js_adjustment(p_t, p_r)
+            return precision, js_div, js_dist, phi_cell
+
         for t in T_ids:
-            if sampling_gap_adjust_use:
-                sg = sampling_gap_precision_source.get(t)
-                if sg is None:
-                    sg = sampling_gap_precision_source.get(str(t))
-                if sg is None:
-                    raise ValueError(f"sampling_gap_adjust=True but no sampling-gap precision map for time_id={t}.")
-                sg = np.asarray(sg, dtype=float).reshape(-1)
-                if sg.shape[0] != N:
-                    tmp = np.ones(N, dtype=float)
-                    m = min(N, sg.shape[0])
-                    if m > 0:
-                        tmp[:m] = sg[:m]
-                    sg = tmp
-                sg = np.clip(sg, float(or_else(shared.get('PARAMS', {}).get('sampling_gap', {}).get('numeric_floor'), 1e-3)), 1.0)
-                sg[~np.isfinite(sg)] = 1.0
-                sampling_gap_precision_local[t] = sg
+            if celltype_adjustment_use:
+                baseline_id = ref_id_chr if time_contrast == "vs_ref" else prev_id_for_t.get(t, ref_id_chr)
+                if baseline_id == ref_id_chr and t in celltype_precision_source:
+                    precision = np.asarray(celltype_precision_source[t], dtype=float).reshape(-1)
+                    js_div = np.asarray((shared.get("celltype_js_divergence_by_time") or {})[t], dtype=float).reshape(-1)
+                    js_dist = np.asarray((shared.get("celltype_js_distance_by_time") or {})[t], dtype=float).reshape(-1)
+                    phi_cell = np.asarray((shared.get("celltype_variance_factor_by_time") or {})[t], dtype=float).reshape(-1)
+                else:
+                    precision, js_div, js_dist, phi_cell = celltype_precision_for_contrast(t, baseline_id)
+                if any(np.asarray(x).shape[0] != N for x in (precision, js_div, js_dist, phi_cell)):
+                    raise ValueError(f"Cell-type adjustment map length does not match the shared grid for time_id={t}.")
+                precision = np.clip(np.asarray(precision, dtype=float), np.exp(-1.0), 1.0)
+                precision[~np.isfinite(precision)] = 1.0
+                celltype_precision_local[t] = precision
+                celltype_js_divergence_local[t] = np.clip(np.asarray(js_div, dtype=float), 0.0, 1.0)
+                celltype_js_distance_local[t] = np.clip(np.asarray(js_dist, dtype=float), 0.0, 1.0)
+                celltype_variance_factor_local[t] = np.clip(np.asarray(phi_cell, dtype=float), 1.0, np.e)
             else:
-                sampling_gap_precision_local[t] = np.ones(N, dtype=float)
+                celltype_precision_local[t] = np.ones(N, dtype=float)
+                celltype_js_divergence_local[t] = np.zeros(N, dtype=float)
+                celltype_js_distance_local[t] = np.zeros(N, dtype=float)
+                celltype_variance_factor_local[t] = np.ones(N, dtype=float)
 
         Psi_raw_by_time_local = {}
         for t in T_ids:
@@ -2946,8 +3063,8 @@ def batch_run_one_gene_and_save_multi_conditional(
                     v_floor2 = risk_wv_min
                 Wv = 1 / np.maximum(v_risk, v_floor2)
                 risk_global_score = rr_t["global_score"]
-            if sampling_gap_adjust_use:
-                Wv = Wv * sampling_gap_precision_local[t]
+            if celltype_adjustment_use:
+                Wv = Wv * celltype_precision_local[t]
             return {"y": y, "Wv": Wv, "use": use, "muA": muA, "muB": muB, "neff": ne_use, "risk_global_score": risk_global_score}
 
         time_res = chunked_apply(T_ids, time_worker, core=core, chunk_size=core)
@@ -3243,9 +3360,12 @@ def batch_run_one_gene_and_save_multi_conditional(
             "Wv_by_time": Wv_list,
             "use_by_time": use_list,
             "risk_global_score_by_time": risk_global_score_by_time,
-            "sampling_gap_adjust": bool(sampling_gap_adjust_use),
-            "sampling_gap_precision_by_time": sampling_gap_precision_local if sampling_gap_adjust_use else None,
-            "sampling_gap_info": shared.get("sampling_gap_info"),
+            "celltype_adjustment": bool(celltype_adjustment_use),
+            "celltype_precision_by_time": celltype_precision_local if celltype_adjustment_use else None,
+            "celltype_js_divergence_by_time": celltype_js_divergence_local if celltype_adjustment_use else None,
+            "celltype_js_distance_by_time": celltype_js_distance_local if celltype_adjustment_use else None,
+            "celltype_variance_factor_by_time": celltype_variance_factor_local if celltype_adjustment_use else None,
+            "celltype_adjustment_info": shared.get("celltype_adjustment_info"),
             "muA_adj_by_time": muA_adj_by_time,
             "beta_by_time": {t: res_list[t]["beta"] for t in T_ids},
             "delta_by_time": {t: res_list[t]["delta"] for t in T_ids},
@@ -3366,10 +3486,11 @@ def batch_run_one_gene_and_save_multi_conditional(
             terrain_data["sig_raw_by_time"] = sig_raw_list
 
         if not _skip_risk_autocalib:
-            # Local P values are part of the public compact result because the
-            # gene-level ACAT summary combines them after fitting. The larger
-            # intermediate moment/weight arrays can still be discarded.
-            for nm in ["muA_by_time", "muB_by_time", "y_by_time", "neff_by_time", "Wv_by_time", "use_by_time"]:
+            # Local P values support the spatial ACAT summary. Adjusted local
+            # expression, precision and use masks are also retained because
+            # the age-trend ACAT fits unsmoothed weighted slopes across
+            # contrasts. Larger raw moment arrays can still be discarded.
+            for nm in ["muA_by_time", "muB_by_time", "y_by_time", "neff_by_time"]:
                 if nm in terrain_data:
                     terrain_data[nm] = None
             terrain_data = compact_terrain_data_for_return(terrain_data)
@@ -3383,7 +3504,7 @@ def batch_run_one_gene_and_save_multi_conditional(
         drawmask_cleanup=drawmask_cleanup,
         verbose=verbose,
         core=core,
-        sampling_gap_adjust_inner=sampling_gap_adjust,
+        celltype_adjustment_inner=celltype_adjustment,
     )
 
 
@@ -3404,6 +3525,7 @@ def run_global_spatial_roi_trajectory_clustering(
     shared,
     K_TRAJ=None,
     auto_k=None,
+    time_values=None,
     do_plot=True,
     seed=None,
     core=1,
@@ -3416,19 +3538,26 @@ def run_global_spatial_roi_trajectory_clustering(
     """
     Global spatial-ROI trajectory clustering.
 
-    This v3 wrapper keeps the original trajectory-clustering idea as the backbone:
-    smoothed muA_adj_by_time trajectories are the dominant feature. Spatial x/y
-    coordinates enter as a weak tie-breaker, and auto-K explicitly penalizes a
-    cluster label that is split into many disconnected components.
+    Global spatial-ROI trajectory clustering using complete adjusted-expression
+    trajectories as the primary features. Spatial coordinates remain weak
+    tie-breakers and spatial label refinement preserves coherent regions.
 
-    It is still one global clustering problem. It does not use gene-specific ROI
-    rules, does not force K, and does not use stat/delta as a main feature.
+    When K_TRAJ is omitted, auto-K is selected in two stages without a
+    hand-weighted composite score: (1) held-out-time evidence for
+    cluster-specific trajectories, then (2) a fine-to-coarse scan within the
+    statistically indistinguishable K plateau. Starting from the finest
+    candidate, the scan coarsens while R_map-scale fragmentation decreases and
+    stops at the first fine-side local minimum.
     """
     _ = max(int(core), 1)  # API compatibility; the implementation is vectorized.
 
     cfg_default = {
         "K_GRID": list(range(2, 10)),
-        "AUTO_SUBSAMPLE_N": 25000,
+        # Candidate K values share the feature matrix and spatial graph.
+        # Full-grid candidate fits are the default because auto-K is a
+        # model-selection decision. Set AUTO_SUBSAMPLE_N explicitly to use
+        # a faster approximate screening fit on very large datasets.
+        "AUTO_SUBSAMPLE_N": 0,
         "SPATIAL_GRAPH_K": 10,
         "GRAPH_BANDWIDTH_SCALE": 1.0,
         "BS_DF": 8,
@@ -3436,23 +3565,14 @@ def run_global_spatial_roi_trajectory_clustering(
         "BS_RIDGE": 1e-2,
         "FEATURE_SMOOTH_ALPHA": 0.55,
         "FEATURE_SMOOTH_ITERS": 5,
-        "KMEANS_NSTART_AUTO": 4,
+        "KMEANS_NSTART_AUTO": 3,
         "KMEANS_NSTART_FULL": 6,
         "KMEANS_ITER_AUTO": 80,
         "KMEANS_ITER_FULL": 100,
-        "AUTOK_REFINE_MAXITER": 3,
+        "AUTOK_REFINE_MAXITER": 8,
         "FINAL_LABEL_BETA": 2.8,
         "FINAL_LABEL_MAXITER": 10,
-        "MIN_CLUSTER_PROP": 0.030,
-        "LAMBDA_COMPLEXITY": 0.035,
-        "ALPHA_COMPLEXITY": 1.10,
-        "COMPONENT_EXCESS_WEIGHT": 0.10,
-        "FRAGMENT_MASS_WEIGHT": 1.50,
-        "ROI_SCORE_WEIGHT": 0.28,
-        "NEAR_BEST_FRAC": 0.97,
-        "K_SELECT": "largest_near_best",
-        "DUAL_KNEE_LATE_MIN_STEPS": 2,
-        "DUAL_KNEE_SELECT": "largest",
+        "AUTO_K_MAX_TIME_FOLDS": 5,
         "SHOW_AUTO_K_DIAGNOSTIC": False,
         "ROWREL_CLIP": (0.60, 1.80),
         "RANDOM_STATE_FALLBACK": 1,
@@ -3509,13 +3629,46 @@ def run_global_spatial_roi_trajectory_clustering(
             tids = [tids[i] for i in order.tolist()]
         return tids
 
-    time_ids_all = _ordered_time_ids(mu_by_time)
+    time_ids_input = list(mu_by_time.keys())
+    time_numeric_override = None
+    if time_values is None:
+        time_ids_all = _ordered_time_ids(mu_by_time)
+    else:
+        time_numeric_input = np.asarray(time_values, dtype=float).reshape(-1)
+        if time_numeric_input.size != len(time_ids_input):
+            raise ValueError(
+                "time_values must have one value for each trajectory time ID "
+                "in insertion order."
+            )
+        if not np.all(np.isfinite(time_numeric_input)):
+            raise ValueError("time_values must contain only finite numeric values.")
+        order = np.argsort(time_numeric_input, kind="stable")
+        time_ids_all = [time_ids_input[index] for index in order.tolist()]
+        time_numeric_override = time_numeric_input[order]
     if len(time_ids_all) < 2:
         raise ValueError("Need at least two time points in muA_adj_by_time.")
 
+    time_numeric_lookup = (
+        {str(time_id): float(value) for time_id, value in zip(time_ids_all, time_numeric_override)}
+        if time_numeric_override is not None
+        else None
+    )
+
+    def _time_numeric_for_ids(time_ids):
+        if time_numeric_lookup is None:
+            return _infer_time_numeric(time_ids)
+        return np.asarray([time_numeric_lookup[str(time_id)] for time_id in time_ids], dtype=float)
+
+    def _resolved_time_numeric_for_ids(time_ids):
+        values = _time_numeric_for_ids(time_ids)
+        fallback = np.arange(len(time_ids), dtype=float)
+        if not np.any(np.isfinite(values)):
+            return fallback
+        return np.where(np.isfinite(values), values, fallback)
+
     nonref = [t for t in time_ids_all if str(t) != str(ref_sample_id)]
     if nonref:
-        nums_nonref = _infer_time_numeric(nonref)
+        nums_nonref = _time_numeric_for_ids(nonref)
         if np.any(np.isfinite(nums_nonref)):
             time_id_plot_map = nonref[int(np.argmin(np.where(np.isfinite(nums_nonref), nums_nonref, np.inf)))]
         else:
@@ -3581,14 +3734,14 @@ def run_global_spatial_roi_trajectory_clustering(
             where=count > 0,
         )
         centered = np.where(finite, X - mu, 0.0)
-        denom = np.maximum(count - 1, 1)
-        var = np.divide(
+        denominator = np.maximum(count - 1, 1)
+        variance = np.divide(
             np.sum(centered * centered, axis=0, keepdims=True),
-            denom,
+            denominator,
             out=np.ones((1, X.shape[1]), dtype=np.float32),
             where=count > 1,
         )
-        sd = np.sqrt(var)
+        sd = np.sqrt(variance)
         mu[~np.isfinite(mu)] = 0.0
         sd[~np.isfinite(sd) | (sd < eps)] = 1.0
         Z = (X - mu) / sd
@@ -3627,52 +3780,6 @@ def run_global_spatial_roi_trajectory_clustering(
         out[ok] = np.clip((x[ok] - lo) / (hi - lo), 0.0, 1.0)
         return out
 
-    def _chord_knee_score(x, y, eps=1e-12):
-        x = np.asarray(x, dtype=float).reshape(-1)
-        y = np.asarray(y, dtype=float).reshape(-1)
-        score = np.zeros_like(x, dtype=np.float32)
-        ok = np.isfinite(x) & np.isfinite(y)
-        if np.sum(ok) < 3:
-            return score
-
-        idx = np.where(ok)[0]
-        xx = x[idx]
-        yy = y[idx]
-        xr = float(np.nanmax(xx) - np.nanmin(xx))
-        yr = float(np.nanmax(yy) - np.nanmin(yy))
-        if xr < eps or yr < eps:
-            return score
-
-        xx = (xx - np.nanmin(xx)) / xr
-        yy = (yy - np.nanmin(yy)) / yr
-        x0, y0 = float(xx[0]), float(yy[0])
-        x1, y1 = float(xx[-1]), float(yy[-1])
-        vx, vy = x1 - x0, y1 - y0
-        denom = math.sqrt(vx * vx + vy * vy)
-        if denom < eps:
-            return score
-
-        dist = np.abs(vx * (yy - y0) - vy * (xx - x0)) / denom
-        mx = float(np.nanmax(dist))
-        if mx > eps:
-            dist = dist / mx
-        score[idx] = dist.astype(np.float32, copy=False)
-        return score
-
-    def _rough_one_se(values, eps=1e-12):
-        v = np.asarray(values, dtype=float).reshape(-1)
-        ok = np.isfinite(v)
-        if np.sum(ok) < 4:
-            return 0.0
-        vals = v[ok]
-        smooth = pd.Series(vals).rolling(window=3, center=True, min_periods=1).median().to_numpy(dtype=float)
-        resid = vals - smooth
-        med = float(np.nanmedian(resid))
-        mad = float(np.nanmedian(np.abs(resid - med)))
-        if not np.isfinite(mad) or mad < eps:
-            return 0.0
-        return float(1.4826 * mad / math.sqrt(vals.size))
-
     def _normalize_positive_weights(w, clip=(0.60, 1.80), eps=1e-8):
         w = np.asarray(w, dtype=float).reshape(-1)
         w[~np.isfinite(w)] = 0.0
@@ -3699,7 +3806,7 @@ def run_global_spatial_roi_trajectory_clustering(
         raise ValueError(f"Grid length mismatch: muA has {n_grid} rows, grid_eval has {grid_xy.shape[0]} rows.")
 
     def _build_bspline_basis(time_ids, df=8, degree=3):
-        tnum = _infer_time_numeric(time_ids)
+        tnum = _time_numeric_for_ids(time_ids)
         if np.all(~np.isfinite(tnum)):
             x = np.linspace(0.0, 1.0, len(time_ids))
         else:
@@ -3957,6 +4064,7 @@ def run_global_spatial_roi_trajectory_clustering(
         return np.asarray(vals, dtype=float)
 
     def _component_metrics(labels, K, weights):
+        """Connected-component diagnostics retained for the final partition."""
         labels = np.asarray(labels, dtype=np.int32).reshape(-1)
         weights = np.asarray(weights, dtype=float).reshape(-1)
         A = graph["A"]
@@ -3977,23 +4085,17 @@ def run_global_spatial_roi_trajectory_clustering(
                 comp_w = np.bincount(comp, weights=weights[idx_k], minlength=ncomp).astype(float)
             comp_w = np.sort(comp_w)[::-1]
             mass_k = max(float(np.sum(comp_w)), 1e-8)
-            frag_k = float(np.sum(comp_w[1:])) / mass_k if comp_w.size > 1 else 0.0
             fragment_mass += float(np.sum(comp_w[1:]))
             component_excess += max(int(comp_w.size) - 1, 0)
             rows.append({
                 "cluster": k,
                 "n_components": int(comp_w.size),
                 "main_component_prop": float(comp_w[0] / mass_k),
-                "fragment_mass": frag_k,
+                "fragment_mass": float(np.sum(comp_w[1:]) / mass_k) if comp_w.size > 1 else 0.0,
             })
-        fragment_mass_prop = float(np.clip(fragment_mass / total_w, 0.0, 1.0))
-        mean_excess = float(component_excess / max(K, 1))
-        roi_score = math.exp(-float(cfg.get("COMPONENT_EXCESS_WEIGHT", 0.10)) * mean_excess)
-        roi_score *= math.exp(-float(cfg.get("FRAGMENT_MASS_WEIGHT", 1.50)) * fragment_mass_prop)
         return {
-            "fragment_mass": fragment_mass_prop,
-            "mean_component_excess": mean_excess,
-            "roi_score": float(np.clip(roi_score, 0.0, 1.0)),
+            "fragment_mass": float(np.clip(fragment_mass / total_w, 0.0, 1.0)),
+            "mean_component_excess": float(component_excess / max(K, 1)),
             "component_table": pd.DataFrame(rows),
         }
 
@@ -4006,208 +4108,317 @@ def run_global_spatial_roi_trajectory_clustering(
         p = None if np.sum(p) <= 0 else p / np.sum(p)
         return np.sort(rng.choice(n, size=target_n, replace=False, p=p).astype(int))
 
+    def _cluster_time_means(labels):
+        """Weighted means of the complete mu_i(t) trajectory for a partition."""
+        labels = np.asarray(labels, dtype=np.int32).reshape(-1)
+        K = int(np.max(labels))
+        means = np.full((K, n_time), np.nan, dtype=float)
+        masses = np.zeros((K, n_time), dtype=float)
+        for j in range(n_time):
+            # Dynamic validation uses the observed trajectory at this age.
+            # Missing values are excluded here; imputation above is only for
+            # constructing the clustering feature matrix.
+            y = _as_1d(mu_by_time[time_ids_all[j]], float)
+            good = np.isfinite(y) & np.isfinite(row_rel) & (row_rel > 0)
+            if not np.any(good):
+                continue
+            lab = labels[good] - 1
+            w = row_rel[good].astype(float, copy=False)
+            mass = np.bincount(lab, weights=w, minlength=K).astype(float)
+            total = np.bincount(lab, weights=w * y[good], minlength=K).astype(float)
+            ok = mass > 0
+            means[ok, j] = total[ok] / mass[ok]
+            masses[:, j] = mass
+        return means, masses
+
+    def _choose_time_cv_design():
+        # The trajectory comparison is only meaningful when enough distinct
+        # ages remain for an out-of-sample curve. For T=4 or 5, use the
+        # simplest linear curve and leave one age out at a time.
+        if n_time <= 3:
+            return None
+        if n_time <= 5:
+            return 1, n_time
+        max_folds = min(max(2, int(cfg.get("AUTO_K_MAX_TIME_FOLDS", 5))), n_time // 2)
+        # A cluster-specific degree-d curve has d+1 coefficients per
+        # cluster. Require at least two training ages per coefficient.
+        for degree in (3, 2, 1):
+            min_train = 2 * (degree + 1)
+            feasible = [
+                folds for folds in range(2, max_folds + 1)
+                if n_time - int(np.ceil(n_time / folds)) >= min_train
+            ]
+            if feasible:
+                return degree, max(feasible)
+        return None
+
+    def _time_basis_for_cv(degree):
+        raw = _time_numeric_for_ids(time_ids_all)
+        if not np.any(np.isfinite(raw)):
+            raw = np.arange(n_time, dtype=float)
+        else:
+            raw = np.where(np.isfinite(raw), raw, np.arange(n_time, dtype=float))
+        x = (raw - float(np.min(raw))) / max(float(np.max(raw) - np.min(raw)), 1e-8)
+        degree = min(max(int(degree), 1), max(n_time - 2, 1))
+        return np.column_stack([x ** power for power in range(1, degree + 1)])
+
+    def _weighted_lstsq_predict(X_train, y_train, w_train, X_pred):
+        good = np.isfinite(y_train) & np.isfinite(w_train) & (w_train > 0)
+        if int(np.sum(good)) < X_train.shape[1]:
+            return np.full(X_pred.shape[0], np.nan, dtype=float)
+        root_w = np.sqrt(w_train[good])
+        coef, *_ = np.linalg.lstsq(X_train[good] * root_w[:, None], y_train[good] * root_w, rcond=None)
+        return X_pred @ coef
+
+    def _dynamic_fold_loss(cluster_means, cluster_masses, basis_cv, train_idx, test_idx):
+        """Held-out loss for shared versus cluster-specific age trajectories."""
+        n_cluster = cluster_means.shape[0]
+        n_basis = basis_cv.shape[1]
+
+        def _design(indices, interaction):
+            n_rows = n_cluster * len(indices)
+            n_cols = n_cluster + (n_cluster * n_basis if interaction else n_basis)
+            D = np.zeros((n_rows, n_cols), dtype=float)
+            row = 0
+            for c in range(n_cluster):
+                for t in indices:
+                    D[row, c] = 1.0
+                    if interaction:
+                        D[row, n_cluster + c * n_basis:n_cluster + (c + 1) * n_basis] = basis_cv[t]
+                    else:
+                        D[row, n_cluster:] = basis_cv[t]
+                    row += 1
+            return D
+
+        y_train = cluster_means[:, train_idx].reshape(-1)
+        w_train = cluster_masses[:, train_idx].reshape(-1)
+        y_test = cluster_means[:, test_idx].reshape(-1)
+        w_test = cluster_masses[:, test_idx].reshape(-1)
+        pred_shared = _weighted_lstsq_predict(_design(train_idx, False), y_train, w_train, _design(test_idx, False))
+        pred_cluster = _weighted_lstsq_predict(_design(train_idx, True), y_train, w_train, _design(test_idx, True))
+        good_shared = np.isfinite(y_test) & np.isfinite(pred_shared) & np.isfinite(w_test) & (w_test > 0)
+        good_cluster = np.isfinite(y_test) & np.isfinite(pred_cluster) & np.isfinite(w_test) & (w_test > 0)
+        loss_shared = float(np.sum(w_test[good_shared] * (y_test[good_shared] - pred_shared[good_shared]) ** 2))
+        loss_cluster = float(np.sum(w_test[good_cluster] * (y_test[good_cluster] - pred_cluster[good_cluster]) ** 2))
+        gain = (loss_shared - loss_cluster) / max(loss_shared, np.finfo(float).tiny)
+        return loss_shared, loss_cluster, float(gain)
+
+    def _rmap_footprint_size():
+        r_map = shared.get("R_map", None)
+        if r_map is None:
+            r_map = 1.5 * shared.get("grid_spacing", np.nan)
+        try:
+            r_map = float(r_map)
+        except Exception:
+            r_map = np.nan
+        if not np.isfinite(r_map) or r_map <= 0:
+            raise ValueError("auto-K needs shared['R_map'] or a positive shared['grid_spacing'].")
+        tree = cKDTree(grid_xy)
+        try:
+            counts = np.asarray(tree.query_ball_point(grid_xy, r=r_map, return_length=True), dtype=int)
+        except TypeError:
+            counts = np.fromiter((len(x) for x in tree.query_ball_point(grid_xy, r=r_map)), dtype=int, count=n_grid)
+        return int(max(1, np.ceil(np.median(counts)))), r_map
+
+    def _resolution_support(labels, K, min_footprint):
+        """Grid fraction and count of components below one R_map footprint."""
+        labels = np.asarray(labels, dtype=np.int32).reshape(-1)
+        small_n = 0
+        small_components = 0
+        n_components = 0
+        min_size = n_grid
+        for k in range(1, K + 1):
+            idx_k = np.flatnonzero(labels == k)
+            if idx_k.size == 0:
+                continue
+            sub = graph["A"][idx_k, :][:, idx_k]
+            n_comp, membership = connected_components(sub, directed=False, return_labels=True)
+            sizes = np.bincount(membership, minlength=n_comp).astype(int)
+            n_components += int(n_comp)
+            min_size = min(min_size, int(sizes.min()))
+            small = sizes < min_footprint
+            small_components += int(np.sum(small))
+            small_n += int(np.sum(sizes[small]))
+        return {
+            "n_connected_components": int(n_components),
+            "minimum_component_grid_locations": int(min_size),
+            "small_components_below_one_Rmap_footprint": int(small_components),
+            "grid_fraction_in_small_components": float(small_n / max(n_grid, 1)),
+        }
+
     def _eval_auto_k():
-        K_grid = sorted(set(int(k) for k in list(cfg.get("K_GRID", range(2, 10)))))
-        K_grid = [k for k in K_grid if 2 <= k <= max(2, n_grid - 1)]
+        K_grid = sorted({int(k) for k in list(cfg.get("K_GRID", range(2, 10))) if 2 <= int(k) <= max(2, n_grid - 1)})
         if not K_grid:
             raise ValueError("No valid K values in K_GRID.")
+        cv_design = _choose_time_cv_design()
+        if cv_design is None:
+            table = pd.DataFrame({"K": K_grid})
+            table["selected_final_k"] = table["K"].eq(min(K_grid))
+            return {
+                "best_k": int(min(K_grid)), "coarse_k": int(min(K_grid)), "table": table,
+                "models": {}, "sample_n": 0,
+                "selection": {
+                    "mode": "minimum_K",
+                    "dynamic_candidates": [int(min(K_grid))],
+                },
+            }
+
+        # Feature construction and graph building occur once above. Candidate
+        # labels are released immediately; only small center matrices are kept
+        # to initialize the single final fit. Full-grid fitting is the default.
         sample_idx = _sample_indices(n_grid, int(cfg.get("AUTO_SUBSAMPLE_N", 25000)), row_rel)
         Xs = X_feat[sample_idx]
         ws = row_rel[sample_idx]
-        center1 = _recompute_centers(X_feat, np.ones(n_grid, dtype=np.int32), row_rel, 1)
-        _, d2_one = _dist2_to_centers(X_feat, center1)
-        WSS1 = max(float(np.sum(row_rel.astype(float) * d2_one)), 1e-8)
-        prev_wss = WSS1
+        min_footprint, r_map = _rmap_footprint_size()
+        degree_cv, n_folds = cv_design
+        all_time_idx = np.arange(n_time, dtype=int)
+        heldout_folds = [np.arange(fold, n_time, n_folds, dtype=int) for fold in range(n_folds)]
+        basis_cv = _time_basis_for_cv(degree_cv)
         rows = []
         models = {}
+
         for K in K_grid:
-            km_s = _weighted_kmeans(
-                Xs,
-                ws,
-                K,
-                seed_local=_safe_seed(seed) + 1013 * K,
-                nstart=int(cfg.get("KMEANS_NSTART_AUTO", 4)),
-                itermax=int(cfg.get("KMEANS_ITER_AUTO", 80)),
-            )
+            km_s = _weighted_kmeans(Xs, ws, K, seed_local=_safe_seed(seed) + 90001 + K,
+                                    nstart=int(cfg.get("KMEANS_NSTART_AUTO", 3)),
+                                    itermax=int(cfg.get("KMEANS_ITER_AUTO", 70)))
             labels_full, _ = _dist2_to_centers(X_feat, km_s["centers"])
-            labels_ref, centers_ref, min_d2_ref = _spatial_refine_labels(
-                X_feat,
-                labels_full,
-                row_rel,
-                K,
+            labels_ref, centers_ref, _ = _spatial_refine_labels(
+                X_feat, labels_full, row_rel, K,
                 beta=float(cfg.get("FINAL_LABEL_BETA", 2.8)),
                 max_iter=int(cfg.get("AUTOK_REFINE_MAXITER", 3)),
             )
-            wss_k = float(np.sum(row_rel.astype(float) * min_d2_ref))
-            weight_size = np.array([np.sum(row_rel[labels_ref == k]) for k in range(1, K + 1)], dtype=float)
-            min_prop = float(np.min(weight_size) / max(float(np.sum(weight_size)), 1e-8))
-            gain = (WSS1 - wss_k) / WSS1
-            delta = (prev_wss - wss_k) / WSS1
-            prev_wss = wss_k
-            within_scale = float(np.nanmedian(np.sqrt(np.maximum(min_d2_ref, 0.0)))) + 1e-8
-            between = _pairwise_centroid_dist(centers_ref)
-            sep = float(np.nanmedian(between) / within_scale) if between.size else 0.0
-            comp = _component_metrics(labels_ref, K, row_rel)
+            means, masses = _cluster_time_means(labels_ref)
+            support = _resolution_support(labels_ref, K, min_footprint)
+            fold_gain, fold_shared, fold_cluster = [], [], []
+            for test_idx in heldout_folds:
+                train_idx = np.setdiff1d(all_time_idx, test_idx, assume_unique=True)
+                loss_shared, loss_cluster, gain = _dynamic_fold_loss(means, masses, basis_cv, train_idx, test_idx)
+                fold_gain.append(gain)
+                fold_shared.append(loss_shared)
+                fold_cluster.append(loss_cluster)
+            gain_arr = np.asarray(fold_gain, dtype=float)
+            n_gain = int(np.sum(np.isfinite(gain_arr)))
+            se_gain = float(np.nanstd(gain_arr, ddof=1) / np.sqrt(n_gain)) if n_gain > 1 else 0.0
             rows.append({
-                "K": K,
-                "tot_withinss": wss_k,
-                "gain": gain,
-                "delta": delta,
-                "sep": sep,
-                "min_prop": min_prop,
-                "fragment_mass": comp["fragment_mass"],
-                "mean_component_excess": comp["mean_component_excess"],
-                "roi_score": comp["roi_score"],
+                "K": int(K),
+                "mean_dynamic_gain": float(np.nanmean(gain_arr)),
+                "se_dynamic_gain": se_gain,
+                "mean_shared_time_loss": float(np.nanmean(fold_shared)),
+                "mean_cluster_specific_time_loss": float(np.nanmean(fold_cluster)),
+                "R_map": float(r_map),
+                "R_map_footprint_grid_locations": int(min_footprint),
+                **support,
             })
-            # Keep only centers for the selected final full run; labels/min_d2 are
-            # deliberately not cached for every K to limit memory use.
-            models[K] = {"centers": centers_ref.astype(np.float32, copy=True)}
+            models[int(K)] = {"centers": centers_ref.astype(np.float32, copy=True)}
+            del labels_full, labels_ref, centers_ref, means, masses
+
         df = pd.DataFrame(rows).sort_values("K").reset_index(drop=True)
-        gain01 = _robust_01(df["gain"].to_numpy(), 0.00, 0.95)
-        delta01 = _robust_01(df["delta"].to_numpy(), 0.00, 0.95)
-        sep01 = _robust_01(np.log1p(df["sep"].to_numpy()), 0.00, 0.95)
-        size01 = np.clip(df["min_prop"].to_numpy(dtype=float) / float(cfg.get("MIN_CLUSTER_PROP", 0.030)), 0.0, 1.0)
-        roi01 = np.clip(df["roi_score"].to_numpy(dtype=float), 0.0, 1.0)
-        Kvec = df["K"].to_numpy(dtype=float)
-        complexity = np.zeros_like(Kvec) if np.max(Kvec) <= 2 else ((Kvec - 2.0) / (np.max(Kvec) - 2.0)) ** float(cfg.get("ALPHA_COMPLEXITY", 1.10))
-        roi_w = float(cfg.get("ROI_SCORE_WEIGHT", 0.28))
-        geom = (
-            0.32 * delta01
-            + 0.20 * gain01
-            + 0.14 * sep01
-            + 0.14 * size01
-            + roi_w * roi01
-        ) / (0.32 + 0.20 + 0.14 + 0.14 + roi_w)
-        final_score = geom - float(cfg.get("LAMBDA_COMPLEXITY", 0.035)) * complexity
-        df["gain01"] = gain01
-        df["delta01"] = delta01
-        df["sep01"] = sep01
-        df["size01"] = size01
-        df["roi01"] = roi01
-        df["complexity"] = complexity
-        df["final_score"] = final_score
-        coarse_idx = int(np.nanargmax(df["final_score"].to_numpy(dtype=float)))
-        coarse_k = int(df.loc[coarse_idx, "K"])
-        near_frac = cfg.get("NEAR_BEST_FRAC", None)
-        if near_frac is not None:
-            best_score = float(df.loc[coarse_idx, "final_score"])
-            near = df["final_score"] >= float(near_frac) * best_score
-            plausible = (
-                near
-                & (df["min_prop"] >= 0.75 * float(cfg.get("MIN_CLUSTER_PROP", 0.030)))
-                & (df["roi_score"] >= 0.50)
-            )
-            if np.any(plausible):
-                mode = str(cfg.get("K_SELECT", "largest_near_best")).lower()
-                if mode == "smallest_near_best":
-                    coarse_k = int(np.min(df.loc[plausible, "K"]))
-                elif mode == "best":
-                    coarse_k = int(df.loc[coarse_idx, "K"])
-                else:
-                    coarse_k = int(np.max(df.loc[plausible, "K"]))
-
-        def _select_dual_knee(tab, base_k):
-            tab = tab.copy()
-            K_arr = tab["K"].to_numpy(dtype=int)
-            K_float = K_arr.astype(float)
-            base_k = int(base_k)
-            if base_k not in set(K_arr.tolist()):
-                base_k = int(tab.loc[tab["final_score"].astype(float).idxmax(), "K"])
-
-            wss = np.maximum(tab["tot_withinss"].to_numpy(dtype=float), 1e-12)
-            tab["wss_log"] = np.log(wss)
-            tab["wss_knee_score"] = _chord_knee_score(K_float, tab["wss_log"].to_numpy(dtype=float))
-            tab["delta_knee_score"] = _robust_01(tab["delta"].to_numpy(dtype=float), 0.0, 1.0)
-
-            base_gain = float(tab.loc[tab["K"].astype(int) == base_k, "gain"].iloc[0])
-            extra_gain = np.maximum(tab["gain"].to_numpy(dtype=float) - base_gain, 0.0)
-            post_mask = K_arr > base_k
-            max_extra = float(np.nanmax(extra_gain[post_mask])) if np.any(post_mask) else 0.0
-            post_gain01 = extra_gain / max_extra if max_extra > 1e-12 else np.zeros_like(extra_gain, dtype=float)
-
-            sep01_dual = np.clip(tab["sep01"].to_numpy(dtype=float), 0.0, 1.0)
-            size01_dual = np.clip(tab["size01"].to_numpy(dtype=float), 0.0, 1.0)
-            fragment01 = _robust_01(tab["fragment_mass"].to_numpy(dtype=float), 0.0, 0.95)
-            coherence01 = np.clip(1.0 - fragment01.astype(float), 0.0, 1.0)
-
-            tab["coarse_selected"] = K_arr == base_k
-            tab["extra_gain_vs_base"] = extra_gain
-            tab["post_gain01"] = np.clip(post_gain01, 0.0, 1.0)
-            tab["sep01_dual"] = sep01_dual
-            tab["size01_dual"] = size01_dual
-            tab["fragment01_dual"] = fragment01
-            tab["coherence01_dual"] = coherence01
-            tab["resolution_evidence"] = (
-                tab["post_gain01"].to_numpy(dtype=float)
-                * tab["sep01_dual"].to_numpy(dtype=float)
-                * tab["size01_dual"].to_numpy(dtype=float)
-                * tab["coherence01_dual"].to_numpy(dtype=float)
-            )
-            tab.loc[K_arr <= base_k, "resolution_evidence"] = 0.0
-
-            res_score = np.zeros(tab.shape[0], dtype=np.float32)
-            res_mask = K_arr >= base_k
-            if np.sum(res_mask) >= 3:
-                res_score[res_mask] = _chord_knee_score(
-                    K_float[res_mask],
-                    tab.loc[res_mask, "resolution_evidence"].to_numpy(dtype=float),
-                )
-            tab["resolution_knee_score"] = res_score
-            tab.loc[K_arr <= base_k, "resolution_knee_score"] = 0.0
-
-            decision_score = tab["resolution_knee_score"].to_numpy(dtype=float).copy()
-            if (not np.any(post_mask)) or float(np.nanmax(decision_score[post_mask])) <= 1e-12:
-                decision_score = tab["resolution_evidence"].to_numpy(dtype=float).copy()
-            tab["resolution_decision_score"] = decision_score
-
-            late_min_steps = int(cfg.get("DUAL_KNEE_LATE_MIN_STEPS", 2))
-            early_mask = (K_arr > base_k) & (K_arr < base_k + late_min_steps)
-            late_mask = (K_arr >= base_k + late_min_steps) & (K_arr > base_k)
-            score_se = _rough_one_se(decision_score[post_mask]) if np.any(post_mask) else 0.0
-            early_best = float(np.nanmax(decision_score[early_mask])) if np.any(early_mask) else -np.inf
-            late_best = float(np.nanmax(decision_score[late_mask])) if np.any(late_mask) else -np.inf
-            late_has_evidence = bool(np.any(tab.loc[late_mask, "resolution_evidence"].to_numpy(dtype=float) > 0))
-            promoted = bool(late_has_evidence and np.isfinite(late_best) and late_best + score_se >= early_best)
-
-            tab["eligible_late_resolution"] = late_mask
-            tab["near_best_late_resolution"] = False
-            if promoted:
-                near_late = late_mask & (decision_score >= late_best - score_se)
-                tab.loc[near_late, "near_best_late_resolution"] = True
-                candidates = tab.loc[near_late, "K"].astype(int)
-                mode = str(cfg.get("DUAL_KNEE_SELECT", "largest")).lower()
-                if mode == "smallest":
-                    recommended_k = int(candidates.min())
-                elif mode == "best":
-                    idx = int(tab.loc[late_mask, "resolution_decision_score"].astype(float).idxmax())
-                    recommended_k = int(tab.loc[idx, "K"])
-                else:
-                    recommended_k = int(candidates.max())
-                reason = "promote: later resolution knee is supported beyond the immediate K+1 split"
+        best_row = df.loc[df["mean_dynamic_gain"].idxmax()]
+        lower_1se = float(best_row["mean_dynamic_gain"] - best_row["se_dynamic_gain"])
+        k_min = int(df["K"].min())
+        df["within_one_SE_of_best_dynamic_gain"] = df["mean_dynamic_gain"] >= lower_1se - 1e-12
+        fine_to_coarse_scan = []
+        fragmentation_stop_at_k = np.nan
+        rejected_coarser_k = np.nan
+        if lower_1se <= 0:
+            selected_k = k_min
+            dynamic_candidates = [k_min]
+            mode = "no_reliable_cluster_specific_time_evidence"
+            reason = "The best held-out cluster-specific trajectory gain is not positive after its one-SE uncertainty bound."
+        else:
+            dynamic_candidates = df.loc[df["within_one_SE_of_best_dynamic_gain"], "K"].astype(int).tolist()
+            candidate_table = df.loc[
+                df["K"].isin(dynamic_candidates),
+                ["K", "grid_fraction_in_small_components"],
+            ].sort_values("K", ascending=False).reset_index(drop=True)
+            if candidate_table.shape[0] == 1:
+                selected_k = int(candidate_table["K"].iloc[0])
+                mode = "single_dynamic_candidate"
+                reason = "Only one K lies within one SE of the best held-out dynamic gain."
+                fragmentation_stop_at_k = int(selected_k)
             else:
-                recommended_k = int(base_k)
-                reason = "keep current: resolution evidence is dominated by the immediate K+1 split or is too weak"
-
-            tab["selected_final_k"] = tab["K"].astype(int) == int(recommended_k)
-            delta_elbow_k = int(tab.loc[tab["delta"].astype(float).idxmax(), "K"])
-            log_wss_knee_k = int(tab.loc[tab["wss_knee_score"].astype(float).idxmax(), "K"])
-            decision = {
-                "mode": "dual_knee",
-                "coarse_k": int(base_k),
-                "recommended_k": int(recommended_k),
-                "promoted": bool(promoted),
-                "delta_elbow_k": int(delta_elbow_k),
-                "log_wss_knee_k": int(log_wss_knee_k),
-                "score_se": float(score_se),
-                "reason": reason,
-                "evidence": "post_gain01 * sep01_dual * size01_dual * coherence01_dual",
-            }
-            return int(recommended_k), tab, decision
-
-        best_k, df, selection = _select_dual_knee(df, coarse_k)
+                kvals_desc = candidate_table["K"].to_numpy(dtype=int)
+                frag_desc = candidate_table[
+                    "grid_fraction_in_small_components"
+                ].to_numpy(dtype=float)
+                selected_k = int(kvals_desc[0])
+                selected_frag = float(frag_desc[0])
+                stopped = False
+                for next_k, next_frag in zip(kvals_desc[1:], frag_desc[1:]):
+                    next_k = int(next_k)
+                    next_frag = float(next_frag)
+                    should_coarsen = bool(next_frag < selected_frag)
+                    fine_to_coarse_scan.append({
+                        "from_k": int(selected_k),
+                        "to_k": next_k,
+                        "fragmentation_from": selected_frag,
+                        "fragmentation_to": next_frag,
+                        "fragmentation_change_on_coarsening": next_frag - selected_frag,
+                        "decision": "coarsen" if should_coarsen else "stop",
+                    })
+                    if should_coarsen:
+                        selected_k = next_k
+                        selected_frag = next_frag
+                    else:
+                        fragmentation_stop_at_k = int(selected_k)
+                        rejected_coarser_k = next_k
+                        stopped = True
+                        break
+                if stopped:
+                    mode = "dynamic_plateau_then_fine_to_coarse_local_minimum"
+                    reason = (
+                        "Starting from the finest dynamic candidate, coarsening "
+                        "reduced sub-footprint fragmentation until the next "
+                        "coarser candidate increased it; retain the first "
+                        "fine-side local minimum."
+                    )
+                else:
+                    fragmentation_stop_at_k = int(selected_k)
+                    mode = "dynamic_plateau_fine_to_coarse_reached_coarsest"
+                    reason = (
+                        "Sub-footprint fragmentation decreased at every "
+                        "fine-to-coarse step within the dynamic-evidence "
+                        "plateau; retain its coarsest candidate."
+                    )
+        df["dynamic_candidate"] = df["K"].isin(dynamic_candidates)
+        fine_to_coarse_order = sorted(dynamic_candidates, reverse=True)
+        df["fine_to_coarse_rank"] = df["K"].map({
+            k_value: rank + 1
+            for rank, k_value in enumerate(fine_to_coarse_order)
+        })
+        visited_k = {
+            int(step["from_k"])
+            for step in fine_to_coarse_scan
+        }
+        visited_k.update(
+            int(step["to_k"])
+            for step in fine_to_coarse_scan
+        )
+        if len(dynamic_candidates) == 1:
+            visited_k.add(int(dynamic_candidates[0]))
+        df["fine_to_coarse_visited"] = df["K"].astype(int).isin(visited_k)
+        df["selected_final_k"] = df["K"].astype(int).eq(int(selected_k))
+        selection = {
+            "mode": mode,
+            "recommended_k": int(selected_k),
+            "best_dynamic_gain": float(best_row["mean_dynamic_gain"]),
+            "best_dynamic_gain_lower_1SE": float(lower_1se),
+            "dynamic_candidates": dynamic_candidates,
+            "fine_to_coarse_order": fine_to_coarse_order,
+            "fine_to_coarse_scan": fine_to_coarse_scan,
+            "fragmentation_stop_at_k": fragmentation_stop_at_k,
+            "rejected_coarser_k": rejected_coarser_k,
+            "fragmentation_jump_from": np.nan,
+            "fragmentation_jump_to": np.nan,
+            "reason": reason,
+            "rule": (
+                "held-out complete-trajectory evidence, then fine-to-coarse "
+                "first local minimum of R_map-footprint fragmentation"
+            ),
+        }
         return {
-            "best_k": int(best_k),
-            "coarse_k": int(coarse_k),
+            "best_k": int(selected_k),
+            "coarse_k": int(dynamic_candidates[0]),
             "table": df,
             "models": models,
             "sample_n": int(sample_idx.size),
@@ -4217,7 +4428,7 @@ def run_global_spatial_roi_trajectory_clustering(
     if K_TRAJ is None:
         ek_auto = _eval_auto_k()
         K_final = int(ek_auto["best_k"])
-        init_centers = ek_auto["models"][K_final]["centers"]
+        init_centers = ek_auto.get("models", {}).get(K_final, {}).get("centers")
         ek_auto.pop("models", None)
     else:
         ek_auto = None
@@ -4329,6 +4540,7 @@ def run_global_spatial_roi_trajectory_clustering(
         "scheme_name": "spatial_roi_trajectory_global",
         "K_TRAJ": K_final,
         "time_ids_all": time_ids_all,
+        "time_values": _resolved_time_numeric_for_ids(time_ids_all),
         "time_id_plot_map": time_id_plot_map,
         "ref_sample_id": ref_sample_id,
         "fusion_mode": "single_gene_spatial_roi_trajectory",
@@ -4343,7 +4555,7 @@ def run_global_spatial_roi_trajectory_clustering(
             "coarse_k": int(ek_auto["coarse_k"]),
             "selection": dict(ek_auto.get("selection", {})),
             "table": ek_auto["table"],
-            "sample_n": ek_auto["sample_n"],
+            "sample_n": int(ek_auto["sample_n"]),
         },
         "diagnostics": {
             "feature_blocks": feature_blocks,
@@ -4374,22 +4586,22 @@ def run_global_spatial_roi_trajectory_clustering(
         out["results_by_K"][result_key]["p_map"] = p_map
         out["results_by_K"][result_key]["p_traj"] = p_traj
         if ek_auto is not None and bool(cfg.get("SHOW_AUTO_K_DIAGNOSTIC", False)):
-            fig, ax = plt.subplots(figsize=(6, 3.5))
             tbl = ek_auto["table"]
-            ax.plot(tbl["K"], tbl["final_score"], marker="o", label="coarse_score")
-            ax.plot(tbl["K"], tbl["resolution_evidence"], marker="o", label="resolution_evidence")
-            ax.axvline(K_final, linestyle="--", color="red", linewidth=1, label=f"final K={K_final}")
-            ax.set_xlabel("K")
-            ax.set_ylabel("score")
-            ax.set_xticks(tbl["K"].tolist())
-            ax.set_title(f"[spatial_roi_traj] auto-K diagnostic | final K={K_final}")
-            ax.legend()
-            fig.tight_layout()
-            out["auto_k"]["plot"] = fig
+            if {"mean_dynamic_gain", "se_dynamic_gain", "grid_fraction_in_small_components"}.issubset(tbl.columns):
+                fig, axes = plt.subplots(1, 2, figsize=(10, 3.5), constrained_layout=True)
+                axes[0].errorbar(tbl["K"], tbl["mean_dynamic_gain"], yerr=tbl["se_dynamic_gain"], marker="o", color="#355C7D", capsize=3)
+                axes[0].axhline(0.0, color="0.6", linewidth=1, linestyle=":")
+                axes[0].axvline(K_final, linestyle="--", color="#C44536", linewidth=1.2)
+                axes[0].set(xlabel="K", ylabel="Held-out dynamic gain", title="Complete-trajectory evidence", xticks=tbl["K"].tolist())
+                axes[1].plot(tbl["K"], tbl["grid_fraction_in_small_components"], marker="o", color="#C44536")
+                axes[1].axvline(K_final, linestyle="--", color="#C44536", linewidth=1.2, label=f"selected K={K_final}")
+                axes[1].set(xlabel="K", ylabel="Grid fraction in sub-footprint components", title="R_map-resolution support", xticks=tbl["K"].tolist())
+                axes[1].legend(frameon=False)
+                fig.suptitle(f"[spatial_roi_traj] two-stage auto-K | final K={K_final}")
+                out["auto_k"]["plot"] = fig
         plt.show()
 
     return out
-
 
 def run_global_response_trajectory_clustering(*args, **kwargs):
     """Backward-compatible alias for the abandoned v1/v2 wrapper name."""

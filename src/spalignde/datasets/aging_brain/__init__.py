@@ -107,11 +107,27 @@ def load_aging_brain(
     return pd.concat(frames, ignore_index=True)
 
 
+# Explicit Figure 5A names used by the current inference documentation.  The
+# generic 0.1 names above remain public aliases for backward compatibility.
+AGING_BRAIN_FIGURE5A_REFERENCE = AGING_BRAIN_REFERENCE
+AGING_BRAIN_FIGURE5A_QUERIES = AGING_BRAIN_QUERIES
+AGING_BRAIN_FIGURE5A_SAMPLES = AGING_BRAIN_SAMPLES
+aging_brain_figure5a_genes = aging_brain_genes
+aging_brain_figure5a_metadata = aging_brain_metadata
+load_aging_brain_figure5a = load_aging_brain
+
+
 __all__ = [
+    "AGING_BRAIN_FIGURE5A_QUERIES",
+    "AGING_BRAIN_FIGURE5A_REFERENCE",
+    "AGING_BRAIN_FIGURE5A_SAMPLES",
     "AGING_BRAIN_QUERIES",
     "AGING_BRAIN_REFERENCE",
     "AGING_BRAIN_SAMPLES",
+    "aging_brain_figure5a_genes",
+    "aging_brain_figure5a_metadata",
     "aging_brain_genes",
     "aging_brain_metadata",
+    "load_aging_brain_figure5a",
     "load_aging_brain",
 ]

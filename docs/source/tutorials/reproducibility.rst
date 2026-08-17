@@ -100,9 +100,9 @@ The external inputs used for the release execution are recorded by logical
 role, filename, size and SHA-256 in the :download:`tutorial execution input
 manifest <../_static/tutorial_execution_manifest.json>`. Local absolute paths
 are deliberately excluded. The public aging-brain notebook reproduces
-post-alignment inference from packaged fixed-alignment coordinates; the full
-five-section alignment workflow remains outside the public tutorial execution
-set.
+post-alignment inference from a five-section selection of the formal 19-query
+fixed-alignment archive; it consumes those packaged coordinates and does not
+rerun alignment.
 
 The public spAlignDE 0.1.0 environment pins AnnData ``0.10.9``. Some archived
 manuscript-scale cross-sample validation receipts were generated with AnnData
