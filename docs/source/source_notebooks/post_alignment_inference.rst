@@ -12,12 +12,14 @@ Alignment-to-inference handoff
 The alignment workflows save ``x_aligned`` and ``y_aligned`` as the explicit
 handoff to inference; the inference notebooks consume these coordinates
 without estimating another transformation. For kidney, the recorded source is
-the formal fixed-seed ``run_1`` IL3-to-NL3 audit output (resolution ``0.2``,
-5,000 iterations, seed ``1000``). IL3 contributes 2,965 transformed query
-spots, while the 3,215 NL3 reference coordinates remain unchanged. The
-repository packages a compact, hash-tracked copy of these coordinates;
-inference uses seed ``1`` and ``n_jobs=1``. ``run_2`` is the reproducibility
-repeat and is not the reported coordinate source.
+the fixed-seed manual-prealignment IL3-to-NL3 tutorial output (resolution
+``0.2``, 5,000 iterations, seed ``1000``). The selected similarity transform
+uses scale ``1``, rotation ``0`` degrees and translation
+``(-36.20040965, -153.38356513)`` in the scaled alignment coordinates. IL3
+contributes 2,965 transformed query spots, while the 3,215 NL3 reference
+coordinates remain unchanged. The repository packages a compact,
+hash-tracked copy of these coordinates; inference uses seed ``1`` and
+``n_jobs=1``.
 
 The aging-brain notebook is explicitly a five-section website example drawn
 from the formal 19-query fixed-seed archive (resolution ``0.8``, 800
@@ -30,8 +32,8 @@ scaling rule and complete kidney handoff.
 Injured Mouse Kidney
 --------------------
 
-The kidney workflow continues from the formal fixed-seed Visium ``run_1``
-cross-sample alignment. It joins the packaged coordinates to
+The kidney workflow continues from the fixed-seed Visium cross-sample
+alignment with the selected manual initialization. It joins the packaged coordinates to
 the public NL3 and IL3 10x counts by terminal barcode, then fits local tests for ``Cbr1``, ``Cd44``
 and ``Myo5a``. The raw count matrices and tissue-position tables are available
 from `Zenodo record 17676992 <https://zenodo.org/records/17676992>`_. Users can
@@ -93,7 +95,7 @@ cleanup guidance.
 
 The public kidney and aging-brain notebooks use workflow seed 1 and
 ``n_jobs=1`` for both inference preparation and fitting. The saved executions
-contain 6,127 shared-grid locations for kidney and 75,868 for the compact
+contain 6,187 shared-grid locations for kidney and 75,868 for the compact
 aging-brain example. Parallel workers can be used for exploratory acceleration,
 but their diagnostic messages may be emitted in a different order even when
 the fitted scientific results are unchanged.
