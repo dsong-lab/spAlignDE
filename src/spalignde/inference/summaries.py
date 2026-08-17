@@ -332,9 +332,11 @@ def cluster_trajectories(
     by scanning the one-SE candidate plateau from fine to coarse resolution.
     The scan continues while sub-``R_map`` fragmentation decreases and retains
     the first fine-side local minimum when the next coarser candidate becomes
-    more fragmented. With four or five time points the dynamic check uses
-    linear leave-one-time-out fits; with three or fewer it returns the smallest
-    candidate value. An integer fixes the requested number of clusters.
+    more fragmented. If fragmentation supplies no elbow across the plateau,
+    one conservative coarsening step is taken from its finest candidate. With
+    four or five time points the dynamic check uses linear leave-one-time-out
+    fits; with three or fewer it returns the smallest candidate value. An
+    integer fixes the requested number of clusters.
 
     ``time_values`` supplies one numeric value for each trajectory time ID in
     the insertion order retained by the fit. If omitted, numeric suffixes in

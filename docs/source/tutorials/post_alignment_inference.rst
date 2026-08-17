@@ -15,42 +15,30 @@ directly, join them to the original count data by stable observation identity,
 and do not estimate another spatial transformation. Thus the fixed-seed
 alignment output is the explicit handoff artifact between the two stages.
 
-For kidney, the recorded inference example starts from the public fixed-seed
-manual-alignment tutorial:
+For kidney, the recorded inference example starts from the package's
+precomputed manuscript ``aligned_317`` coordinate tables:
 
 .. code-block:: text
 
-   cross_sample_alignment_mouse_kidney_alignment_nb.ipynb
-       -> tutorials/cross_sample/kidney/output/
-          kidney_IL3_to_NL3_aligned.h5ad
-       -> packaged, hash-tracked coordinate tables
+   packaged aligned_coords_NL3.csv.gz and aligned_coords_IL3.csv.gz
+       -> barcode-validated coordinate tables
        -> post_alignment_inference_nb.ipynb
 
-The upstream workflow uses clustering/alignment seed ``1000``, Leiden
-resolution ``0.2`` and a selected manual similarity pre-alignment with scale
-``1``, rotation ``0`` degrees and translation
-``(-36.20040965, -153.38356513)`` in the scaled coordinates. It then runs
-5,000 S-LDDMM iterations with ``restore_best_checkpoint=False``. The inference
-stage uses seed ``1`` and ``n_jobs=1``. The compact package copies IL3
-``x_aligned`` and ``y_aligned`` and the unchanged NL3 coordinates from that
-H5AD, then restores the recorded 50-fold inference coordinate scale. The
-notebook joins these coordinates one-to-one to public Visium counts by terminal
-10x barcode.
+The inference stage uses seed ``1`` and requests ``n_jobs=1``. The notebook
+loads the packaged coordinates through the public dataset API and joins them
+one-to-one to public Visium counts by terminal 10x barcode.
 
-Custom alignment H5AD or standardized coordinate CSV inputs remain supported
-through ``SPALIGNDE_KIDNEY_ALIGNED_H5AD`` and
+Standardized coordinate CSV inputs remain supported through
 ``SPALIGNDE_ALIGNMENT_DIR``. They reproduce the website numbers only when
 their evaluated spot identities and coordinates are identical to the packaged
-manual-alignment handoff.
+manuscript handoff.
 
-For aging brain, the formal archive contains 19 fixed-seed query-age
-alignments to the unchanged 4.3-month reference, using resolution ``0.8`` and
-800 iterations. The executable website example uses four of those query
-outputs—6.6, 15.8, 30.9 and 34.5 months—plus the reference. The package stores
-the exact selected ``x_aligned`` and ``y_aligned`` values and records the
-source hashes. This five-section subset demonstrates the same
-alignment-output-to-inference contract; the remaining formal query files are
-not needed for the Figure 5A example.
+For aging brain, the executable website example uses the current PyPI
+five-section Figure 5A package: the 6.6-, 15.8-, 30.9- and 34.5-month queries
+plus the 4.3-month reference. The package stores their raw counts, annotations,
+and precomputed ``x_aligned`` and ``y_aligned`` values. This subset
+demonstrates the same alignment-output-to-inference contract without rerunning
+alignment.
 
 Injured Mouse Kidney
 --------------------
@@ -60,9 +48,8 @@ reference and an injured section (``IL3``) as query. It reports local results
 for ``Cbr1``, ``Cd44`` and ``Myo5a`` together with one gene-level ACAT omnibus
 P value per gene.
 
-The fully executed notebook uses coordinates from the fixed-seed Kidney
-manual-alignment H5AD. The package records the source H5AD and packaged
-coordinate hashes.
+The fully executed notebook uses the package's manuscript ``aligned_317``
+coordinate tables.
 Raw expression and tissue-position tables remain external public inputs, and
 users can substitute coordinates from their own spAlignDE run.
 
@@ -97,14 +84,7 @@ Configure their directory without editing the notebook:
    export SPALIGNDE_KIDNEY_DATA_DIR=/path/to/raw_kidney_files
    export SPALIGNDE_TUTORIAL_WORK_DIR=/path/to/tutorial_work
 
-To evaluate a custom alignment H5AD instead of the packaged manual-alignment
-result, set:
-
-.. code-block:: bash
-
-   export SPALIGNDE_KIDNEY_ALIGNED_H5AD=/path/to/custom_alignment.h5ad
-
-Alternatively, provide standardized coordinate files named
+To evaluate a custom alignment, provide standardized coordinate files named
 ``aligned_coords_NL3.csv`` and ``aligned_coords_IL3.csv``:
 
 .. code-block:: bash
@@ -272,7 +252,7 @@ P value nor a genome-wide FDR-adjusted gene discovery value.
 Recorded result
 ~~~~~~~~~~~~~~~
 
-The executed notebook retains 6,187 tissue-valid shared-grid locations and
+The executed notebook retains 6,169 tissue-valid shared-grid locations and
 reports:
 
 .. list-table::
@@ -285,20 +265,20 @@ reports:
      - Minimum q-value
      - Median absolute statistic
    * - ``Cbr1``
-     - :math:`1.676437\times10^{-14}`
-     - 2,954
-     - :math:`7.780664\times10^{-32}`
-     - 2.435333
+     - :math:`1.482148\times10^{-14}`
+     - 2,989
+     - :math:`5.184571\times10^{-31}`
+     - 2.456205
    * - ``Cd44``
-     - :math:`4.099926\times10^{-6}`
-     - 1,452
-     - :math:`1.018210\times10^{-5}`
-     - 1.747929
+     - :math:`6.146148\times10^{-6}`
+     - 1,449
+     - :math:`1.764949\times10^{-5}`
+     - 1.762186
    * - ``Myo5a``
-     - :math:`7.355228\times10^{-14}`
-     - 2,268
-     - :math:`6.605387\times10^{-21}`
-     - 1.946836
+     - :math:`8.038015\times10^{-14}`
+     - 2,438
+     - :math:`1.397810\times10^{-19}`
+     - 2.010681
 
 For each gene, the saved notebook displays NL3 expression, IL3 expression, the
 zero-centered mismatch-aware local statistic, the red ``q < 0.05`` contours,
@@ -332,13 +312,11 @@ clocks reveal cell proximity effects in brain ageing
 available from `Zenodo record 13883177
 <https://doi.org/10.5281/zenodo.13883177>`_.
 
-The complete formal coordinate archive contains 19 query ages aligned to the
-unchanged 4.3-month reference with resolution ``0.8``, 800 iterations and seed
-``1000``. The compact Figure 5A example selects the formal 6.6-, 15.8-, 30.9-
-and 34.5-month query outputs. For these five sections the package retains raw
-integer counts, original coordinates, cell-type labels and the exact formal
-``x_aligned`` and ``y_aligned`` coordinates. The tutorial consumes these
-outputs and does not rerun alignment.
+The compact Figure 5A package contains the 6.6-, 15.8-, 30.9- and 34.5-month
+queries plus the 4.3-month reference. It retains raw integer counts, original
+coordinates, cell-type labels and the precomputed spAlignDE ``x_aligned`` and
+``y_aligned`` coordinates. The tutorial treats these current PyPI files as its
+complete input and does not rerun alignment.
 
 Public workflow
 ~~~~~~~~~~~~~~~
@@ -347,7 +325,7 @@ The complete handoff uses the dataset loader and inference API directly:
 
 .. code-block:: python
 
-   from spalignde import (
+   from spalignde.inference import (
        cluster_trajectories,
        fit_local_de,
        gene_level_acat_pvalue,
@@ -387,10 +365,18 @@ The complete handoff uses the dataset loader and inference API directly:
        random_state=1,
    )
 
+   trajectory_time_ids = list(
+       result.fits[genes[0]]["terrain_data"]["time_ids"]
+   )
+   time_values = [
+       float(str(time_id).removeprefix("age_"))
+       for time_id in trajectory_time_ids
+   ]
+
    trend_result = gene_level_age_trend_acat(
        result,
        "Gamt",
-       time_values=None,
+       time_values=time_values,
        alpha=0.05,
    )
    global_trend_p = trend_result["summary"]["gene_level_trend_acat_p"]
@@ -399,7 +385,7 @@ The complete handoff uses the dataset loader and inference API directly:
        result,
        "Gamt",
        n_clusters="auto",
-       time_values=None,
+       time_values=time_values,
        random_state=1,
    )
 
@@ -423,16 +409,20 @@ trajectories, cluster labels, or the selected cluster count.
 fitted contrast contains spatial signal and is retained only as a diagnostic
 in this multi-age example.
 
-``cluster_trajectories(..., n_clusters="auto")`` first evaluates dynamic
-evidence with held-out complete-trajectory prediction and retains the candidate
-values on the one-SE plateau of the best gain. It then scans those candidates
-from the largest K toward coarser resolutions. Coarsening continues while the
-fraction of grid locations in components smaller than one ``R_map`` footprint
-decreases. If the next coarser candidate raises fragmentation, the current
-first fine-side local minimum is retained; if fragmentation decreases across
-the full plateau, its coarsest candidate is retained. A nonpositive one-SE
-lower bound returns the minimum candidate. The executed notebook displays
-``fine_to_coarse_scan`` and the remaining public selection diagnostics.
+``cluster_trajectories(..., n_clusters="auto")`` evaluates each candidate K by
+its held-out cluster-specific trajectory gain relative to a shared time trend.
+If the best gain is not positive after subtracting its one-SE uncertainty, the
+smallest candidate K is selected. Otherwise the candidates within one SE of
+the best dynamic gain are retained and scanned from fine to coarse. The scan
+tracks the fraction of grid locations in connected components smaller than one
+``R_map`` footprint and coarsens while that fraction decreases. If the next
+coarser candidate fails to reduce fragmentation, the current finer-side local
+minimum is retained. If fragmentation decreases throughout and supplies no
+elbow, one conservative coarsening step is taken from the finest retained
+candidate. The rule does not globally minimize fragmentation and does not take
+the coarsest candidate in the no-elbow case. The executed notebook displays
+all stable selection diagnostics, including ``fine_to_coarse_scan`` and
+``no_elbow_fallback_k``.
 
 Recorded result
 ~~~~~~~~~~~~~~~
@@ -461,8 +451,10 @@ Fixed-seed repeat check
 -----------------------
 
 Both public workflows use ``PYTHONHASHSEED`` set before kernel startup,
-workflow seed 1, deterministic library controls and ``n_jobs=1`` for
-preparation and fitting. The table records the latest public-API executions;
+workflow seed 1, deterministic library controls and request ``n_jobs=1`` for
+preparation and fitting. Independently of that tutorial choice, the two seeded
+auto-geometry passes always use one worker, while subsequent preparation and
+fitting stages use the caller-requested ``n_jobs`` value. The table records the latest public-API executions;
 the aging row refers only to the compact five-section example.
 
 .. list-table::
@@ -474,11 +466,11 @@ the aging row refers only to the compact five-section example.
      - Saved-output SHA256
      - Repeat result
    * - Kidney NL3 versus IL3
-     - 6,187
+     - 6,169
      - Recorded in notebook metadata
      - Current public-API execution
    * - Aging-brain five-section example
-     - 75,868
+     - 74,908
      - Recorded in notebook metadata
      - Current public-API execution
 

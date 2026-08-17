@@ -81,8 +81,9 @@ class TrajectoryAutoKTests(unittest.TestCase):
         self.assertIn("dynamic_candidates", selection)
         self.assertEqual(
             selection["rule"],
-            "held-out complete-trajectory evidence, then fine-to-coarse first local minimum of R_map-footprint fragmentation",
+            "held-out complete-trajectory evidence, then fine-to-coarse first local minimum of R_map-footprint fragmentation, with a one-step no-elbow fallback",
         )
+        self.assertIn("no_elbow_fallback_k", selection)
         self.assertIn("fine_to_coarse_order", selection)
         self.assertIn("fine_to_coarse_scan", selection)
         self.assertIn("fine_to_coarse_rank", out["auto_k"]["table"])

@@ -1437,6 +1437,11 @@ def batch_prepare_once_multi(
         combined["celltype"] = pd.Categorical(combined["celltype"].astype(str))
 
         ag_cfg = or_else(PARAMS.get("auto_geometry"), {})
+        # The geometry estimator performs seeded, per-sample subsampling in two
+        # passes. Run only those passes serially so thread scheduling cannot
+        # change which sample consumes each RNG draw. Later preparation stages
+        # still use the caller-requested worker count.
+        geometry_core = 1
         ag = auto_geometry_params_v2_local(
             combined=combined,
             sample_col="sample_id",
@@ -1455,7 +1460,7 @@ def batch_prepare_once_multi(
             max_points_per_sample=or_else(ag_cfg.get("max_points_per_sample"), 15000),
             max_k_symknn=or_else(PARAMS.get("max_k_symknn"), 300),
             seed=seed if seed is not None else ag_cfg.get("seed"),
-            core=core,
+            core=geometry_core,
         )
 
         PARAMS["R_rel"] = ag["params"]["R_rel"]
@@ -3547,7 +3552,9 @@ def run_global_spatial_roi_trajectory_clustering(
     cluster-specific trajectories, then (2) a fine-to-coarse scan within the
     statistically indistinguishable K plateau. Starting from the finest
     candidate, the scan coarsens while R_map-scale fragmentation decreases and
-    stops at the first fine-side local minimum.
+    stops at the first fine-side local minimum. If fragmentation keeps
+    decreasing throughout the plateau and therefore supplies no elbow, the
+    scan takes one conservative coarsening step from the finest candidate.
     """
     _ = max(int(core), 1)  # API compatibility; the implementation is vectorized.
 
@@ -4320,6 +4327,7 @@ def run_global_spatial_roi_trajectory_clustering(
         fine_to_coarse_scan = []
         fragmentation_stop_at_k = np.nan
         rejected_coarser_k = np.nan
+        no_elbow_fallback_k = np.nan
         if lower_1se <= 0:
             selected_k = k_min
             dynamic_candidates = [k_min]
@@ -4373,12 +4381,19 @@ def run_global_spatial_roi_trajectory_clustering(
                         "fine-side local minimum."
                     )
                 else:
+                    # Fragmentation locates an elbow; it is not an objective to
+                    # minimize all the way to the coarsest supported partition.
+                    # When no elbow exists, take one conservative coarsening
+                    # step from the finest dynamically supported candidate.
+                    selected_k = int(kvals_desc[1])
+                    selected_frag = float(frag_desc[1])
                     fragmentation_stop_at_k = int(selected_k)
-                    mode = "dynamic_plateau_fine_to_coarse_reached_coarsest"
+                    no_elbow_fallback_k = int(selected_k)
+                    mode = "dynamic_plateau_no_fragmentation_elbow_one_step_coarsening"
                     reason = (
-                        "Sub-footprint fragmentation decreased at every "
-                        "fine-to-coarse step within the dynamic-evidence "
-                        "plateau; retain its coarsest candidate."
+                        "Sub-footprint fragmentation supplied no fine-to-coarse "
+                        "elbow within the dynamic-evidence plateau; retain one "
+                        "conservative coarsening step below its finest candidate."
                     )
         df["dynamic_candidate"] = df["K"].isin(dynamic_candidates)
         fine_to_coarse_order = sorted(dynamic_candidates, reverse=True)
@@ -4408,12 +4423,14 @@ def run_global_spatial_roi_trajectory_clustering(
             "fine_to_coarse_scan": fine_to_coarse_scan,
             "fragmentation_stop_at_k": fragmentation_stop_at_k,
             "rejected_coarser_k": rejected_coarser_k,
+            "no_elbow_fallback_k": no_elbow_fallback_k,
             "fragmentation_jump_from": np.nan,
             "fragmentation_jump_to": np.nan,
             "reason": reason,
             "rule": (
                 "held-out complete-trajectory evidence, then fine-to-coarse "
-                "first local minimum of R_map-footprint fragmentation"
+                "first local minimum of R_map-footprint fragmentation, with "
+                "a one-step no-elbow fallback"
             ),
         }
         return {

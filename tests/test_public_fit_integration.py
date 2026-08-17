@@ -33,6 +33,7 @@ class PublicFitIntegrationTests(unittest.TestCase):
             genes=["toy_up"],
             library_size=250,
             density_energy_share=0.25,
+            n_jobs=2,
             random_state=1,
         )
         common = {
@@ -65,6 +66,10 @@ class PublicFitIntegrationTests(unittest.TestCase):
         self.assertTrue(np.isfinite(pvalue))
         self.assertGreaterEqual(pvalue, 0.0)
         self.assertLessEqual(pvalue, 1.0)
+
+    def test_auto_geometry_worker_count_is_recorded_as_serial(self):
+        self.assertEqual(self.prepared.metadata["n_jobs"], 2)
+        self.assertEqual(self.prepared.metadata["auto_geometry_n_jobs"], 1)
 
     def test_public_path_uses_local_only_promoted_calibration(self):
         terrain = self.aware.fits["toy_up"]["terrain_data"]

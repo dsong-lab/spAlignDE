@@ -4,84 +4,24 @@
     "NL3": {
       "role": "reference",
       "n_spots": 3215,
-      "cluster_counts": {
-        "0": 1537,
-        "1": 519,
-        "2": 634,
-        "3": 525
-      },
       "source_coordinate_columns": [
-        "x_aligned",
-        "y_aligned"
-      ],
-      "coordinate_file_sha256": "ffcc18ad752c624668c5331c77f4956eb6c94b7d045cb6263c92e84ae83601c4"
+        "x_100",
+        "y_100"
+      ]
     },
     "IL3": {
       "role": "query",
       "n_spots": 2965,
-      "cluster_counts": {
-        "0": 1175,
-        "1": 724,
-        "2": 536,
-        "3": 530
-      },
       "source_coordinate_columns": [
         "x_aligned",
         "y_aligned"
-      ],
-      "coordinate_file_sha256": "5cf786ca4cfe6aec0f26b7009077f89a80db441420787026ff6ced097f77f7a6"
+      ]
     }
   },
-  "coordinate_version": "fixed-seed manual-prealignment cross-sample tutorial",
-  "clustering_seed": 1000,
-  "alignment_seed": 1000,
-  "inference_seed": 1,
-  "coordinate_scale_factor": 50,
-  "clustering": {
-    "banksy_lambda": 0.2,
-    "banksy_neighbors": 30,
-    "pca_dim": 30,
-    "snn_neighbors": 100,
-    "harmony_theta": 2.0,
-    "harmony_max_iter": 20,
-    "leiden_resolution": 0.2,
-    "leiden_flavor": "leidenalg",
-    "leiden_n_iterations": -1,
-    "boundary_refinement": true
-  },
-  "manual_prealignment": {
-    "method": "manual_similarity",
-    "scale": 1.0,
-    "theta_degrees": 0.0,
-    "translation_x_internal_coordinates": -36.20040965,
-    "translation_y_internal_coordinates": -153.38356513
-  },
-  "slddmm": {
-    "kernel_scale": 500,
-    "time_steps": 5,
-    "velocity_grid_spacing": 250,
-    "momentum_lr": 50,
-    "minimum_momentum_lr": 50,
-    "iterations": 5000,
-    "restore_best_checkpoint": false
-  },
-  "validation": {
-    "nearest_label_agreement_prealigned": 0.6586846543001686,
-    "nearest_label_agreement_aligned": 0.7416526138279933,
-    "nearest_label_agreement_gain": 0.08296795952782465
-  },
-  "public_data": {
-    "alignment_source": {
-      "repository": "Zenodo",
-      "record": "20647680",
-      "tutorial_notebook": "source_notebooks/cross_sample_alignment_mouse_kidney_alignment_nb.ipynb",
-      "handoff_artifact": "tutorials/cross_sample/kidney/output/kidney_IL3_to_NL3_aligned.h5ad",
-      "source_aligned_h5ad_sha256": "0987a1f6502914ff686a13e227464a2828a53485a51a07cf2c9cff2aa9336694"
-    },
-    "inference_expression_source": {
-      "repository": "Zenodo",
-      "record": "17676992"
-    }
+  "coordinate_version": "manuscript aligned_317",
+  "public_raw_data": {
+    "repository": "Zenodo",
+    "record": "17676992"
   },
   "schema": [
     "cell_id",
@@ -89,5 +29,5 @@
     "x",
     "y"
   ],
-  "note": "IL3 coordinates come from the selected fixed-seed manual-prealignment Kidney tutorial output; NL3 coordinates remain unchanged in the same aligned H5AD. Saved compact array coordinates are multiplied by the recorded scale factor of 50 for post-alignment inference. Alignment inputs and annotations are documented under Zenodo record 20647680; the inference notebook reloads source 10x files from record 17676992 and joins by terminal barcode."
+  "note": "These precomputed alignment coordinates are provided for the real-data tutorial. Raw expression matrices and tissue-position files remain available from the public Zenodo record."
 }

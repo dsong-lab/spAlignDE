@@ -46,3 +46,4 @@ class TrajectoryResult:
     gene: str
     n_clusters: int | str
     metadata: dict[str, Any] = field(default_factory=dict)
+

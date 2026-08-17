@@ -676,7 +676,7 @@ The current inference entry points use the lowercase package namespace:
 
 .. code-block:: python
 
-   from spalignde import (
+   from spalignde.inference import (
        cluster_trajectories,
        fit_local_de,
        gene_level_acat_pvalue,
@@ -734,6 +734,7 @@ raw expression and determines the broad risk-gene pool before calling
        library_size=10_000,
        grid_n=None,
        cell_type_key=None,
+       n_jobs=4,
        random_state=1,
    )
 
@@ -748,6 +749,15 @@ between ``N_typ`` and ``2 * N_typ``; otherwise it is adjusted toward the
 nearest bound. An explicit integer ``grid_n`` overrides this automatic rule.
 The selected resolution, source, target interval and final location count are
 stored in ``prepared.metadata``.
+
+``n_jobs`` is the caller-requested worker count for the preparation stages that
+can run in parallel. The two seeded per-sample auto-geometry passes—subsampling
+and parameter estimation—always run with one worker, because sharing one RNG
+across parallel samples would allow thread scheduling to change which sample
+consumes each draw. All later preparation stages continue to use the requested
+``n_jobs`` value; the complete analysis is therefore not described as
+single-threaded. ``prepared.metadata`` records ``n_jobs``,
+``auto_geometry_n_jobs=1`` and ``random_state``.
 
 ``fit_local_de``
 ~~~~~~~~~~~~~~~~
@@ -873,29 +883,37 @@ otherwise one numeric age must be supplied in the stored contrast order.
 
 Signature::
 
-   spalignde.cluster_trajectories(result, gene, *, n_clusters=6,
-                                  time_values=None, random_state=None,
-                                  auto_k_options=None)
+   spalignde.cluster_trajectories(result, gene, *, n_clusters="auto",
+                                  time_values=None, auto_k_options=None,
+                                  random_state=None)
 
 Clusters adjusted local-expression trajectories across ordered query samples.
-With ``n_clusters="auto"``, held-out complete-trajectory prediction first
-tests whether cluster-specific trajectories improve on a shared time trend.
-If reliable dynamic evidence is present, candidate K values within the one-SE
-plateau of the best gain are scanned from fine to coarse resolution. The scan
-continues while the fraction of grid locations in components smaller than one
-``R_map`` footprint decreases. When the next coarser candidate increases that
-fragmentation, the first fine-side local minimum is retained; if fragmentation
-continues to decrease, the coarsest plateau candidate is retained. A
-nonpositive one-SE lower bound returns the minimum candidate. With four or
-five time points, the dynamic check uses linear leave-one-time-out fits; with
-three or fewer, it returns the smallest candidate.
+With ``n_clusters="auto"``, every candidate K is first evaluated by its
+held-out cluster-specific trajectory gain relative to a shared time trend. If
+the best dynamic gain is not positive after subtracting its one-SE
+uncertainty, the smallest candidate K is selected. Otherwise, candidates whose
+dynamic gains are within one SE of the best gain are retained and examined
+from fine to coarse resolution. At each step the diagnostic is the fraction of
+grid locations lying in connected components smaller than one ``R_map``
+footprint. Coarsening continues while that fraction decreases. If the next
+coarser candidate fails to reduce fragmentation, the current finer-side local
+minimum is retained. If fragmentation decreases throughout the retained scan
+and supplies no elbow, the rule takes one conservative coarsening step from
+the finest retained candidate. Fragmentation is therefore an elbow diagnostic,
+not an objective that is globally minimized, and the no-elbow case does not
+select the coarsest candidate. With four or five time points, the dynamic check
+uses linear leave-one-time-out fits; with three or fewer, it returns the
+smallest candidate.
 
 ``time_values`` follows the trajectory time-ID order stored in the fit. When
 omitted, numeric suffixes are used when available and equal spacing otherwise.
 The public selection record is available in
-``trajectory.metadata["selection"]``, including ``dynamic_candidates``,
+``trajectory.metadata["selection"]``. Its stable diagnostics are ``mode``,
+``recommended_k``, ``best_dynamic_gain``,
+``best_dynamic_gain_lower_1SE``, ``dynamic_candidates``,
 ``fine_to_coarse_order``, ``fine_to_coarse_scan``,
-``fragmentation_stop_at_k``, and ``rejected_coarser_k``.
+``fragmentation_stop_at_k``, ``rejected_coarser_k``,
+``no_elbow_fallback_k``, ``reason`` and ``rule``.
 
 Packaged examples and public result contracts
 ---------------------------------------------

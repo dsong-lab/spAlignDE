@@ -128,6 +128,13 @@ def prepare_inference(
         otherwise resolution is adjusted toward the corresponding bound after
         accounting for tissue-mask occupancy. An explicit value takes priority
         over this automatic location-count rule.
+    n_jobs
+        Worker count for parallel preparation stages. Seeded auto-geometry
+        subsampling and parameter estimation are run serially so their result
+        does not depend on thread scheduling.
+    random_state
+        Seed used by stochastic preparation steps, including auto-geometry
+        subsampling when a sample exceeds the internal size threshold.
     cell_type_key
         Cell-type annotation column. The column may be absent when downstream
         fitting uses `cell_type_adjustment=False`. The optional composition
@@ -217,6 +224,7 @@ def prepare_inference(
         alignment_uncertainty_key=alignment_uncertainty_key,
         metadata={
             "n_jobs": n_jobs,
+            "auto_geometry_n_jobs": 1,
             "random_state": random_state,
             "risk_genes": tuple(inferred_risk_genes),
             "cell_type_available": cell_type_available,
