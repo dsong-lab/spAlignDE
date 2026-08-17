@@ -910,6 +910,15 @@ is exposed through ``AGING_BRAIN_FIGURE5A_REFERENCE``,
 ``aging_brain_figure5a_metadata``. These loaders return packaged data only;
 they do not download the manuscript-scale raw inputs.
 
+The 0.1 compatibility interface also retains the generic aging-brain aliases
+``AGING_BRAIN_REFERENCE``, ``AGING_BRAIN_QUERIES``, ``AGING_BRAIN_SAMPLES``,
+``load_aging_brain``, ``aging_brain_genes`` and ``aging_brain_metadata``.
+For Visium data handoff it continues to expose ``VisiumInferenceInput``,
+``summarize_raw_genes`` and ``build_visium_inference_table``. New code may use
+the explicit coordinate-table workflow described above; these existing public
+helpers remain documented here so older reproducible workflows keep a clear
+API reference.
+
 Workflow functions return typed objects so data, configuration provenance and
 diagnostics remain together. Relevant public contracts include
 ``ATACSTAlignmentResult``, ``HistologyFeatureResult``,
