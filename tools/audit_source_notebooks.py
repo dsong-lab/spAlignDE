@@ -13,8 +13,6 @@ from IPython.core.inputtransformer2 import TransformerManager
 
 
 LEGACY_PUBLIC_PATTERNS = (
-    re.compile(r"\bimport\s+spalignde\b"),
-    re.compile(r"\bfrom\s+spalignde\b"),
     re.compile(r"uns\s*\[\s*['\"]spalignde['\"]\s*\]"),
 )
 DEVELOPER_PATH_PATTERN = re.compile(r"(?:/home/[^/]+/|[A-Za-z]:\\Users\\[^\\]+\\)")

@@ -672,77 +672,63 @@ the final S-LDDMM coordinates.
 Post-alignment local inference
 ------------------------------
 
+The current inference entry points use the lowercase package namespace:
+
+.. code-block:: python
+
+   from spalignde import (
+       cluster_trajectories,
+       fit_local_de,
+       gene_level_acat_pvalue,
+       gene_level_age_trend_acat,
+       prepare_inference,
+   )
+
 ``canonical_visium_barcodes``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Signature::
 
-   spAlignDE.canonical_visium_barcodes(values, *, source_name="barcode values")
+   spalignde.datasets.canonical_visium_barcodes(
+       values, *, source_name="barcode values"
+   )
 
 Extracts terminal 10x barcodes from plain, sample-prefixed or source-file
 annotated observation identifiers. The kidney tutorial uses it to join raw
 counts to aligned coordinates by identifier rather than row order.
 ``values`` accepts a sequence, Series or Index and returns a string Series in
 the same order. ``source_name`` is used in validation messages. A
-``ValueError`` is raised when any identifier lacks a terminal 10x barcode. The
-same function is also available as
-``spAlignDE.datasets.canonical_visium_barcodes``.
+``ValueError`` is raised when any identifier lacks a terminal 10x barcode.
 
-``summarize_raw_genes``
-~~~~~~~~~~~~~~~~~~~~~~~
+``build_visium_coordinate_table``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Signature::
 
-   spAlignDE.summarize_raw_genes(adata, genes=None)
-
-Computes the number of spots with positive expression and the total raw count
-for each requested gene. It accepts a raw-count AnnData object and preserves
-the requested gene order. The returned gene-indexed DataFrame contains
-``detected_spots`` and ``total_counts``. Missing or duplicate gene names are
-rejected. ``build_visium_inference_table`` uses this same implementation when
-constructing the across-sample risk-gene pool.
-
-``build_visium_inference_table``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. code-block:: python
-
-   visium_input = spAlignDE.build_visium_inference_table(
-       aligned_coordinates,
-       {
-           "reference": "/path/to/reference_filtered_feature_bc_matrix.h5",
-           "query": "/path/to/query_filtered_feature_bc_matrix.h5",
-       },
-       genes=["gene_a", "gene_b"],
-       min_detected_spots=10,
-       min_total_counts=10,
-       batch="matched_pair",
+   spalignde.datasets.build_visium_coordinate_table(
+       tissue_positions, aligned_coordinates, *, sample_id,
+       position_barcode_key="barcode", array_row_key="array_row",
+       array_col_key="array_col", aligned_id_key="cell_id",
+       aligned_sample_key="sample_id", aligned_coordinate_key=("x", "y")
    )
 
-Provides the complete Visium alignment-to-inference handoff. It validates
-``sample_id``, original coordinates, ``x_aligned``/``y_aligned`` and terminal
-barcodes in an aligned AnnData/H5AD or standardized coordinate DataFrame;
-reads raw 10x HDF5 matrices; performs a one-to-one barcode join; summarizes raw
-gene support; filters the broad mismatch-risk gene pool; and returns a
-``VisiumInferenceInput`` containing ``data``, ``coordinates``, ``genes``,
-``risk_genes``, ``sample_sizes`` and ``n_common_genes``. Raw-count AnnData
-objects can be supplied instead of HDF5 paths for programmatic workflows.
-
-The coordinate DataFrame route is the one used by the executed kidney
-notebook after ``build_visium_coordinate_table`` combines tissue positions with
-packaged or user-supplied aligned coordinates. The function never assumes that
-``aligned.X`` contains raw expression.
+Matches one sample's Visium tissue-position table to its aligned coordinates
+one-to-one by terminal 10x barcode, never by row order. The returned DataFrame
+contains the standardized columns ``barcode``, ``cell_id``, ``sample_id``,
+``x``, ``y``, ``x_aligned``, and ``y_aligned``. The kidney notebook then joins
+raw expression and determines the broad risk-gene pool before calling
+``prepare_inference``; these data-handoff steps are separate from calibration.
 
 ``prepare_inference``
 ~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: python
 
-   prepared = spAlignDE.prepare_inference(
-       visium_input.data,
+   prepared = spalignde.prepare_inference(
+       inference_data,
        reference="NL3",
        genes=["Cbr1", "Cd44", "Myo5a"],
-       risk_genes=visium_input.risk_genes,
+       risk_genes=risk_genes,
        aligned_coordinate_key=("x_aligned", "y_aligned"),
        density_energy_share=0.75,
        library_size=10_000,
@@ -768,7 +754,7 @@ stored in ``prepared.metadata``.
 
 Signature::
 
-   spAlignDE.fit_local_de(prepared, *, genes=None, contrast="vs_reference",
+   spalignde.fit_local_de(prepared, *, genes=None, contrast="vs_reference",
                           alpha=0.05, mismatch_aware=True,
                           technical_adjustment=True,
                           cell_type_adjustment=True, global_offset=True,
@@ -777,7 +763,7 @@ Signature::
 
 .. code-block:: python
 
-   result = spAlignDE.fit_local_de(
+   result = spalignde.fit_local_de(
        prepared,
        contrast="vs_reference",
        mismatch_aware=True,
@@ -796,22 +782,37 @@ Complete cell-type annotations are required before
 ``cell_type_adjustment=True`` can be used. BH adjustment is applied within
 each gene and contrast across tested grid locations.
 
-For every gene, mismatch-aware fitting starts from first-pass local statistics,
-bins them by normalized local risk, removes each bin median, and divides the
-bin MAD by the Student-t null MAD. Nonnegative excess variance is constrained
-to be nondecreasing, fitted as a quadratic through the origin, and boundedly
-rescaled at the risk bin nearest the 80th percentile. The applied mismatch
-factor is
+For every gene and contrast, mismatch-aware fitting starts from initial local
+statistics obtained without mismatch inflation. It bins those statistics by
+normalized local risk, removes each bin median, and divides the bin MAD by the
+Student-t null MAD. Nonnegative excess dispersion is constrained to be
+nondecreasing, fitted as a quadratic through the origin, and boundedly
+rescaled at the risk bin nearest the 80th percentile to obtain a provisional
+gene-by-contrast coefficient.
+
+A provisional calibration is valid only after a successful within-contrast
+fit with adequate usable locations, at least four distinct risk bins including
+positive-risk support, finite calibration quantities, a finite nonnegative
+capped local coefficient, and a zero global coefficient. A successful zero
+coefficient remains valid, whereas failed calibrations are excluded. For
+multiple contrasts, the valid provisional coefficients are combined with an
+equal-weight Huber center. The resulting single robust gene-specific
+coefficient :math:`\lambda_g` is shared across every fitted contrast, and the
+applied mismatch factor is
 
 .. math::
 
-   1+\lambda_{\mathrm{local},g}r_i^2,
-   \qquad \lambda_{\mathrm{global},g}=0.
+   \phi^{\mathrm{align}}_{ig}=1+\lambda_g r_i^2,
+   \qquad \lambda_g \geq 0.
 
-The comparison-level global risk score remains diagnostic provenance. Actual
-per-gene calibration modes and local/global coefficients are stored in result
-metadata. With multiple queries, the first available contrast calibrates the
-gene-specific local coefficient reused across the remaining contrasts.
+The through-origin relation leaves zero-risk locations at the base variance.
+The comparison-level global risk score is retained only as diagnostic
+provenance and does not impose a spatially uniform variance penalty. With one
+valid contrast, the Huber center is exactly that contrast's coefficient.
+Provisional coefficients are diagnostics rather than contrast-specific final
+coefficients. The calibration method, validity information, provisional
+values, aggregation diagnostics, and final :math:`\lambda_g` are stored under
+``result.fits[gene]["terrain_data"]["risk_calibration"]``.
 
 ``prepared`` must be returned by ``prepare_inference``. ``genes=None`` tests
 all genes prepared earlier. ``contrast`` is ``"vs_reference"`` or
@@ -830,8 +831,8 @@ the originating ``PreparedInference``. ``plot_local_result`` displays aligned
 reference/query expression beside the local statistic and FDR-significant
 region contour.
 
-``gene_level_acat_pvalue``, ``acat_pvalue`` and ``cluster_trajectories``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+``gene_level_acat_pvalue`` and ``acat_pvalue``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ``gene_level_acat_pvalue(result, gene)`` is the public result-aware helper. It
 combines dependent local P values within each contrast and, for multi-query
@@ -840,11 +841,61 @@ Compact fitted results retain ``p_by_time`` so the helper strictly combines raw
 local P values; adjusted q-values are never substituted. A missing raw-P map is
 reported as an invalid result rather than reconstructed from another field.
 ``acat_pvalue`` is the lower-level array utility and uses a stable reciprocal
-Cauchy-tail branch for extremely small P values.
-``cluster_trajectories`` groups shared-grid locations with related
-adjusted-expression trajectories across ordered query samples. These are
-downstream summaries and do not replace the location-level q-value maps or
-genome-wide gene-level multiple-testing control.
+Cauchy-tail branch for extremely small P values. These summaries do not
+replace the location-level q-value maps or genome-wide gene-level
+multiple-testing control.
+
+``gene_level_age_trend_acat``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Signature::
+
+   spalignde.gene_level_age_trend_acat(result, gene, *, time_values=None,
+                                        alpha=0.05)
+
+Tests a spatially distributed linear age trend for one gene. At each retained
+grid location it regresses unsmoothed adjusted local expression
+``muA_adj_by_time`` on age with an intercept and uses the mismatch-aware
+``Wv_by_time`` values as local precision. The two-sided local slope P values
+are combined across space with ACAT. The reference section is not inserted as
+an additional age observation, and this pre-trajectory test does not use
+smoothed trajectories, cluster labels, or the selected cluster count.
+
+The returned mapping contains ``summary``, ``per_contrast``, and ``per_grid``.
+``summary["gene_level_trend_acat_p"]`` is the global P value for the multi-age
+application. ``summary["legacy_any_signal_acat_p"]`` retains the older
+per-contrast any-spatial-change result for diagnostic comparison only. When
+``time_values`` is omitted, numeric values are parsed from contrast identifiers;
+otherwise one numeric age must be supplied in the stored contrast order.
+
+``cluster_trajectories``
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Signature::
+
+   spalignde.cluster_trajectories(result, gene, *, n_clusters=6,
+                                  time_values=None, random_state=None,
+                                  auto_k_options=None)
+
+Clusters adjusted local-expression trajectories across ordered query samples.
+With ``n_clusters="auto"``, held-out complete-trajectory prediction first
+tests whether cluster-specific trajectories improve on a shared time trend.
+If reliable dynamic evidence is present, candidate K values within the one-SE
+plateau of the best gain are scanned from fine to coarse resolution. The scan
+continues while the fraction of grid locations in components smaller than one
+``R_map`` footprint decreases. When the next coarser candidate increases that
+fragmentation, the first fine-side local minimum is retained; if fragmentation
+continues to decrease, the coarsest plateau candidate is retained. A
+nonpositive one-SE lower bound returns the minimum candidate. With four or
+five time points, the dynamic check uses linear leave-one-time-out fits; with
+three or fewer, it returns the smallest candidate.
+
+``time_values`` follows the trajectory time-ID order stored in the fit. When
+omitted, numeric suffixes are used when available and equal spacing otherwise.
+The public selection record is available in
+``trajectory.metadata["selection"]``, including ``dynamic_candidates``,
+``fine_to_coarse_order``, ``fine_to_coarse_scan``,
+``fragmentation_stop_at_k``, and ``rejected_coarser_k``.
 
 Packaged examples and public result contracts
 ---------------------------------------------
@@ -853,10 +904,20 @@ Packaged examples and public result contracts
 by the README smoke test. The fixed kidney handoff is exposed through
 ``KIDNEY_SAMPLES``, ``load_kidney_aligned_coordinates`` and
 ``kidney_alignment_metadata``. The compact five-section aging-brain example
-is exposed through ``AGING_BRAIN_REFERENCE``, ``AGING_BRAIN_QUERIES``,
-``AGING_BRAIN_SAMPLES``, ``load_aging_brain``, ``aging_brain_genes`` and
-``aging_brain_metadata``. These loaders return packaged data only; they do not
-download the manuscript-scale raw inputs.
+is exposed through ``AGING_BRAIN_FIGURE5A_REFERENCE``,
+``AGING_BRAIN_FIGURE5A_QUERIES``, ``AGING_BRAIN_FIGURE5A_SAMPLES``,
+``load_aging_brain_figure5a``, ``aging_brain_figure5a_genes`` and
+``aging_brain_figure5a_metadata``. These loaders return packaged data only;
+they do not download the manuscript-scale raw inputs.
+
+The 0.1 compatibility interface also retains the generic aging-brain aliases
+``AGING_BRAIN_REFERENCE``, ``AGING_BRAIN_QUERIES``, ``AGING_BRAIN_SAMPLES``,
+``load_aging_brain``, ``aging_brain_genes`` and ``aging_brain_metadata``.
+For Visium data handoff it continues to expose ``VisiumInferenceInput``,
+``summarize_raw_genes`` and ``build_visium_inference_table``. New code may use
+the explicit coordinate-table workflow described above; these existing public
+helpers remain documented here so older reproducible workflows keep a clear
+API reference.
 
 Workflow functions return typed objects so data, configuration provenance and
 diagnostics remain together. Relevant public contracts include

@@ -43,12 +43,11 @@ coordinate CSV files remain supported through ``SPALIGNDE_ALIGNMENT_DIR``.
 
 For aging brain, the website intentionally provides a compact five-section
 example: the 4.3-month reference and the 6.6-, 15.8-, 30.9- and 34.5-month
-queries. It continues directly from their fixed-seed aligned coordinates and
-reproduces the five-section website result. This executable example
-demonstrates the same alignment-output-to-inference contract, but it is not
-the manuscript's full 20-section aging-brain analysis. Reproducing that
-analysis requires the fixed-seed aligned coordinates for all 20 sections and
-the 19 query-versus-reference contrasts.
+queries. It uses the precomputed aligned coordinates packaged with the current
+PyPI source. This executable example demonstrates the same
+alignment-output-to-inference contract, but it is not the manuscript's full
+20-section aging-brain analysis. Reproducing that analysis requires the aligned
+coordinates for all 20 sections and the 19 query-versus-reference contrasts.
 
 Injured Mouse Kidney
 --------------------
@@ -171,8 +170,20 @@ risk. The calibration then:
    80th percentile.
 
 This comparison of the observed risk-stratified dispersion with the Student-t
-null scale estimates one nonnegative, gene-specific coefficient
-:math:`\lambda_g`, helping to calibrate the local null distribution. The
+null scale estimates a provisional nonnegative coefficient for every valid
+gene--contrast fit. Validity requires a successful within-contrast fit, at
+least ``max(500, 4 * min_bin_n)`` usable grid locations, at least four distinct
+risk bins including positive-risk support, finite fit and rescaling quantities,
+and a finite nonnegative capped local coefficient with a zero global
+coefficient. Failed contrasts are excluded, whereas a successful coefficient
+of zero remains valid evidence.
+
+For multiple contrasts, the valid provisional coefficients are combined by an
+equal-weight Huber center to estimate one robust, nonnegative gene-specific
+coefficient :math:`\lambda_g` shared across all contrasts. With one valid
+contrast, as in the kidney example, the Huber center is exactly the original
+coefficient. Provisional values are diagnostics and are not applied as
+contrast-specific final coefficients. The
 resulting alignment-mismatch variance factor for gene :math:`g` and location
 :math:`i` is
 
@@ -203,23 +214,13 @@ standardized outputs of ``build_visium_coordinate_table`` into
 
 .. code-block:: python
 
-   visium_input = spAlignDE.build_visium_inference_table(
-       coordinate_data,
-       {
-           "NL3": "/path/to/NL3_filtered_feature_bc_matrix.h5",
-           "IL3": "/path/to/IL3_filtered_feature_bc_matrix.h5",
-       },
-       genes=["Cbr1", "Cd44", "Myo5a"],
-       min_detected_spots=10,
-       min_total_counts=10,
-       batch="kidney_pair",
-   )
+   from spalignde import fit_local_de, prepare_inference
 
-   prepared = spAlignDE.prepare_inference(
-       visium_input.data,
+   prepared = prepare_inference(
+       inference_data,
        reference="NL3",
-       genes=visium_input.genes,
-       risk_genes=visium_input.risk_genes,
+       genes=["Cbr1", "Cd44", "Myo5a"],
+       risk_genes=risk_genes,
        aligned_coordinate_key=("x_aligned", "y_aligned"),
        cell_type_key=None,
        density_energy_share=0.75,
@@ -229,9 +230,9 @@ standardized outputs of ``build_visium_coordinate_table`` into
        random_state=1,
    )
 
-   result = spAlignDE.fit_local_de(
+   result = fit_local_de(
        prepared,
-       genes=visium_input.genes,
+       genes=["Cbr1", "Cd44", "Myo5a"],
        contrast="vs_reference",
        mismatch_aware=True,
        technical_adjustment=True,
@@ -242,15 +243,12 @@ standardized outputs of ``build_visium_coordinate_table`` into
        random_state=1,
    )
 
-``summarize_raw_genes`` is also public for workflows that need the per-gene
-``detected_spots`` and ``total_counts`` table directly. The kidney notebook
-does not reimplement that summary or any dataset-processing helper locally.
-
 ``mismatch_aware=False`` runs the naive comparison on the same prepared grid.
-For multiple queries, the first available contrast calibrates each gene's
-local coefficient, which is then reused across its remaining contrasts.
-The requested and actual calibration modes and the fitted gene-specific
-coefficients are stored in ``result.metadata``.
+For multiple queries, every contrast contributes its own provisional
+calibration when it passes the public validity checks; the valid provisional
+values are combined by an equal-weight Huber center. The requested mode and the
+fitted gene-specific coefficient are stored in the result metadata and each
+gene's ``terrain_data["risk_calibration"]`` diagnostics.
 
 Grid-level regions and gene-level ACAT
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -263,7 +261,7 @@ is an optional reporting choice that can remove small or unsupported fragments
 without changing local statistics, P values or q-values.
 
 Compact fitted results now retain ``p_by_time``.
-``spAlignDE.gene_level_acat_pvalue(result, gene)`` strictly combines those raw
+``spalignde.gene_level_acat_pvalue(result, gene)`` strictly combines those raw
 local P values; q-values are never substituted. The return value is an omnibus
 P value for spatial change somewhere on the tested grid. It is neither a local
 P value nor a genome-wide FDR-adjusted gene discovery value.
@@ -317,8 +315,9 @@ Aging Mouse Brain
 -----------------
 
 The second example compares four aging mouse-brain MERFISH sections with a
-4.3-month reference in their shared spAlignDE coordinate frame. The queries
-are 6.6, 15.8, 30.9 and 34.5 months, and the local test is fitted for
+4.3-month alignment reference in their shared spAlignDE coordinate frame. The
+queries are 6.6, 15.8, 30.9 and 34.5 months. Local tests are fitted for
+``Gamt`` and ``Vip``; the displayed local-statistic maps remain focused on
 ``Gamt``.
 
 Data and alignment handoff
@@ -330,14 +329,13 @@ clocks reveal cell proximity effects in brain ageing
 available from `Zenodo record 13883177
 <https://doi.org/10.5281/zenodo.13883177>`_.
 
-The package contains a compact subset of five coronal sections selected from
-the public aging cohorts. For each section it retains raw integer counts,
-original coordinates and cell-type labels, and adds ``x_aligned`` and ``y_aligned``
-coordinates from the validated fixed-seed cross-sample workflow (seed
-``1000``). The tutorial consumes these precomputed alignment outputs; it does
-not rerun alignment. The packaged subset makes the example executable without
-a separate data download while retaining links to the original source and
-paper.
+The current PyPI source contains a compact Figure 5A subset of five coronal
+sections selected from the public aging cohorts. For each section it retains
+raw integer counts, original coordinates, cell-type labels, and precomputed
+``x_aligned`` and ``y_aligned`` coordinates. The tutorial consumes these
+alignment outputs and does not rerun alignment. The packaged subset makes the
+example executable without a separate data download while retaining links to
+the original source and paper.
 
 Public workflow
 ~~~~~~~~~~~~~~~
@@ -346,29 +344,35 @@ The complete handoff uses the dataset loader and inference API directly:
 
 .. code-block:: python
 
-   import spAlignDE
-
-   from spAlignDE.datasets import (
-       AGING_BRAIN_REFERENCE,
-       aging_brain_genes,
-       load_aging_brain,
+   from spalignde import (
+       cluster_trajectories,
+       fit_local_de,
+       gene_level_acat_pvalue,
+       gene_level_age_trend_acat,
+       prepare_inference,
+   )
+   from spalignde.datasets import (
+       AGING_BRAIN_FIGURE5A_REFERENCE,
+       aging_brain_figure5a_genes,
+       load_aging_brain_figure5a,
    )
 
-   data = load_aging_brain()
-   prepared = spAlignDE.prepare_inference(
+   genes = ["Gamt", "Vip"]
+   data = load_aging_brain_figure5a()
+   prepared = prepare_inference(
        data,
-       reference=AGING_BRAIN_REFERENCE,
-       genes=["Gamt"],
-       risk_genes=aging_brain_genes(),
+       reference=AGING_BRAIN_FIGURE5A_REFERENCE,
+       genes=genes,
+       risk_genes=aging_brain_figure5a_genes(),
        density_energy_share=0.25,
        library_size=250,
        grid_n=None,
        n_jobs=1,
        random_state=1,
    )
-   result = spAlignDE.fit_local_de(
+   result = fit_local_de(
        prepared,
-       genes=["Gamt"],
+       genes=genes,
        contrast="vs_reference",
        alpha=0.05,
        mismatch_aware=True,
@@ -380,50 +384,66 @@ The complete handoff uses the dataset loader and inference API directly:
        random_state=1,
    )
 
+   trend_result = gene_level_age_trend_acat(
+       result,
+       "Gamt",
+       time_values=None,
+       alpha=0.05,
+   )
+   global_trend_p = trend_result["summary"]["gene_level_trend_acat_p"]
+
+   trajectory = cluster_trajectories(
+       result,
+       "Gamt",
+       n_clusters="auto",
+       time_values=None,
+       random_state=1,
+   )
+
 Raw counts are not log-transformed and are normalized to a library size of
 250. The density channel receives 25% of standardized mismatch-feature energy,
 and the broad 300-gene panel is retained for mismatch-risk screening.
 
+Global linear age trend and trajectory auto-K
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``gene_level_age_trend_acat`` is the reported multi-age global test. At every
+retained grid location it regresses the unsmoothed adjusted local expression
+``muA_adj_by_time`` on the query ages with an intercept, using the
+mismatch-aware ``Wv_by_time`` as local precision. It applies a two-sided local
+slope test and combines the resulting P values across space with ACAT. The
+4.3-month reference section is not inserted as an extra regression
+observation. This is a pre-trajectory test: it does not use smoothed
+trajectories, cluster labels, or the selected cluster count.
+
+``gene_level_acat_pvalue`` answers the different question of whether any
+fitted contrast contains spatial signal and is retained only as a diagnostic
+in this multi-age example.
+
+``cluster_trajectories(..., n_clusters="auto")`` first evaluates dynamic
+evidence with held-out complete-trajectory prediction and retains the candidate
+values on the one-SE plateau of the best gain. It then scans those candidates
+from the largest K toward coarser resolutions. Coarsening continues while the
+fraction of grid locations in components smaller than one ``R_map`` footprint
+decreases. If the next coarser candidate raises fragmentation, the current
+first fine-side local minimum is retained; if fragmentation decreases across
+the full plateau, its coarsest candidate is retained. A nonpositive one-SE
+lower bound returns the minimum candidate. The executed notebook displays
+``fine_to_coarse_scan`` and the remaining public selection diagnostics.
+
 Recorded result
 ~~~~~~~~~~~~~~~
 
-The fixed-seed workflow retains 76,124 tissue-valid shared-grid locations and
-reports:
+The executed notebook reports the calculated age-trend spatial ACAT P value,
+the distinct any-spatial-change diagnostic, the automatically selected K, and
+all per-contrast grid summaries directly from the current public result
+objects. These values are not copied into this prose, which prevents a stale
+hard-coded result after a package update.
 
-.. list-table::
-   :header-rows: 1
-   :widths: 22 20 16 18 16 14
-
-   * - Contrast
-     - Gene-level ACAT P value
-     - Raw q-significant grids
-     - Reported grids after cleanup
-     - Minimum q-value
-     - Median absolute statistic
-   * - 6.6 versus 4.3 months
-     - :math:`3.376362\times10^{-8}`
-     - 51
-     - 0
-     - :math:`1.045700\times10^{-2}`
-     - 0.759560
-   * - 15.8 versus 4.3 months
-     - :math:`3.376362\times10^{-8}`
-     - 342
-     - 0
-     - :math:`3.559803\times10^{-6}`
-     - 0.823805
-   * - 30.9 versus 4.3 months
-     - :math:`3.376362\times10^{-8}`
-     - 4,745
-     - 3,724
-     - :math:`1.634851\times10^{-8}`
-     - 0.994759
-   * - 34.5 versus 4.3 months
-     - :math:`3.376362\times10^{-8}`
-     - 3,164
-     - 2,095
-     - :math:`4.026035\times10^{-8}`
-     - 0.922991
+Because this website notebook contains four query ages rather than all 19
+query-versus-reference contrasts, its global trend and automatic K are compact-
+example outputs and are not expected to equal the manuscript-scale 20-section
+results. The same public calls apply to the full aligned input.
 
 Interpretation and limitations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -437,9 +457,10 @@ replicate-level population inference.
 Fixed-seed repeat check
 -----------------------
 
-Both public workflows were executed twice from clean working directories with
-``PYTHONHASHSEED`` set before kernel startup, workflow seed 1, deterministic
-library controls and ``n_jobs=1`` for preparation and fitting.
+Both public workflows use ``PYTHONHASHSEED`` set before kernel startup,
+workflow seed 1, deterministic library controls and ``n_jobs=1`` for
+preparation and fitting. The table records the latest public-API executions;
+the aging row refers only to the compact five-section example.
 
 .. list-table::
    :header-rows: 1
@@ -451,12 +472,12 @@ library controls and ``n_jobs=1`` for preparation and fitting.
      - Repeat result
    * - Kidney NL3 versus IL3
      - 6,205
-     - ``6db9790e8bde...``
-     - Exact saved-output match
-   * - Aging brain versus 4.3 months
-     - 76,124
-     - ``20cb04b1a6e8...``
-     - Exact saved-output match
+     - Recorded in notebook metadata
+     - Current public-API execution
+   * - Aging-brain five-section example
+     - 74,908
+     - Recorded in notebook metadata
+     - Current public-API execution
 
 The saved-output hash covers all sanitized code-cell outputs, including tables
 and figures, but excludes execution timing metadata. With ``n_jobs>1`` the

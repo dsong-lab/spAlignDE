@@ -1,9 +1,9 @@
 """Publish the executed mouse-kidney post-alignment inference notebook.
 
 The real-data notebook under ``Post_alignment_inference/tutorials`` is the
-canonical analysis record.  This tool preserves its saved outputs while
-adapting imports to the case-preserving public ``spAlignDE`` namespace and
-writing the two notebook mirrors used by the documentation website.
+canonical analysis record.  This tool preserves its saved outputs and the
+lowercase public ``spalignde`` imports while writing the two notebook mirrors
+used by the documentation website.
 """
 
 from __future__ import annotations
@@ -75,18 +75,7 @@ def build_notebook(source: Path | None = None):
         "name": "python3",
     }
     for cell in notebook.cells:
-        if cell.cell_type == "code":
-            cell.source = cell.source.replace(
-                "import spalignde.inference.testing as inference_testing",
-                "import spAlignDE.inference.testing as inference_testing",
-            ).replace(
-                "from spalignde import ",
-                "from spAlignDE import ",
-            ).replace(
-                "from spalignde.datasets import ",
-                "from spAlignDE.datasets import ",
-            )
-        elif cell.cell_type == "markdown":
+        if cell.cell_type == "markdown":
             cell.source = cell.source.replace(
                 "### Optional: use coordinates from your own alignment",
                 "## Optional: use coordinates from your own alignment",
