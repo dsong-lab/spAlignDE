@@ -1,11 +1,17 @@
 """Dataset handoff helpers used by the spAlignDE tutorials."""
 
 from .aging_brain import (
+    AGING_BRAIN_FIGURE5A_QUERIES,
+    AGING_BRAIN_FIGURE5A_REFERENCE,
+    AGING_BRAIN_FIGURE5A_SAMPLES,
     AGING_BRAIN_QUERIES,
     AGING_BRAIN_REFERENCE,
     AGING_BRAIN_SAMPLES,
+    aging_brain_figure5a_genes,
+    aging_brain_figure5a_metadata,
     aging_brain_genes,
     aging_brain_metadata,
+    load_aging_brain_figure5a,
     load_aging_brain,
 )
 from .examples import make_cross_sample_example
@@ -23,17 +29,23 @@ from .visium import (
 )
 
 __all__ = [
+    "AGING_BRAIN_FIGURE5A_QUERIES",
+    "AGING_BRAIN_FIGURE5A_REFERENCE",
+    "AGING_BRAIN_FIGURE5A_SAMPLES",
     "AGING_BRAIN_QUERIES",
     "AGING_BRAIN_REFERENCE",
     "AGING_BRAIN_SAMPLES",
     "KIDNEY_SAMPLES",
     "VisiumInferenceInput",
+    "aging_brain_figure5a_genes",
+    "aging_brain_figure5a_metadata",
     "aging_brain_genes",
     "aging_brain_metadata",
     "build_visium_coordinate_table",
     "build_visium_inference_table",
     "canonical_visium_barcodes",
     "kidney_alignment_metadata",
+    "load_aging_brain_figure5a",
     "load_aging_brain",
     "load_kidney_aligned_coordinates",
     "make_cross_sample_example",

@@ -130,8 +130,9 @@ def prepare_inference(
         over this automatic location-count rule.
     cell_type_key
         Cell-type annotation column. The column may be absent when downstream
-        fitting uses `cell_type_adjustment=False`. A fitted cell-type support
-        adjustment requires a complete, non-missing annotation column.
+        fitting uses `cell_type_adjustment=False`. The optional composition
+        adjustment compares kernel-smoothed local cell-type proportions, so it
+        requires a complete, non-missing annotation column.
     """
 
     if not isinstance(data, pd.DataFrame):
@@ -220,6 +221,11 @@ def prepare_inference(
             "risk_genes": tuple(inferred_risk_genes),
             "cell_type_available": cell_type_available,
             "n_missing_cell_types": n_missing_cell_types,
+            "cell_type_adjustment_method": (
+                shared.get("celltype_adjustment_info", {}).get("method")
+                if cell_type_available
+                else None
+            ),
             "shared_grid_spacing": float(shared["grid_spacing"]),
             "risk_map_radius": float(shared["R_map"]),
             "risk_map_grid_multiplier": float(

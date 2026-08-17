@@ -29,10 +29,10 @@
         "x_aligned",
         "y_aligned"
       ],
-      "coordinate_file_sha256": "5968fa34b811fd7ec51d53f9c8c201f8a96a82a7206da72e537d71e3fcf08f31"
+      "coordinate_file_sha256": "99306126ac49431365a92265b8a6aad6b64140923b0eb818eb1607eca38d5837"
     }
   },
-  "coordinate_version": "fixed-seed cross-sample tutorial alignment",
+  "coordinate_version": "formal fixed-seed reproducibility-audit run_1",
   "clustering_seed": 1000,
   "alignment_seed": 1000,
   "inference_seed": 1,
@@ -49,11 +49,13 @@
     "leiden_n_iterations": -1,
     "boundary_refinement": true
   },
-  "manual_prealignment": {
-    "scale": 1.0,
-    "theta_degrees": 0.0,
-    "tx_scaled_coordinates": -36.20040965,
-    "ty_scaled_coordinates": -153.38356513
+  "automatic_prealignment": {
+    "method": "shared_cluster_weighted_procrustes",
+    "scale": 0.827384511623123,
+    "theta_degrees": 0.5780923250631759,
+    "translation_x_internal_coordinates": 319.2359667480548,
+    "translation_y_internal_coordinates": 538.8383268161883,
+    "weight_mode": "min_size"
   },
   "slddmm": {
     "kernel_scale": 500,
@@ -65,14 +67,17 @@
     "restore_best_checkpoint": false
   },
   "validation": {
-    "nearest_label_agreement_prealigned": 0.663743676222597,
-    "nearest_label_agreement_aligned": 0.736593591905565
+    "nearest_label_agreement_prealigned": 0.5689713322091062,
+    "nearest_label_agreement_aligned": 0.6057335581787521
   },
   "public_data": {
     "alignment_source": {
       "repository": "Zenodo",
       "record": "20647680",
-      "generated_combined_h5ad_sha256": "b3c811ec095e2f69f99682530da75f6c182124624f666b310ff0e0e8dd3a87f5"
+      "generated_combined_h5ad_sha256": "b3c811ec095e2f69f99682530da75f6c182124624f666b310ff0e0e8dd3a87f5",
+      "formal_run": "reproducibility_audit_0810 kidney run_1",
+      "query_coordinate_sha256": "76d4390f71093d4708ca2a0a6d1f55f66588e6419fe3b2171a810b7614760906",
+      "cluster_label_sha256": "ad1de12e47e394c20380c547cbc1682cc73f4ee35425c835297d1c8f9504bec8"
     },
     "inference_expression_source": {
       "repository": "Zenodo",
@@ -85,5 +90,5 @@
     "x",
     "y"
   ],
-  "note": "These coordinates come from the validated fixed-seed kidney cross-sample tutorial. The saved H5AD coordinates are multiplied by the tutorial's scale factor of 50 for post-alignment inference. Alignment inputs and annotations are documented under Zenodo record 20647680; the inference notebook reloads source 10x files from record 17676992 and joins by terminal barcode."
+  "note": "IL3 coordinates come from the formal fixed-seed kidney run_1 query_coordinates.csv.gz; NL3 coordinates remain unchanged and come from the same run's cluster_labels.csv.gz. Audit coordinates are multiplied by the recorded scale factor of 50 for post-alignment inference. run_2 is the reproducibility repeat and is not the reported coordinate source. Alignment inputs and annotations are documented under Zenodo record 20647680; the inference notebook reloads source 10x files from record 17676992 and joins by terminal barcode."
 }

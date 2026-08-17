@@ -38,7 +38,7 @@ class KidneyDatasetTests(unittest.TestCase):
 
         self.assertEqual(
             metadata["coordinate_version"],
-            "fixed-seed cross-sample tutorial alignment",
+            "formal fixed-seed reproducibility-audit run_1",
         )
         self.assertEqual(metadata["alignment_seed"], 1000)
         self.assertEqual(metadata["inference_seed"], 1)
@@ -55,7 +55,7 @@ class KidneyDatasetTests(unittest.TestCase):
         )
         self.assertEqual(
             metadata["validation"]["nearest_label_agreement_aligned"],
-            0.736593591905565,
+            0.6057335581787521,
         )
         self.assertFalse(metadata["slddmm"]["restore_best_checkpoint"])
         for sample_id in KIDNEY_SAMPLES:

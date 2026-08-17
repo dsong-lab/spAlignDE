@@ -15,39 +15,41 @@ directly, join them to the original count data by stable observation identity,
 and do not estimate another spatial transformation. Thus the fixed-seed
 alignment output is the explicit handoff artifact between the two stages.
 
-For kidney, the public workflow is complete and executable end to end:
+For kidney, the recorded inference example starts from the formal fixed-seed
+reproducibility audit:
 
 .. code-block:: text
 
-   cross_sample_alignment_mouse_kidney_clustering_nb.ipynb
-       -> cross_sample_alignment_mouse_kidney_alignment_nb.ipynb
-       -> tutorials/cross_sample/kidney/output/kidney_IL3_to_NL3_aligned.h5ad
+   reproducibility_audit_0810/.../kidney/run_1/
+       -> alignments/IL3_to_NL3/query_coordinates.csv.gz
+       +  cluster_labels.csv.gz (unchanged NL3 reference)
+       -> packaged, hash-tracked coordinate tables
        -> post_alignment_inference_nb.ipynb
 
-The clustering and alignment stages use seed ``1000``. The inference stage
-uses seed ``1`` and ``n_jobs=1``. Set
-``SPALIGNDE_KIDNEY_ALIGNED_H5AD`` to the H5AD written by the alignment
-notebook to exercise this handoff directly. The inference notebook extracts
-``sample_id``, ``x_aligned`` and ``y_aligned``, restores the documented
-50-fold inference coordinate scale, and joins the coordinates one-to-one to
-the public NL3/IL3 Visium counts by terminal 10x barcode. It reloads the
-original raw count matrices because the alignment H5AD contains the
-gene-filtered matrix used for clustering and registration.
+The formal run uses clustering/alignment seed ``1000``, Leiden resolution
+``0.2``, 5,000 S-LDDMM iterations and
+``restore_best_checkpoint=False``. The inference stage uses seed ``1`` and
+``n_jobs=1``. The compact package copies IL3 ``x_aligned`` and ``y_aligned``
+from ``run_1`` and the unchanged NL3 ``x`` and ``y`` from the same run's
+cluster table, then restores the recorded 50-fold inference coordinate scale.
+The notebook joins these coordinates one-to-one to public Visium counts by
+terminal 10x barcode. ``run_2`` is the reproducibility repeat and is not used
+for the reported inference result.
 
-The packaged kidney coordinates are a compact copy of the same validated
-fixed-seed alignment output. They are the default so the website reproduces
-the recorded result without first running the upstream alignment notebooks.
-The direct-H5AD and packaged-coordinate paths therefore represent the same
-alignment-to-inference workflow, not two different analyses. Standardized
-coordinate CSV files remain supported through ``SPALIGNDE_ALIGNMENT_DIR``.
+Custom alignment H5AD or standardized coordinate CSV inputs remain supported
+through ``SPALIGNDE_KIDNEY_ALIGNED_H5AD`` and
+``SPALIGNDE_ALIGNMENT_DIR``. They reproduce the website numbers only when
+their evaluated spot identities and coordinates are identical to formal
+``run_1``.
 
-For aging brain, the website intentionally provides a compact five-section
-example: the 4.3-month reference and the 6.6-, 15.8-, 30.9- and 34.5-month
-queries. It uses the precomputed aligned coordinates packaged with the current
-PyPI source. This executable example demonstrates the same
-alignment-output-to-inference contract, but it is not the manuscript's full
-20-section aging-brain analysis. Reproducing that analysis requires the aligned
-coordinates for all 20 sections and the 19 query-versus-reference contrasts.
+For aging brain, the formal archive contains 19 fixed-seed query-age
+alignments to the unchanged 4.3-month reference, using resolution ``0.8`` and
+800 iterations. The executable website example uses four of those query
+outputs—6.6, 15.8, 30.9 and 34.5 months—plus the reference. The package stores
+the exact selected ``x_aligned`` and ``y_aligned`` values and records the
+source hashes. This five-section subset demonstrates the same
+alignment-output-to-inference contract; the remaining formal query files are
+not needed for the Figure 5A example.
 
 Injured Mouse Kidney
 --------------------
@@ -57,11 +59,10 @@ reference and an injured section (``IL3``) as query. It reports local results
 for ``Cbr1``, ``Cd44`` and ``Myo5a`` together with one gene-level ACAT omnibus
 P value per gene.
 
-The fully executed notebook uses coordinates from the validated fixed-seed
-kidney cross-sample tutorial alignment (seed ``1000``). These files contain
-spot identifiers and aligned coordinates only. Raw expression and tissue-
-position tables remain external public inputs, and users can substitute
-coordinates from their own spAlignDE run.
+The fully executed notebook uses coordinates from formal fixed-seed kidney
+``run_1``. The package records the source coordinate and cluster-label hashes.
+Raw expression and tissue-position tables remain external public inputs, and
+users can substitute coordinates from their own spAlignDE run.
 
 Installation and data
 ~~~~~~~~~~~~~~~~~~~~~
@@ -94,12 +95,11 @@ Configure their directory without editing the notebook:
    export SPALIGNDE_KIDNEY_DATA_DIR=/path/to/raw_kidney_files
    export SPALIGNDE_TUTORIAL_WORK_DIR=/path/to/tutorial_work
 
-To continue directly from the public kidney alignment notebook, point the
-inference notebook to its H5AD output:
+To evaluate a custom alignment H5AD instead of formal ``run_1``, set:
 
 .. code-block:: bash
 
-   export SPALIGNDE_KIDNEY_ALIGNED_H5AD=/path/to/kidney_IL3_to_NL3_aligned.h5ad
+   export SPALIGNDE_KIDNEY_ALIGNED_H5AD=/path/to/custom_alignment.h5ad
 
 Alternatively, provide standardized coordinate files named
 ``aligned_coords_NL3.csv`` and ``aligned_coords_IL3.csv``:
@@ -269,7 +269,7 @@ P value nor a genome-wide FDR-adjusted gene discovery value.
 Recorded result
 ~~~~~~~~~~~~~~~
 
-The executed notebook retains 6,205 tissue-valid shared-grid locations and
+The executed notebook retains 6,127 tissue-valid shared-grid locations and
 reports:
 
 .. list-table::
@@ -282,20 +282,20 @@ reports:
      - Minimum q-value
      - Median absolute statistic
    * - ``Cbr1``
-     - :math:`1.648681\times10^{-14}`
-     - 2,919
-     - :math:`2.071116\times10^{-30}`
-     - 2.439278
+     - :math:`5.606626\times10^{-15}`
+     - 2,142
+     - :math:`1.766371\times10^{-38}`
+     - 2.497326
    * - ``Cd44``
-     - :math:`3.249936\times10^{-6}`
-     - 1,471
-     - :math:`7.756156\times10^{-6}`
-     - 1.729534
+     - :math:`8.333126\times10^{-8}`
+     - 1,318
+     - :math:`2.030000\times10^{-7}`
+     - 1.877514
    * - ``Myo5a``
-     - :math:`7.632783\times10^{-14}`
-     - 2,306
-     - :math:`2.887182\times10^{-20}`
-     - 1.934904
+     - :math:`5.151435\times10^{-14}`
+     - 2,222
+     - :math:`4.889250\times10^{-22}`
+     - 2.428649
 
 For each gene, the saved notebook displays NL3 expression, IL3 expression, the
 zero-centered mismatch-aware local statistic, the red ``q < 0.05`` contours,
@@ -329,13 +329,13 @@ clocks reveal cell proximity effects in brain ageing
 available from `Zenodo record 13883177
 <https://doi.org/10.5281/zenodo.13883177>`_.
 
-The current PyPI source contains a compact Figure 5A subset of five coronal
-sections selected from the public aging cohorts. For each section it retains
-raw integer counts, original coordinates, cell-type labels, and precomputed
+The complete formal coordinate archive contains 19 query ages aligned to the
+unchanged 4.3-month reference with resolution ``0.8``, 800 iterations and seed
+``1000``. The compact Figure 5A example selects the formal 6.6-, 15.8-, 30.9-
+and 34.5-month query outputs. For these five sections the package retains raw
+integer counts, original coordinates, cell-type labels and the exact formal
 ``x_aligned`` and ``y_aligned`` coordinates. The tutorial consumes these
-alignment outputs and does not rerun alignment. The packaged subset makes the
-example executable without a separate data download while retaining links to
-the original source and paper.
+outputs and does not rerun alignment.
 
 Public workflow
 ~~~~~~~~~~~~~~~
@@ -471,11 +471,11 @@ the aging row refers only to the compact five-section example.
      - Saved-output SHA256
      - Repeat result
    * - Kidney NL3 versus IL3
-     - 6,205
+     - 6,127
      - Recorded in notebook metadata
      - Current public-API execution
    * - Aging-brain five-section example
-     - 74,908
+     - 75,868
      - Recorded in notebook metadata
      - Current public-API execution
 

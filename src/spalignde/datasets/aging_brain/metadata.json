@@ -14,14 +14,25 @@
     "age_34.5"
   ],
   "expression": "raw transcript counts",
-  "coordinate_system": "validated fixed-seed spAlignDE aligned coordinates",
+  "coordinate_system": "formal fixed-seed resolution-0.8, 800-iteration spAlignDE coordinates",
   "alignment": {
     "method": "spAlignDE",
     "status": "precomputed",
     "reference": "age_4.3",
     "random_seed": 1000,
+    "resolution": 0.8,
+    "iterations": 800,
+    "formal_query_count": 19,
     "verification": "two independent fixed-seed runs",
-    "note": "The 4.3-month reference uses its source spatial coordinates. Query x_aligned and y_aligned columns come from the validated fixed-seed aging-brain cross-sample workflow; the inference tutorial starts from these outputs and does not rerun alignment."
+    "formal_coordinate_archive": "reproducibility_audit_0813 aging_brain/alignments_iterations_800",
+    "reference_cluster_label_sha256": "8293cfeb4a500050f0f127f537c4bfa70009c14517a14e8a5b65799bcb4edd47",
+    "selected_query_coordinate_sha256": {
+      "age_6.6": "f82fbd69870fb997bf45a208b0ee24862a074de582f7209a88719e8315401390",
+      "age_15.8": "bcf17dc113d6c15935c355480fcb7e9fc014c3e38d88ba85ff9f480db1f3b1ea",
+      "age_30.9": "86a3f57827cf2b2279141e9c9d25f0a315db363cd79e21439d95374b8beebe00",
+      "age_34.5": "668367e8a294b125a75068fe37a208ff1a0f5794f2643725325f15630e63902c"
+    },
+    "note": "The formal archive contains 19 query-age alignments to the unchanged 4.3-month reference. The website inference example uses four of those query outputs (6.6, 15.8, 30.9, and 34.5 months) plus the 4.3-month reference. It consumes their saved x_aligned and y_aligned columns and does not rerun alignment."
   },
   "gene_count": 300,
   "observation_columns": [

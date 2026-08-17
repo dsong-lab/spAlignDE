@@ -135,15 +135,17 @@ analysis workflows listed below.
 
 ### Alignment-to-inference handoff
 
-The kidney inference notebook uses packaged coordinates from the validated
-fixed-seed kidney alignment by default. Set `SPALIGNDE_KIDNEY_ALIGNED_H5AD` to
-the H5AD written by the kidney alignment notebook to continue directly from
-your own `x_aligned` and `y_aligned` coordinates. The aging-brain notebook uses
-five sections and their packaged fixed-seed aligned coordinates to reproduce
-the compact website example; it is not the manuscript's full 20-section
-analysis. See the [post-alignment inference guide](docs/source/tutorials/post_alignment_inference.rst)
-for grid construction, mismatch calibration, local testing and gene-level
-aggregation.
+The kidney inference notebook uses a compact, hash-tracked copy of the formal
+fixed-seed `run_1` coordinates: the 2,965 IL3 query spots from
+`query_coordinates.csv.gz` and the unchanged 3,215-spot NL3 reference from
+`cluster_labels.csv.gz`. Set `SPALIGNDE_KIDNEY_ALIGNED_H5AD` only when testing
+your own alignment instead. The aging-brain notebook uses four query outputs
+from the formal 19-query, 800-iteration archive plus the unchanged 4.3-month
+reference. This five-section website example is not the manuscript's full
+20-section inference analysis. See the
+[post-alignment inference guide](docs/source/tutorials/post_alignment_inference.rst)
+for coordinate provenance, grid construction, mismatch calibration, local
+testing and gene-level aggregation.
 
 ## Reproducibility
 

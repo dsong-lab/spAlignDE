@@ -14,7 +14,10 @@ import pandas as pd
 from scipy import stats
 
 
-MISMATCH_CALIBRATION_MODE = "median_centered_t_MAD_null1_A0_isotonic"
+MISMATCH_CALIBRATION_MODE = "local_tnull_MAD_isotonic_quadratic"
+MULTI_CONTRAST_CALIBRATION_MODE = (
+    "per_contrast_local_calibration_then_equal_weight_huber"
+)
 
 
 def _pava_increasing(values: np.ndarray, weights: np.ndarray) -> np.ndarray:
@@ -129,14 +132,15 @@ def calibrate_mismatch_variance(
 ) -> dict[str, object]:
     """Estimate gene-specific local mismatch variance inflation.
 
-    First-pass local statistics are binned by normalized local risk.  Within
-    each bin, the median is removed and the raw MAD is divided by the
-    Student-t(df) null MAD, ``t.ppf(0.75, df)``.  Positive excess variance is
-    made nondecreasing with risk, then a weighted quadratic fit through the
-    origin is rescaled at the risk bin nearest the requested anchor quantile.
+    Initial local statistics obtained without mismatch inflation are binned by
+    normalized local risk. Within each bin, the median is removed and the raw
+    MAD is divided by the Student-t(df) null MAD, ``t.ppf(0.75, df)``. Positive
+    excess variance is made nondecreasing with risk. A weighted quadratic fit
+    through the origin is then rescaled at the risk bin nearest the requested
+    anchor quantile.
     The bounded anchor factor makes the final coefficient no larger than the
-    through-origin slope.  The origin constraint fixes the gene-specific
-    global component at zero.
+    through-origin slope. The origin constraint excludes risk-independent
+    excess variance, so only the spatially varying local-risk term is applied.
 
     Extra keyword arguments are accepted only for compatibility with the
     legacy private call site; obsolete tail/global-cap arguments have no effect.
@@ -159,6 +163,7 @@ def calibrate_mismatch_variance(
 
     def empty_result(mode: str, message: str, **diag_extra: object) -> dict[str, object]:
         diag = {
+            "status": "failed",
             "mode": mode,
             "msg": message,
             "n_ok": n_valid,
@@ -278,7 +283,9 @@ def calibrate_mismatch_variance(
     )
     lambda_global = 0.0
     diag = {
+        "status": "success",
         "mode": MISMATCH_CALIBRATION_MODE,
+        "n_ok": n_valid,
         "df": df,
         "p_best": p_best,
         "A": 0.0,
@@ -297,8 +304,8 @@ def calibrate_mismatch_variance(
     }
     if verbose:
         print(
-            "[risk-calib-MAD-A0] bins={} df={:.1f} p={} B={:.6g} "
-            "tau={:.6g} lam_g=0 lam_l={:.6g}".format(
+            "[risk-calib-local-MAD] bins={} df={:.1f} p={} B={:.6g} "
+            "tau={:.6g} lambda_g={:.6g}".format(
                 len(df_bin), df, p_best, local_slope, tau_hat, lambda_local
             )
         )
@@ -309,4 +316,126 @@ def calibrate_mismatch_variance(
         "global_score": float(global_score),
         "p_best": p_best,
         "diag": diag,
+    }
+
+
+def validate_provisional_calibration(
+    calibration: dict[str, object] | None,
+    *,
+    min_bin_n: int = 200,
+    lam_local_cap: float = 5e4,
+) -> dict[str, object]:
+    """Validate one contrast-specific provisional mismatch calibration."""
+
+    calibration = calibration if isinstance(calibration, dict) else {}
+    diag = calibration.get("diag")
+    diag = diag if isinstance(diag, dict) else {}
+    reasons: list[str] = []
+    if diag.get("status") != "success" or diag.get("mode") != MISMATCH_CALIBRATION_MODE:
+        reasons.append("calibration_not_successful")
+    n_valid = int(diag.get("n_ok", 0) or 0)
+    min_required = max(500, 4 * int(min_bin_n))
+    if n_valid < min_required:
+        reasons.append("too_few_usable_locations")
+    bins_kept = int(diag.get("bins_kept", 0) or 0)
+    if bins_kept < 4:
+        reasons.append("too_few_risk_bins")
+    frame = diag.get("df_bin")
+    try:
+        risk_midpoints = np.asarray(frame["r_mid"], dtype=float).ravel()
+    except Exception:
+        risk_midpoints = np.asarray([], dtype=float)
+    risk_midpoints = risk_midpoints[np.isfinite(risk_midpoints)]
+    unique_risk_bins = int(np.unique(np.round(risk_midpoints, 12)).size)
+    if (
+        risk_midpoints.size < 4
+        or unique_risk_bins < 4
+        or not np.any(risk_midpoints > 1e-12)
+    ):
+        reasons.append("insufficient_risk_support")
+
+    lambda_local = float(calibration.get("lambda_local_hat", np.nan))
+    lambda_global = float(calibration.get("lambda_global_hat", np.nan))
+    cap = float(lam_local_cap)
+    if (
+        not np.isfinite(lambda_local)
+        or lambda_local < 0
+        or lambda_local > cap * (1.0 + 1e-10) + 1e-12
+    ):
+        reasons.append("invalid_local_lambda")
+    if not np.isfinite(lambda_global) or abs(lambda_global) > 1e-10:
+        reasons.append("nonzero_global_lambda")
+    for key in ("p_best", "B", "tau"):
+        if not np.isfinite(float(diag.get(key, np.nan))):
+            reasons.append(f"invalid_{key}")
+    tau = float(diag.get("tau", np.nan))
+    slope = float(diag.get("B", np.nan))
+    if np.isfinite(tau) and not 0.0 <= tau <= 1.0:
+        reasons.append("tau_out_of_range")
+    if np.isfinite(slope) and slope < 0:
+        reasons.append("negative_B")
+
+    return {
+        "valid": not reasons,
+        "reasons": tuple(dict.fromkeys(reasons)),
+        "n_ok": n_valid,
+        "bins_kept": bins_kept,
+        "n_unique_risk_bins": unique_risk_bins,
+        "lambda_local_hat": lambda_local,
+        "at_local_cap": bool(
+            np.isfinite(lambda_local)
+            and np.isclose(lambda_local, cap, rtol=1e-10, atol=1e-12)
+        ),
+    }
+
+
+def huber_center_nonnegative(
+    values: Sequence[float],
+    *,
+    kappa: float = 1.345,
+    scale_floor: float = 1e-8,
+    max_iter: int = 100,
+) -> tuple[float, dict[str, object]]:
+    """Return the equal-weight Huber center of nonnegative coefficients."""
+
+    coefficients = np.asarray(values, dtype=float).ravel()
+    coefficients = coefficients[
+        np.isfinite(coefficients) & (coefficients >= 0)
+    ]
+    if coefficients.size == 0:
+        return 0.0, {"status": "no_valid_contrasts", "n_valid": 0}
+    median = float(np.median(coefficients))
+    mad = float(np.median(np.abs(coefficients - median)))
+    scale = max(
+        1.4826 * mad,
+        float(scale_floor) * (1.0 + abs(median)),
+    )
+    lower = float(np.min(coefficients))
+    upper = float(np.max(coefficients))
+    if upper <= lower + np.finfo(float).eps * (1.0 + abs(lower)):
+        center = lower
+        iterations = 0
+    else:
+        def score(candidate: float) -> float:
+            residual = (coefficients - float(candidate)) / scale
+            return float(np.sum(np.clip(residual, -float(kappa), float(kappa))))
+
+        iterations = 0
+        for iterations in range(1, int(max_iter) + 1):
+            midpoint = 0.5 * (lower + upper)
+            if score(midpoint) > 0:
+                lower = midpoint
+            else:
+                upper = midpoint
+        center = 0.5 * (lower + upper)
+    center = max(float(center), 0.0)
+    return center, {
+        "status": "success",
+        "method": "equal_weight_huber_location",
+        "n_valid": int(coefficients.size),
+        "kappa": float(kappa),
+        "median": median,
+        "mad": mad,
+        "robust_scale": scale,
+        "iterations": int(iterations),
     }
