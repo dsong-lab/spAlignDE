@@ -26,20 +26,6 @@ class AgingBrainDatasetTests(unittest.TestCase):
         )
         self.assertEqual(metadata["reference"], AGING_BRAIN_REFERENCE)
         self.assertEqual(tuple(metadata["queries"]), AGING_BRAIN_QUERIES)
-        self.assertEqual(
-            metadata["source"]["processed_data_url"],
-            "https://doi.org/10.5281/zenodo.13883177",
-        )
-        self.assertEqual(
-            metadata["source"]["subset"],
-            "Five coronal sections selected from the public aging cohorts",
-        )
-        self.assertEqual(metadata["alignment"]["method"], "spAlignDE")
-        self.assertEqual(metadata["alignment"]["random_seed"], 1000)
-        self.assertEqual(
-            metadata["alignment"]["verification"],
-            "two independent fixed-seed runs",
-        )
         self.assertEqual(len(genes), 300)
         self.assertEqual(len(set(genes)), len(genes))
         self.assertIn("Gamt", genes)

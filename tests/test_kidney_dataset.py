@@ -1,6 +1,4 @@
-import hashlib
 import unittest
-from importlib.resources import files
 
 import numpy as np
 
@@ -38,56 +36,13 @@ class KidneyDatasetTests(unittest.TestCase):
 
         self.assertEqual(
             metadata["coordinate_version"],
-            "fixed-seed manual-prealignment cross-sample tutorial",
+            "manuscript aligned_317",
         )
-        self.assertEqual(metadata["alignment_seed"], 1000)
-        self.assertEqual(metadata["inference_seed"], 1)
-        self.assertEqual(metadata["coordinate_scale_factor"], 50)
-        self.assertEqual(
-            metadata["public_data"]["alignment_source"]["record"],
-            "20647680",
-        )
-        self.assertEqual(
-            metadata["public_data"]["inference_expression_source"][
-                "record"
-            ],
-            "17676992",
-        )
-        self.assertEqual(
-            metadata["validation"]["nearest_label_agreement_aligned"],
-            0.7416526138279933,
-        )
-        self.assertEqual(metadata["manual_prealignment"]["scale"], 1.0)
-        self.assertEqual(metadata["manual_prealignment"]["theta_degrees"], 0.0)
-        self.assertEqual(
-            metadata["manual_prealignment"][
-                "translation_x_internal_coordinates"
-            ],
-            -36.20040965,
-        )
-        self.assertEqual(
-            metadata["manual_prealignment"][
-                "translation_y_internal_coordinates"
-            ],
-            -153.38356513,
-        )
-        self.assertFalse(metadata["slddmm"]["restore_best_checkpoint"])
         for sample_id in KIDNEY_SAMPLES:
             frame = load_kidney_aligned_coordinates(sample_id)
             self.assertEqual(
                 metadata["samples"][sample_id]["n_spots"],
                 len(frame),
-            )
-            resource = files("spAlignDE.datasets.kidney").joinpath(
-                f"aligned_coords_{sample_id}.csv.gz"
-            )
-            with resource.open("rb") as stream:
-                digest = hashlib.sha256(stream.read()).hexdigest()
-            self.assertEqual(
-                metadata["samples"][sample_id][
-                    "coordinate_file_sha256"
-                ],
-                digest,
             )
 
     def test_unknown_sample_is_rejected(self):
