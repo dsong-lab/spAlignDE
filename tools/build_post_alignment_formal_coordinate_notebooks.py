@@ -239,6 +239,11 @@ def build_kidney(*, record_execution: bool) -> None:
     notebook.cells[1].source = KIDNEY_HANDOFF
     for cell in notebook.cells:
         if cell.cell_type == "code":
+            if (
+                "import matplotlib.pyplot as plt" in cell.source
+                and not cell.source.lstrip().startswith("%matplotlib inline")
+            ):
+                cell.source = "%matplotlib inline\n\n" + cell.source
             cell.source = cell.source.replace(
                 'else "checked-in formal run_1 coordinates"',
                 'else "checked-in fixed-seed manual alignment"',

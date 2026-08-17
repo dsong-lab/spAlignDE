@@ -281,6 +281,18 @@ def audit_notebook(relative: str, seed: int) -> list[str]:
     for marker in expected_output_markers.get(relative, ()):
         if marker not in outputs:
             problems.append(f"{relative}: saved outputs lack current result marker {marker!r}")
+    if relative == "post_alignment_inference_nb.ipynb":
+        image_outputs = sum(
+            "image/png" in output.get("data", {})
+            for cell in notebook.cells
+            for output in cell.get("outputs", [])
+        )
+        if "%matplotlib inline" not in code:
+            problems.append(f"{relative}: inline Matplotlib backend is not enabled")
+        if image_outputs != 3:
+            problems.append(
+                f"{relative}: expected 3 embedded gene figures, found {image_outputs}"
+            )
     if relative == "cross_sample_uncertainty_report.ipynb":
         if "median  68.43" in outputs or "300.01" in outputs:
             problems.append(
