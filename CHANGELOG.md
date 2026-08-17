@@ -35,6 +35,9 @@
 - Restored the reported fixed-seed manual-prealignment Kidney coordinate
   handoff for post-alignment inference and refreshed the executed notebook,
   metadata and recorded results to the manuscript-matching 6,187-point grid.
+- Enabled the inline Matplotlib backend in the Kidney inference notebook so
+  the three reported gene maps are retained in the executed notebook and the
+  documentation website.
 - Promoted raw-gene support summaries to `summarize_raw_genes`, extended
   `build_visium_inference_table` to accept standardized coordinate DataFrames,
   and removed notebook-local data-loader and table-construction functions from
