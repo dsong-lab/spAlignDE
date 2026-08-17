@@ -88,10 +88,23 @@ def audit_notebook(relative: str, seed: int) -> list[str]:
     code = "\n".join(
         cell.source for cell in notebook.cells if cell.cell_type == "code"
     )
+    inference_notebooks = {
+        "post_alignment_inference_aging_brain_nb.ipynb",
+        "post_alignment_inference_nb.ipynb",
+    }
     seed_call = "seed_controls = spAlignDE.set_random_seed("
     if f"WORKFLOW_SEED = {seed}" not in code:
         problems.append(f"{relative}: WORKFLOW_SEED is not {seed}")
-    if seed_call not in code:
+    if relative in inference_notebooks:
+        for required in (
+            "random.seed(WORKFLOW_SEED)",
+            "np.random.seed(WORKFLOW_SEED)",
+        ):
+            if required not in code:
+                problems.append(
+                    f"{relative}: missing explicit inference seed control {required}"
+                )
+    elif seed_call not in code:
         problems.append(f"{relative}: missing spAlignDE.set_random_seed call")
     else:
         seed_position = code.index(seed_call)
@@ -180,10 +193,7 @@ def audit_notebook(relative: str, seed: int) -> list[str]:
         ):
             if required not in code:
                 problems.append(f"{relative}: missing validated uncertainty control {required}")
-    if relative in {
-        "post_alignment_inference_aging_brain_nb.ipynb",
-        "post_alignment_inference_nb.ipynb",
-    }:
+    if relative in inference_notebooks:
         if code.count("n_jobs=1") < 2:
             problems.append(
                 f"{relative}: preparation and fitting must both use n_jobs=1"
