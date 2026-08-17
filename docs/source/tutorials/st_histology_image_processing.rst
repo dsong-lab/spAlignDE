@@ -102,10 +102,9 @@ offsets per axis to average 16 shifted views. It writes:
      - Dictionary containing 192 ``cls`` context maps, 384 ``sub`` local maps,
        and three ``rgb`` maps
    * - ``histology_image_preparation.json``
-     - Source image, pixel scale, resizing, padding, grid, and image checksums
+     - Source image, pixel scale, resizing, padding and grid information
    * - ``histology_feature_manifest.json``
-     - Extraction geometry, feature schema, runtime route, file size, and
-       feature checksum
+     - Extraction geometry, feature schema, runtime route and file information
 
 The fixed-seed vendor-BTF run produces a 1,288 × 798 feature grid. The BTF's
 0.27381 μm-per-pixel metadata are used to rescale to 0.5 μm per pixel before
@@ -119,8 +118,9 @@ spatial-transcriptomic coordinates are stored in the feature pickle.
    :align: center
 
    Prepared H&E image after physical-resolution handling and padding. This is
-   the exact RGB image supplied to HIPT; the manifest records every resize and
-   padding operation needed to map feature-grid coordinates back to pixels.
+   the exact RGB image supplied to HIPT; the accompanying preparation record
+   lists the resizing and padding needed to map feature-grid coordinates back
+   to pixels.
 
 `UNI <https://github.com/mahmoodlab/UNI>`_ and its `gated Hugging Face weights
 <https://huggingface.co/MahmoodLab/UNI>`_ provide an optional fine-grained
@@ -360,8 +360,8 @@ Troubleshooting
 
 - If feature extraction cannot import torchvision or reports a missing
   ``torchvision::nms`` operator, PyTorch and torchvision are binary
-  incompatible. Run ``tools/check_notebook_environment.py``, verify both
-  checkpoint hashes, and point ``SPALIGNDE_HIPT_PYTHON`` to a compatible HIPT
+  incompatible. Run ``tools/check_notebook_environment.py`` and point
+  ``SPALIGNDE_HIPT_PYTHON`` to a compatible HIPT
   environment; a working ``import torch`` alone is insufficient.
 - If tissue size is wrong, correct microns-per-pixel metadata and rerun feature
   extraction. Do not compensate later with ``a`` or manual scale.
@@ -377,13 +377,13 @@ Troubleshooting
 Validation and interpretation
 -----------------------------
 
-Two August 12 fresh-process runs from the same fixed HIPT feature checksum
+Two August 12 fresh-process runs from the same HIPT feature input
 reproduced the H&E labels, pre-alignment and accepted pair table exactly. The
 selected result contains 21 final regions and two accepted ST/H&E pairs. CUDA
 S-LDDMM coordinates differed by at most 0.00114 feature-grid unit and pairwise
 Dice by at most 9.23e-5 across the two runs. Anatomical overlap and accepted
-structure pairs, rather than bitwise coordinate identity, are therefore the
-relevant checks.
+structure pairs are therefore the relevant checks; tiny coordinate differences
+do not change the interpretation.
 
 The before/after overlay establishes geometric plausibility, not biological
 ground truth. The paper's comparison against Visium expression is independent

@@ -70,9 +70,9 @@ nearest-neighbor shared-cluster agreement from ``0.6637`` to ``0.7366``.
 
 Independent fresh-process validation uses the same fixed cluster labels,
 observation order, manual transform and S-LDDMM configuration. Continuous
-float32 CUDA coordinates are compared with a predeclared ``0.01``-unit
-tolerance in the original coordinate system rather than requiring bitwise
-identity.
+float32 CUDA coordinates are compared using a ``0.01``-unit tolerance in the
+original coordinate system because GPU computation can introduce small
+numerical differences.
 
 Here ``a`` controls deformation smoothness and ``grid_step`` controls velocity
 field resolution. Increasing either makes the warp more global/coarse;

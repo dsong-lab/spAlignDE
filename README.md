@@ -135,12 +135,12 @@ analysis workflows listed below.
 
 ### Alignment-to-inference handoff
 
-The kidney inference notebook uses a compact, hash-tracked copy of the
+The kidney inference notebook uses the packaged
 fixed-seed manual-alignment H5AD produced by the public Kidney workflow: 2,965
 IL3 query spots and the unchanged 3,215-spot NL3 reference. Set
 `SPALIGNDE_KIDNEY_ALIGNED_H5AD` only when testing your own alignment instead.
 The aging-brain notebook uses four query outputs
-from the formal 19-query, 800-iteration archive plus the unchanged 4.3-month
+from the full 19-query, 800-iteration analysis plus the unchanged 4.3-month
 reference. This five-section website example is not the manuscript's full
 20-section inference analysis. See the
 [post-alignment inference guide](docs/source/tutorials/post_alignment_inference.rst)
@@ -158,9 +158,9 @@ Torch before randomized PCA or sampling.
 
 Discrete outputs are expected to reproduce exactly. Continuous CUDA
 deformation coordinates are validated within a declared numerical tolerance
-because some GPU operators are not bitwise deterministic. See the
-[reproducibility guide](docs/source/tutorials/reproducibility.rst) for
-launch-time controls, saved provenance and the validation contract.
+because some GPU operations can introduce very small numerical differences.
+See the [reproducibility guide](docs/source/tutorials/reproducibility.rst) for
+launch-time controls, expected repeat behavior and numerical tolerances.
 
 ## Interactive region-pairing UI
 

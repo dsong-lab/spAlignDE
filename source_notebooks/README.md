@@ -22,9 +22,9 @@ python tools/audit_tutorial_reproducibility.py
 
 The executor uses a fresh kernel per notebook, imports the current checkout
 through an absolute `src` path, stops on cell errors, sanitizes local paths and
-records source/output hashes only after full execution. The public execution
-set contains 17 computational notebooks. External input checksums are stored in
-`docs/source/_static/tutorial_execution_manifest.json`.
+checks that saved outputs and documentation copies are complete and consistent.
+The public execution set contains 17 computational notebooks. External inputs
+used for these examples are listed in the documentation by role and filename.
 
 The task-specific **How to adapt...** cells are maintained by
 `tools/add_parameter_guidance.py`. They preserve executed outputs and should be

@@ -8,7 +8,7 @@
   ``1e-12``.
 - Refreshed the ATAC notebook outputs and public tutorial figures, documented
   the full-S3R1 input contract to prevent an accidental second half-brain crop,
-  and added a machine-readable cross-modality reproducibility manifest.
+  and added a record of the inputs used by the cross-modality tutorials.
 - Updated the fixed-seed H&E image-clustering profile to a 26-cluster merge
   target followed by the selected reflection and post-symmetry gates, yielding
   21 final cleaned structures for the documented mouse-brain example.

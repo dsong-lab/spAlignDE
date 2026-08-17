@@ -12,7 +12,7 @@ Alignment-to-inference handoff
 The alignment workflows save ``x_aligned`` and ``y_aligned`` as the explicit
 handoff to inference; the inference notebooks consume these coordinates
 without estimating another transformation. For kidney, the recorded source is
-the package's hash-tracked copy of the fixed-seed manual-prealignment
+the package's copy of the fixed-seed manual-prealignment
 IL3-to-NL3 tutorial output (resolution ``0.2``, 5,000 iterations, upstream seed
 ``1000``). IL3 contributes 2,965 query spots and the unchanged NL3 reference
 contributes 3,215 spots. Inference uses seed ``1`` and requests ``n_jobs=1``.

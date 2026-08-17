@@ -320,9 +320,9 @@ Place the files under `tutorials/cross_modality/atac/output/` and
 
 The ST file must contain the complete 70,844-cell S3R1 reference. Do not pass a
 previously cropped `st_reference_analysis_frame.h5ad`: this notebook performs
-the half-brain crop exactly once and retains 35,422 fixed cells. The validated
-input hashes are listed in
-`docs/source/_static/tutorial_execution_manifest.json`.
+the half-brain crop exactly once and retains 35,422 fixed cells. Use the input
+files listed for this tutorial rather than a previously cropped intermediate
+file.
 """
             ),
             code(COMMON_SETUP),
