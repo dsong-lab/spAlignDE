@@ -70,12 +70,12 @@ H5AD file or CSV directory:
    jupyter lab source_notebooks/clustering/clustering_joint_nb.ipynb
 
 Users may substitute any cross-sample ST dataset that satisfies either input
-contract below. Cell- and spot-resolution inputs use the same interface.
+format below. Cell- and spot-resolution inputs use the same interface.
 
-.. _cross-sample-csv-contract:
+.. _cross-sample-csv-format:
 
-CSV input contract
-------------------
+CSV input format
+----------------
 
 .. include:: ../_includes/cross_sample_csv_contract.inc
 
@@ -89,11 +89,11 @@ Load the directory directly:
 
 The sample identifier is parsed from each filename. At least two matched file
 pairs are required for joint clustering. Vendor exports must be renamed to
-this file and column contract before loading; conversion from vendor-specific
+this file and column format before loading; conversion from vendor-specific
 containers is upstream preprocessing and is not performed by spAlignDE.
 
-AnnData input contract
-----------------------
+AnnData input format
+--------------------
 
 Before clustering
 ~~~~~~~~~~~~~~~~~
@@ -479,8 +479,8 @@ phases incomparable. Set it to ``True`` only when restoring the lowest-energy
 recorded state is explicitly desired. In either case, inspect the energy
 history and aligned geometry.
 
-Output contract
----------------
+Saved output
+------------
 
 The returned AnnData preserves the input expression matrix, observation order,
 metadata, cluster labels and original ``adata.obsm["spatial"]`` coordinates.

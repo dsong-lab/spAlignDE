@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import argparse
 import gzip
-import hashlib
 import io
 from pathlib import Path
 
@@ -52,8 +51,8 @@ AGING_ALL_QUERY_AGES = (
 )
 
 
-def _write_deterministic_csv_gz(frame: pd.DataFrame, path: Path) -> str:
-    """Write a stable gzip member and return its SHA-256 digest."""
+def _write_csv_gz(frame: pd.DataFrame, path: Path) -> None:
+    """Write a reproducible compressed coordinate table."""
 
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("wb") as raw_stream:
@@ -74,9 +73,6 @@ def _write_deterministic_csv_gz(frame: pd.DataFrame, path: Path) -> str:
                     float_format="%.17g",
                     lineterminator="\n",
                 )
-    return hashlib.sha256(path.read_bytes()).hexdigest()
-
-
 def _validate_coordinates(frame: pd.DataFrame, *, label: str, expected: int) -> None:
     if len(frame) != expected:
         raise RuntimeError(f"{label}: expected {expected} rows, found {len(frame)}")
@@ -86,7 +82,7 @@ def _validate_coordinates(frame: pd.DataFrame, *, label: str, expected: int) -> 
         raise RuntimeError(f"{label}: non-finite aligned coordinates")
 
 
-def refresh_kidney(aligned_h5ad: Path) -> dict[str, str]:
+def refresh_kidney(aligned_h5ad: Path) -> list[str]:
     """Package the selected fixed-seed manual kidney alignment."""
 
     aligned = ad.read_h5ad(aligned_h5ad, backed="r")
@@ -106,7 +102,7 @@ def refresh_kidney(aligned_h5ad: Path) -> dict[str, str]:
         "|", n=1, regex=False
     ).str[0]
 
-    digests: dict[str, str] = {}
+    written: list[str] = []
     for sample_id, expected in KIDNEY_COUNTS.items():
         selected = observations.loc[
             observations["sample_id"].astype(str).eq(sample_id)
@@ -124,10 +120,9 @@ def refresh_kidney(aligned_h5ad: Path) -> dict[str, str]:
         )
         _validate_coordinates(frame, label=f"kidney {sample_id}", expected=expected)
         target = KIDNEY_OUTPUT / f"aligned_coords_{sample_id}.csv.gz"
-        digests[target.relative_to(ROOT).as_posix()] = _write_deterministic_csv_gz(
-            frame, target
-        )
-    return digests
+        _write_csv_gz(frame, target)
+        written.append(target.relative_to(ROOT).as_posix())
+    return written
 
 
 def _replacement_coordinates(
@@ -160,7 +155,7 @@ def _replacement_coordinates(
 def refresh_aging_brain(
     reference_cluster_labels: Path,
     alignment_root: Path,
-) -> dict[str, str]:
+) -> list[str]:
     """Refresh the five-section example from the formal 19-query archive."""
 
     missing_queries = [
@@ -176,7 +171,7 @@ def refresh_aging_brain(
             + ", ".join(missing_queries)
         )
 
-    digests: dict[str, str] = {}
+    written: list[str] = []
     for age, expected in AGING_COUNTS.items():
         stem = age.replace(".", "_")
         target = AGING_OUTPUT / f"age_{stem}_observations.csv.gz"
@@ -208,10 +203,9 @@ def refresh_aging_brain(
             label=f"aging age_{age}",
             expected=expected,
         )
-        digests[target.relative_to(ROOT).as_posix()] = _write_deterministic_csv_gz(
-            observations, target
-        )
-    return digests
+        _write_csv_gz(observations, target)
+        written.append(target.relative_to(ROOT).as_posix())
+    return written
 
 
 def parse_args() -> argparse.Namespace:
@@ -248,18 +242,18 @@ def main() -> None:
             "must be supplied together."
         )
 
-    digests: dict[str, str] = {}
+    written: list[str] = []
     if args.kidney_h5ad is not None:
-        digests.update(refresh_kidney(args.kidney_h5ad))
+        written.extend(refresh_kidney(args.kidney_h5ad))
     if args.aging_reference_cluster_labels is not None:
-        digests.update(
+        written.extend(
             refresh_aging_brain(
                 args.aging_reference_cluster_labels,
                 args.aging_alignment_root,
             )
         )
-    for relative_path, digest in sorted(digests.items()):
-        print(f"{digest}  {relative_path}")
+    for relative_path in sorted(written):
+        print(f"wrote {relative_path}")
 
 
 if __name__ == "__main__":

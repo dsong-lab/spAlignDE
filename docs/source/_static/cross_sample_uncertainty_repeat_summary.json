@@ -1,0 +1,41 @@
+{
+  "workflow": "MERFISH S2R3 to S2R2 subsampling-based transformation variability",
+  "workflow_seed": 1000,
+  "replicates": 10,
+  "retained_fraction": 0.8,
+  "query_cells_per_replicate": 68766,
+  "reference_cells_per_replicate": 67337,
+  "fixed_evaluation_support": "replicate-1 prealigned query coordinates",
+  "model_config": {
+    "a": 300,
+    "p": 2.0,
+    "expand": 2.0,
+    "nt": 3,
+    "grid_step": 100
+  },
+  "optimizer_config": {
+    "niter": 500,
+    "diffeo_start": 0,
+    "lrL": 2e-08,
+    "lrT": 0.2,
+    "lrM": 2000.0,
+    "affine_slowdown": 10.0,
+    "grad_clip_m0": null,
+    "lrM_decay": 1.0,
+    "lrM_min": 2000.0,
+    "restore_best": false
+  },
+  "validated_result": {
+    "n_fixed_query_points": 68766,
+    "median_dist_var": 429.538350756525,
+    "p95_dist_var": 2352.74032676407,
+    "p99_dist_var": 5790.770405495069,
+    "max_dist_var": 11556.464520476658,
+    "n_top_5_percent_points": 3439
+  },
+  "repeat_result": {
+    "runs_compared": 2,
+    "pointwise_table_max_abs_difference": 0.0,
+    "pointwise_tables_identical": true
+  }
+}

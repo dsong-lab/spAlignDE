@@ -28,11 +28,11 @@ Validation and clustering
    )
 
 Resets Python, NumPy and Torch generators before downstream stochastic work.
-The returned dictionary records the numeric seed and launch-time environment
-controls. ``PYTHONHASHSEED`` must be set before starting Python; assigning it
-inside a notebook is too late. Deterministic Torch mode cannot remove CUDA
-variation from operations for which PyTorch has no deterministic
-implementation. See :doc:`Reproducibility and fixed random seeds
+The returned dictionary records the numeric seed and the generators that were
+reset. Call it before the first stochastic step and use the same input order
+and workflow parameters in repeated runs. Very small floating-point
+differences may remain between GPU systems without changing selected clusters
+or structure pairs. See :doc:`Reproducibility and fixed random seeds
 <tutorials/reproducibility>`.
 
 ``load_single_sample_data``
@@ -150,7 +150,7 @@ Raises ``TypeError`` or ``ValueError`` for an invalid AnnData/configuration and
 Accepts an in-memory AnnData object, a ``.h5ad`` path, or a directory of paired
 ``cell_metadata_<sample_id>.csv`` and
 ``cell_by_gene_<sample_id>.csv`` files. Every input route is normalized to the
-same combined-AnnData contract.
+same combined AnnData layout.
 
 ``read_cross_sample_csv``
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -158,8 +158,8 @@ same combined-AnnData contract.
 Explicit CSV reader used by ``load_cross_sample_data``. Metadata files require
 ``cell_id``, ``x`` and ``y``; expression files require ``cell_id`` followed by
 numeric gene columns. Rows are matched by ``cell_id`` and genes are aligned by
-name across samples. The complete, canonical format is documented in
-:ref:`cross-sample-csv-contract`.
+name across samples. The complete format is documented in
+:ref:`cross-sample-csv-format`.
 
 ``validate_cross_sample_anndata``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -436,7 +436,7 @@ an ``STAtlasAlignmentResult`` with aligned AnnData, matched-pair table,
 stage-level QC, selected atlas reference and pre-alignment parameters.
 
 ``load_st_atlas_alignment`` loads a previously saved run into the same result
-contract. ``plot_st_atlas_alignment`` compares globally pre-aligned and final
+object. ``plot_st_atlas_alignment`` compares globally pre-aligned and final
 coordinates while assigning each matched ST cluster and Allen structure the
 same fixed structure-name color. ``load_atlas_structure_color_map`` returns the
 validated paper palette or loads a user CSV. ``load_atlas_label_color_map``
@@ -458,7 +458,7 @@ infers which UI panel is ST, validates the Allen slice and reconstructs raw or
 custom selections. One ``group_id`` becomes one many-to-many deformation
 channel formed from the union of its ST IDs and Allen IDs; individual CSV rows
 are not treated as separate channels. The returned ``UIAtlasPairing`` retains
-the raw export, grouped channels and per-ST-cluster provenance table.
+the raw export, grouped channels and per-ST-cluster source table.
 
 ``align_st_to_allen_atlas_from_ui_pairs``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -484,14 +484,14 @@ the raw export, grouped channels and per-ST-cluster provenance table.
 Uses the UI export as the accepted pair specification. It does **not** run
 automatic Atlas candidate discovery, pair metrics/gates, pair selection or
 continuation-time rematching. The standard ``result.matched_pairs`` field is a
-normalized UI-pair provenance table in this workflow, not the output of a new
+normalized UI-pair table in this workflow, not the output of a new
 matching calculation.
 
 The function still runs the required alignment preparation: global
 initialization, point filtering, ST and Allen mask construction, mask cleanup,
 signed-distance conversion, global channel weighting, S-LDDMM input/grid
 construction, optimization, point mapping and Allen-label sampling. It returns the same
-``STAtlasAlignmentResult`` and standardized AnnData coordinate/label contract
+``STAtlasAlignmentResult`` and standardized AnnData coordinate/label fields
 as automatic Atlas alignment. The ST cluster IDs must be exactly those used in
 the UI session; a fresh clustering run may renumber otherwise equivalent
 spatial structures. ``UIAtlasAlignmentConfig`` exposes the validated mask,
@@ -639,7 +639,7 @@ ATAC query and fixed ST reference, selects the corresponding ST half brain,
 and places both modalities on one raster canvas. The original
 ``obsm["spatial"]`` coordinates remain unchanged. The returned
 ``ATACSTPrealignmentResult`` contains the ATAC AnnData, cropped ST AnnData,
-canvas dimensions, and complete initialization provenance.
+canvas dimensions, and the recorded initialization settings.
 
 ``align_atac_to_st``
 ~~~~~~~~~~~~~~~~~~~~
@@ -816,8 +816,8 @@ applied mismatch factor is
    \qquad \lambda_g \geq 0.
 
 The through-origin relation leaves zero-risk locations at the base variance.
-The comparison-level global risk score is retained only as diagnostic
-provenance and does not impose a spatially uniform variance penalty. With one
+The comparison-level global risk score is retained only for diagnostics and
+does not impose a spatially uniform variance penalty. With one
 valid contrast, the Huber center is exactly that contrast's coefficient.
 Provisional coefficients are diagnostics rather than contrast-specific final
 coefficients. The calibration method, validity information, provisional
@@ -937,8 +937,8 @@ the explicit coordinate-table workflow described above; these existing public
 helpers remain documented here so older reproducible workflows keep a clear
 API reference.
 
-Workflow functions return typed objects so data, configuration provenance and
-diagnostics remain together. Relevant public contracts include
+Workflow functions return typed objects so data, configuration settings and
+diagnostics remain together. Relevant public result objects include
 ``ATACSTAlignmentResult``, ``HistologyFeatureResult``,
 ``HistologyPrealignmentResult``, ``HistologyPrealignmentUI`` and
 ``TrajectoryResult``. Their fields are populated by the corresponding
@@ -977,6 +977,6 @@ Original coordinates remain in ``adata.obsm["spatial"]``. Configuration,
 grid metadata and diagnostic metrics are stored in ``adata.uns["spAlignDE"]``.
 
 See :doc:`tutorials/cross_sample_alignment` and
-:doc:`tutorials/cross_modality_atac_alignment` for alignment input contracts,
+:doc:`tutorials/cross_modality_atac_alignment` for alignment input formats,
 and :doc:`tutorials/post_alignment_inference` for the complete local-inference
-model, kidney input/output contract and executed notebook.
+model, kidney input/output fields and executed notebook.

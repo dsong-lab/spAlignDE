@@ -89,7 +89,7 @@ def main() -> None:
             messages.append("missing=" + ", ".join(missing))
         if empty:
             messages.append("empty=" + ", ".join(sorted(empty)))
-        raise SystemExit("Wheel content audit failed: " + "; ".join(messages))
+        raise SystemExit("Wheel content check failed: " + "; ".join(messages))
 
     print(
         f"PASS: {wheel.name} contains all {len(required)} required modules and "

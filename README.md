@@ -116,7 +116,7 @@ policy.
 
 ## Choose a workflow
 
-Run notebooks in workflow order. The canonical, executed copies are under
+Run notebooks in workflow order. The executed copies are under
 [`source_notebooks/`](source_notebooks/); the documentation contains the same
 saved outputs. The public notebook collection contains only the full data
 analysis workflows listed below.
@@ -144,7 +144,7 @@ from the full 19-query, 800-iteration analysis plus the unchanged 4.3-month
 reference. This five-section website example is not the manuscript's full
 20-section inference analysis. See the
 [post-alignment inference guide](docs/source/tutorials/post_alignment_inference.rst)
-for coordinate provenance, grid construction, mismatch calibration, local
+for coordinate sources, grid construction, mismatch calibration, local
 testing and gene-level aggregation.
 
 ## Reproducibility
@@ -156,11 +156,12 @@ alignment, and seed `1` for stochastic post-alignment inference and RCTD
 reference subsampling. `spAlignDE.set_random_seed()` resets Python, NumPy and
 Torch before randomized PCA or sampling.
 
-Discrete outputs are expected to reproduce exactly. Continuous CUDA
-deformation coordinates are validated within a declared numerical tolerance
-because some GPU operations can introduce very small numerical differences.
-See the [reproducibility guide](docs/source/tutorials/reproducibility.rst) for
-launch-time controls, expected repeat behavior and numerical tolerances.
+Use the same cleaned inputs, observation order and workflow parameters when
+repeating an analysis. Two independent runs of the documented workflows with
+these seeds reproduced the reported clusters, structure pairs and summary
+results. Very small differences in the last digits of GPU coordinates may
+remain without changing those results. See the
+[reproducibility guide](docs/source/tutorials/reproducibility.rst).
 
 ## Interactive region-pairing UI
 
@@ -173,7 +174,7 @@ export SPALIGNDE_ALLEN_CCF_DIR=/path/to/allen_ccf_2022
 streamlit run ui/app.py
 ```
 
-The exported pairing CSV is authoritative: UI-based alignment skips automatic
+UI-based alignment uses the exported pairing CSV directly and skips automatic
 candidate discovery, scoring and pair matching. It still performs pairing-file
 validation, whole-mask or provided manual pre-alignment, point filtering, mask
 processing, signed-distance construction, global channel weighting, S-LDDMM
@@ -185,7 +186,7 @@ The complete Sphinx website is published at
 **https://dsong-lab.github.io/spAlignDE/**. Start with the
 [tutorial index](https://dsong-lab.github.io/spAlignDE/tutorial.html), then open
 the [executable source notebooks](https://dsong-lab.github.io/spAlignDE/source_notebooks.html)
-for the corresponding end-to-end workflows. The website source is versioned
+for the corresponding complete workflows. The website source is versioned
 under [`docs/source/`](docs/source/).
 Build it locally with:
 
@@ -195,12 +196,8 @@ sphinx-build -W --keep-going -b html docs/source docs/build/html
 python tools/audit_built_html.py docs/build/html
 ```
 
-Open `docs/build/html/index.html` after the build. The repository contains both
-`.readthedocs.yaml` and a GitHub Pages workflow:
-
-- Read the Docs detects `.readthedocs.yaml` after the repository is imported.
-- GitHub Pages builds, audits and deploys the website after every push to
-  `main` once **Settings → Pages → Source: GitHub Actions** is enabled.
+Open `docs/build/html/index.html` after the build. The same pages are published
+at the documentation link above.
 
 The [Parameter Tuning Guide](docs/source/tutorials/parameter_tuning.rst)
 explains coordinate units, clustering/refinement, pre-alignment, the three
@@ -219,7 +216,7 @@ documentation, Streamlit UI, figures and validation tools.
 
 Large datasets and third-party model assets are kept outside both the wheel
 and Git. Each workflow links its public data source and validates the expected
-input contract. In particular:
+input format. In particular:
 
 - HIPT source/checkpoints: set `SPALIGNDE_HIPT_DIR`;
 - Allen CCF: set `SPALIGNDE_ALLEN_CCF_DIR`;
@@ -227,7 +224,7 @@ input contract. In particular:
 - other workflow inputs: use the `SPALIGNDE_*` variables documented by the
   corresponding notebook.
 
-## Validation
+## Checks before sharing changes
 
 ```bash
 python -m pytest -q
@@ -241,10 +238,10 @@ sphinx-build -W --keep-going -b html docs/source docs/build/html
 python tools/audit_built_html.py docs/build/html
 ```
 
-These checks validate package contracts, the CPU alignment implementation,
-notebook portability and saved execution state, public notebook paths and
-mirrors, wheel contents, strict Sphinx construction, and every generated local
-link, fragment and image reference.
+These commands run the package tests, check the saved notebooks and their
+documentation copies, build the wheel and website, and check local links and
+images. Repeated workflow runs are compared using the criteria in the
+reproducibility guide.
 
 ## Citation
 

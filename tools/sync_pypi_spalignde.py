@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Synchronize the authoritative local ``spalignde`` tree into docs copies.
+"""Synchronize a local ``spalignde`` tree into the documentation copies.
 
 The source path is supplied explicitly at synchronization time. Published
 documentation imports only the vendored copies and never depends on the source
@@ -9,7 +9,6 @@ checkout at runtime.
 from __future__ import annotations
 
 import argparse
-from hashlib import sha256
 from pathlib import Path
 import shutil
 
@@ -59,14 +58,6 @@ def source_files(source: Path) -> dict[Path, Path]:
     }
 
 
-def file_digest(path: Path) -> str:
-    digest = sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
-
-
 def synchronize(
     source: Path,
     target: Path,
@@ -84,7 +75,7 @@ def synchronize(
     differences = []
     for relative, source_path in managed.items():
         target_path = target / relative
-        if not target_path.is_file() or file_digest(source_path) != file_digest(target_path):
+        if not target_path.is_file() or source_path.read_bytes() != target_path.read_bytes():
             differences.append(relative.as_posix())
             if not check:
                 target_path.parent.mkdir(parents=True, exist_ok=True)
@@ -107,7 +98,7 @@ def parse_args() -> argparse.Namespace:
         "--source",
         type=Path,
         required=True,
-        help="Authoritative spalignde package directory",
+        help="Local spalignde package directory",
     )
     parser.add_argument(
         "--target",

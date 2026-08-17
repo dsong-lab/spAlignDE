@@ -83,7 +83,7 @@ def build_notebook(artifacts: Path):
             """
             # Joint clustering - two breast cancer sections from Xenium
 
-            This notebook audits and jointly clusters two 10x Genomics Xenium
+            This notebook checks and jointly clusters two 10x Genomics Xenium
             breast-cancer sections. It uses all biological genes in the targeted
             panel, compares BANKSY spatial weights from 0 to 1, applies Harmony
             across replicates, and selects `lambda=0.2` for alignment.
@@ -94,7 +94,7 @@ def build_notebook(artifacts: Path):
         ),
         markdown(
             """
-            ## Input and preprocessing contract
+            ## Input and preprocessing settings
 
             Download the Rep1 and Rep2 cell-feature H5 matrices and matching
             cells CSV files from the [10x Genomics Xenium human breast cancer
@@ -161,7 +161,7 @@ def build_notebook(artifacts: Path):
         ),
         markdown(
             """
-            ## Audit, QC and lambda sweep
+            ## Input checks, QC and lambda sweep
 
             BANKSY features are built independently within each sample with 30
             spatial neighbors, `scaled_gaussian` decay and `max_m=1`. For each

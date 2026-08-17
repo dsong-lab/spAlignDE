@@ -21,7 +21,7 @@ The aging-brain notebook is explicitly a five-section website example. It uses
 the current PyPI package's precomputed spAlignDE coordinates for the 6.6-,
 15.8-, 30.9- and 34.5-month queries plus the 4.3-month reference; it does not
 rerun alignment. See
-:doc:`../tutorials/post_alignment_inference` for the coordinate contract and
+:doc:`../tutorials/post_alignment_inference` for the coordinate format and
 complete kidney handoff.
 
 Injured Mouse Kidney
@@ -48,7 +48,7 @@ tables are joined by terminal barcode rather than row order.
 The saved notebook is fully executed. For every representative gene it shows
 NL3 expression, IL3 expression, the zero-centered mismatch-aware local
 statistic, direct ``q < 0.05`` contours and the gene-level ACAT P value. The
-complete input contract and statistical model are documented in
+complete input format and statistical model are documented in
 :doc:`../tutorials/post_alignment_inference`.
 
 Aging Mouse Brain

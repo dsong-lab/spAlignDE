@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build the canonical single-clustering and ST-to-Allen-CCF notebooks."""
+"""Build the single-clustering and ST-to-Allen-CCF notebooks."""
 
 from __future__ import annotations
 
@@ -31,8 +31,6 @@ def notebook(cells):
     result.metadata["spAlignDE_reproducibility"] = {
         "workflow_seed": 1234,
         "seed_scope": "Python, NumPy, Torch and configured stochastic methods",
-        "discrete_repeat_contract": "exact",
-        "cuda_coordinate_contract": "workflow-specific numerical tolerance",
     }
     return result
 
@@ -47,11 +45,11 @@ def single_clustering_notebook():
 This notebook prepares one spatial transcriptomics sample for cross-modality
 alignment. It accepts either AnnData/H5AD or a paired metadata/expression CSV
 input, runs single-sample BANKSY, optionally applies boundary-aware refinement,
-and writes the canonical labels `cluster_raw`, `cluster_refined`, and `cluster`.
+and writes the standard labels `cluster_raw`, `cluster_refined`, and `cluster`.
 
 The example is the adult mouse brain MERFISH S2R1 sample (83,546 cells and 649
 measured genes). The resulting `AnnData` is the direct input to the ST-to-Allen
-CCF notebook; there is no intermediate research-script CSV contract.
+CCF notebook; there is no intermediate research-script CSV format.
 """
             ),
             markdown(
@@ -76,7 +74,7 @@ Download the MERFISH Mouse Brain Receptor Map from
 | CSV | `cell_metadata_S2R1.csv` and `cell_by_gene_S2R1.csv` | metadata: unique `cell_id`, numeric `x`, `y`; expression: the same `cell_id` values plus numeric, non-negative gene columns |
 
 Set `SPALIGNDE_SINGLE_INPUT=csv` to exercise the CSV route. Both routes are
-normalized by `spAlignDE.load_single_sample_data` to the same AnnData contract.
+normalized by `spAlignDE.load_single_sample_data` to the same AnnData layout.
 """
             ),
             code(
@@ -204,7 +202,7 @@ plt.show()
             ),
             markdown(
                 r"""
-## Save the canonical clustered AnnData
+## Save the clustered AnnData
 
 The original expression matrix and `obsm["spatial"]` remain unchanged. The
 three package-owned columns are:
@@ -213,7 +211,7 @@ three package-owned columns are:
 - `cluster_refined`: boundary-refined labels; and
 - `cluster`: labels selected for downstream alignment.
 
-Package provenance is stored only under `adata.uns["spAlignDE"]`.
+Package parameters and source details are stored only under `adata.uns["spAlignDE"]`.
 """
             ),
             code(
@@ -263,9 +261,9 @@ reference has no gene-expression features. spAlignDE therefore discovers
 correspondences between ST spatial structures and hierarchical atlas regions,
 then refines those correspondences with coarse-to-fine S-LDDMM.
 
-The analysis starts from the canonical AnnData produced by the single-
+The analysis starts from the AnnData produced by the single-
 clustering notebook and returns the same AnnData with pre-aligned coordinates,
-final aligned coordinates, Allen labels, and package provenance.
+final aligned coordinates, Allen labels, and recorded settings.
 """
             ),
             markdown(
@@ -279,7 +277,7 @@ cd /path/to/spAlignDE
 python -m pip install -e ".[clustering,atlas,tutorial]"
 ```
 
-| Role | Input | Contract |
+| Role | Input | Required fields |
 |---|---|---|
 | Query ST | `tutorials/cross_modality/atlas/output/merfish_S2R1_single_clustered.h5ad` | cell-by-gene `X`; coordinates in `obsm["spatial"]`; selected labels in `obs["cluster"]` |
 | Atlas annotation | `annotation_10.nrrd` | Allen CCF 2022 annotation volume; this example selects coronal slice 675 |
@@ -377,7 +375,7 @@ BANKSY partition. Three levels provide the validated coarse-to-fine path. The
 structure-pairing score also treats area and thickness as first-class shape
 evidence, which helps distinguish narrow laminar regions from broader adjacent
 structures. No CA3-specific matching rule is used. The executed output below
-is authoritative for the current locked environment.
+records the settings used for the current environment.
 
 These levels are ST-only: Allen labels and coordinates are not used to create
 them. Atlas hierarchy candidates from depths 2–10 remain eligible at every
@@ -608,7 +606,7 @@ plt.show()
             ),
             markdown(
                 r"""
-## 6. Output contract
+## 6. Saved output
 
 The returned AnnData preserves `X` and `obsm["spatial"]` and adds:
 
@@ -617,7 +615,7 @@ The returned AnnData preserves `X` and `obsm["spatial"]` and adds:
 - `obs["atlas_label_id"]`, `obs["atlas_label_acronym"]`,
   `obs["atlas_label_name"]`, `obs["atlas_label_transferred"]` — sampled Allen
   annotation; and
-- `uns["spAlignDE"]["st_to_allen_atlas"]` — parameters and provenance for a
+- `uns["spAlignDE"]["st_to_allen_atlas"]` — parameters and source details for a
   fresh package run.
 
 `result.matched_pairs` and `result.stage_summary` retain the structure-level
@@ -639,7 +637,7 @@ display(result.adata.obs[coordinate_columns + label_columns].head())
 metrics_path = result.output_dir / "end_to_end_runtime_cuda_metrics.json"
 if metrics_path.is_file():
     metrics = json.loads(metrics_path.read_text())
-    print(f"Fresh end-to-end runtime: {metrics['elapsed_minutes']:.1f} minutes")
+    print(f"Fresh complete-run time: {metrics['elapsed_minutes']:.1f} minutes")
     print(f"Peak GPU memory allocation: {metrics['peak_cuda_memory_allocated_gib']:.3f} GiB")
 """
             ),

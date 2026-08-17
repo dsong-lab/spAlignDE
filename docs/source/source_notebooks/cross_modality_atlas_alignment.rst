@@ -2,7 +2,7 @@ ST-to-Allen-CCF Workflow — MERFISH Adult Mouse Brain
 ====================================================
 
 This landing page links the automatic and UI-curated Atlas workflows. Single
-clustering remains in the canonical **Clustering** section; it is linked here
+clustering remains in the **Clustering** section; it is linked here
 rather than duplicated in the Cross-Modality navigation.
 
 - :doc:`Single clustering for cross-modality alignment

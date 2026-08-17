@@ -204,7 +204,7 @@ def calibrate_mismatch_variance(
             excess = 0.0 if at_zero else max(0.0, robust_scale**2 - 1.0)
             row = {key: value for key, value in source.items() if key != "idx"}
             row.update({
-                # Canonical MAD-scale diagnostics.
+                # MAD-scale diagnostics.
                 "scale_squared_relative_to_null": 1.0 + excess,
                 "scale_excess_raw": excess,
                 "center_t": center,

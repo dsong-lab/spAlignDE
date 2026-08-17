@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Audit public source notebooks for portability and saved execution state."""
+"""Check public source notebooks for portability and saved execution state."""
 
 from __future__ import annotations
 

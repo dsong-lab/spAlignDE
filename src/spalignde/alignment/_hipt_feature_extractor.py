@@ -2,7 +2,7 @@
 
 The model architecture and checkpoints are loaded from an official HIPT clone.
 This module owns the spAlignDE-specific dense stitching, shifted-view averaging,
-smoothing, RGB downsampling, and output contract.
+smoothing, RGB downsampling, and output layout.
 """
 
 from __future__ import annotations

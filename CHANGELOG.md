@@ -7,7 +7,7 @@
   pairs across independent runs and float64 coordinates agreeing within
   ``1e-12``.
 - Refreshed the ATAC notebook outputs and public tutorial figures, documented
-  the full-S3R1 input contract to prevent an accidental second half-brain crop,
+  the full-S3R1 input format to prevent an accidental second half-brain crop,
   and added a record of the inputs used by the cross-modality tutorials.
 - Updated the fixed-seed H&E image-clustering profile to a 26-cluster merge
   target followed by the selected reflection and post-symmetry gates, yielding
@@ -20,7 +20,7 @@
   Student-t null MAD scaling, monotone nonnegative scale excess, and a
   quadratic local-risk fit through the origin with bounded anchor rescaling.
 - Fixed the gene-specific global mismatch coefficient at zero. The
-  comparison-level global risk score remains available as provenance but no
+  comparison-level global risk score remains available for diagnostics but no
   longer applies a spatially uniform variance factor.
 - Preserved local P-value arrays in compact fitted results so
   `gene_level_acat_pvalue` works on normal public `fit_local_de` output.

@@ -24,7 +24,7 @@ AGING_BRAIN_SAMPLES = (
 
 
 def aging_brain_metadata() -> dict:
-    """Return provenance, schema, and manuscript settings for the dataset."""
+    """Return source, schema, and manuscript settings for the dataset."""
 
     resource = files(__package__).joinpath("metadata.json")
     with resource.open("r", encoding="utf-8") as stream:

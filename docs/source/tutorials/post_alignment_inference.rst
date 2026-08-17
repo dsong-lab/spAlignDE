@@ -44,7 +44,7 @@ For aging brain, the executable website example uses the current PyPI
 five-section Figure 5A package: the 6.6-, 15.8-, 30.9- and 34.5-month queries
 plus the 4.3-month reference. The package stores their raw counts, annotations,
 and precomputed ``x_aligned`` and ``y_aligned`` values. This subset
-demonstrates the same alignment-output-to-inference contract without rerunning
+demonstrates the same alignment-output-to-inference handoff without rerunning
 alignment.
 
 Injured Mouse Kidney
@@ -457,12 +457,11 @@ replicate-level population inference.
 Fixed-seed repeat check
 -----------------------
 
-Both public workflows use ``PYTHONHASHSEED`` set before kernel startup,
-workflow seed 1, deterministic library controls and request ``n_jobs=1`` for
-preparation and fitting. Independently of that tutorial choice, the two seeded
-auto-geometry passes always use one worker, while subsequent preparation and
-fitting stages use the caller-requested ``n_jobs`` value. The table records the latest public-API executions;
-the aging row refers only to the compact five-section example.
+Both public workflows use seed 1 with the same aligned-coordinate inputs and
+documented parameters. The two seeded auto-geometry passes use one worker
+internally; subsequent preparation and fitting stages use the caller-requested
+``n_jobs`` value. Two independent fresh-kernel runs reproduced the saved
+summaries. The aging row refers only to the compact five-section example.
 
 .. list-table::
    :header-rows: 1

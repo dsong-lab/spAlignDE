@@ -116,6 +116,6 @@ support. Record the retained fraction, seeds, number of repeats and full
 alignment configuration. See :doc:`../tutorials/parameter_tuning` before
 changing the S-LDDMM scale or grid resolution.
 
-The inputs, final configuration, numerical summary and second-run comparison
-are available in the :download:`saved run summary
-<../_static/cross_sample_uncertainty_reproducibility_manifest.json>`.
+The final configuration, numerical summary and repeated-run comparison are
+available in the :download:`saved run summary
+<../_static/cross_sample_uncertainty_repeat_summary.json>`.

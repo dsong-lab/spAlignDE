@@ -14,8 +14,8 @@ Source notebooks
    cross_sample_alignment_breast_cancer_clustering_nb
    cross_sample_alignment_breast_cancer_alignment_nb
 
-Input audit and preprocessing
------------------------------
+Input checks and preprocessing
+------------------------------
 
 The Rep1 and Rep2 cell-feature matrices and cells tables are from the
 `10x Genomics Xenium human-breast dataset
@@ -75,8 +75,8 @@ transformation instead of restoring an incomparable pre-EM checkpoint. Final
 nearest-neighbor cluster agreement is 0.507. This cell-level agreement is an
 alignment diagnostic, not a replicate-level inferential statistic.
 
-Output contract
----------------
+Saved output
+------------
 
 The clustered H5AD contains normalized expression, raw counts, BANKSY/Harmony
 embeddings, UMAP coordinates and the selected 10-cluster labels. The aligned

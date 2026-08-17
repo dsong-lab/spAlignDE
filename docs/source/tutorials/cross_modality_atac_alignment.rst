@@ -68,8 +68,8 @@ The fixed S3R1 ST reference is distributed as part of the
 metadata files for S3R1, convert them with the single-clustering loader, and
 cluster the sample independently before alignment.
 
-Input contract
---------------
+Input format
+------------
 
 Spatial ATAC query
 ~~~~~~~~~~~~~~~~~~
@@ -111,7 +111,7 @@ spAlignDE.
 ST reference
 ~~~~~~~~~~~~
 
-The ST reference follows the same single-sample AnnData/CSV contract. Before
+The ST reference follows the same single-sample AnnData/CSV format. Before
 notebook 2, run :doc:`Single Clustering <clustering_single>` so that S3R1 has
 ``adata.obs["cluster"]``. The full S3R1 sample is supplied to the alignment;
 the matching half-brain selection is performed and recorded by spAlignDE.
@@ -345,7 +345,7 @@ Outputs
 
 The aligned ATAC AnnData retains the original gene-activity matrix,
 ``obsm["spatial"]``, observation identifiers, and metadata. It adds the
-package-wide coordinate contract:
+package-wide coordinate fields:
 
 .. code-block:: text
 
@@ -355,7 +355,7 @@ package-wide coordinate contract:
    y_aligned
 
 The cropped, fixed ST reference receives the same columns; its prealigned and
-aligned coordinates are identical. Parameters and provenance are stored only
+aligned coordinates are identical. Parameters and source details are stored only
 under the case-preserving ``adata.uns["spAlignDE"]`` namespace.
 
 The alignment output directory contains:

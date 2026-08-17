@@ -29,7 +29,7 @@ class UIAtlasPairing:
 
     ``deformation_groups`` contains one unioned source/target mask channel per
     ``group_id``. ``matched_pairs`` expands each group back to one row per ST
-    cluster for plotting and provenance. Individual rows in ``raw`` must not be
+    cluster for plotting and reference. Individual rows in ``raw`` must not be
     treated as independent LDDMM channels.
     """
 

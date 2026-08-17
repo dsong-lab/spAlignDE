@@ -7,13 +7,13 @@ with local spatial-neighborhood information, then optionally refines labels
 with a boundary-aware vote. The workflow is identical for cell- and
 spot-resolution data.
 
-Input contract
---------------
+Input format
+------------
 
 AnnData/H5AD
 ^^^^^^^^^^^^
 
-The canonical input contains:
+The input contains:
 
 - a cell/spot-by-gene matrix in ``adata.X`` (or a selected layer);
 - unique ``adata.obs_names``; and
@@ -28,7 +28,7 @@ Paired CSV
 ^^^^^^^^^^
 
 Conversion to H5AD is optional. A metadata/expression CSV pair can be loaded
-directly after it has been normalized to the column contract below.
+directly after it has been normalized to the columns below.
 
 The metadata CSV requires:
 
@@ -116,8 +116,8 @@ spatial coherence, boundary preservation and downstream structure coverage,
 not by matching cluster integer labels to this example. See
 :doc:`Parameter Tuning Guide <parameter_tuning>` for the full sequence.
 
-Output contract
----------------
+Saved output
+------------
 
 The input expression matrix and ``obsm["spatial"]`` are preserved. The
 returned AnnData adds:
@@ -125,7 +125,7 @@ returned AnnData adds:
 - ``obs["cluster_raw"]``: selected BANKSY partition;
 - ``obs["cluster_refined"]``: boundary-refined partition, when enabled;
 - ``obs["cluster"]``: selected labels for downstream alignment; and
-- ``uns["spAlignDE"]["single_clustering"]``: parameters and provenance.
+- ``uns["spAlignDE"]["single_clustering"]``: parameters and source details.
 
 The MERFISH S2R1 example contains 83,546 cells, 649 measured genes and 25
 refined clusters. It is used as the query for the ST-to-Allen-CCF tutorial.

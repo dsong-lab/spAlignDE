@@ -4,8 +4,6 @@ from __future__ import annotations
 
 import sys
 import re
-import hashlib
-import json
 from pathlib import Path
 
 import nbformat
@@ -73,18 +71,6 @@ def sanitize_notebook(notebook) -> bool:
 def sanitize(path: Path) -> None:
     notebook = nbformat.read(path, as_version=4)
     changed = sanitize_notebook(notebook)
-    execution = notebook.metadata.get("spAlignDE_execution")
-    if isinstance(execution, dict):
-        payload = [
-            cell.get("outputs", [])
-            for cell in notebook.cells
-            if cell.cell_type == "code"
-        ]
-        rendered = json.dumps(payload, sort_keys=True, separators=(",", ":"))
-        output_hash = hashlib.sha256(rendered.encode("utf-8")).hexdigest()
-        if execution.get("saved_output_sha256") != output_hash:
-            execution["saved_output_sha256"] = output_hash
-            changed = True
     if changed:
         nbformat.write(notebook, path)
 

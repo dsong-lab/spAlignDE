@@ -1,4 +1,4 @@
-"""Canonical, case-preserving public interface for spAlignDE."""
+"""Case-preserving public interface for spAlignDE."""
 
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ def __dir__() -> list[str]:
     return sorted(set(globals()).union(__all__))
 
 
-# Preserve canonical imports for users who access public subpackages directly.
+# Preserve imports for users who access public subpackages directly.
 for _submodule in ("alignment", "clustering", "datasets", "inference", "io", "uncertainty"):
     _module = importlib.import_module(f"spalignde.{_submodule}")
     globals()[_submodule] = _module

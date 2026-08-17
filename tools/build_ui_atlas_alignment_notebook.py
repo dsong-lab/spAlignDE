@@ -32,7 +32,7 @@ interactive region-pairing tool and runs ST-to-Allen alignment directly. The
 example aligns adult mouse-brain MERFISH S2R1 (83,546 cells) to Allen CCF
 coronal slice 675.
 
-The UI output is the authoritative pair specification. This interface does
+The UI output supplies the pair specification. This interface does
 **not** rediscover candidates, calculate pair scores/gates or run pair
 matching: each `group_id` is accepted directly as one many-to-many S-LDDMM
 channel formed by the union of its selected ST clusters and Allen labels.
@@ -64,7 +64,7 @@ cd /path/to/spAlignDE
 python -m pip install -e ".[clustering,atlas,tutorial]"
 ```
 
-| Role | Input | Required contract |
+| Role | Input | Required fields |
 |---|---|---|
 | Query ST | clustered AnnData/H5AD | `obsm["spatial"]` and `obs["cluster"]`; the paper example is the seed-1234 output of the preceding single-clustering notebook |
 | Curated correspondences | `spalign_de_experimental_pairs.csv` | the validated CSV for those fixed-seed labels; retain `group_id`, panel dataset kinds, selected IDs and `atlas_z_slice` |
@@ -80,7 +80,7 @@ The example files under `tutorials/cross_modality/atlas/data/` preserve the
 Allen selections from the paper run, with ST IDs remapped by cell overlap to
 the seed-1234 clustering output. For a new dataset, set `SPALIGNDE_CLUSTERED_ST_H5AD`,
 `SPALIGNDE_UI_PAIRING_CSV` and `SPALIGNDE_ALLEN_CCF_DIR`. The UI display's
-flip/rotation fields are retained as provenance. They do not replace the
+flip/rotation fields record the UI view. They do not replace the
 chosen global initialization: use `prealignment_mode="mask"` to recompute it,
 or `"provided"` to consume manual pre-aligned coordinates.
 """
@@ -198,7 +198,7 @@ to their original selected IDs and reconstructs the many-to-many groups. This
 is parsing and validation only; it does not score or rematch a pair.
 
 This example contains 54 selection rows, 9 deformation groups and 12 ST
-cluster-level records for plotting and provenance. Several rows may describe
+cluster-level records for plotting and reference. Several rows may describe
 the same group because a group can contain multiple ST clusters and multiple
 Allen structures.
 """
@@ -386,7 +386,7 @@ if peak_gib is not None:
 
 The result table has one row per selected ST cluster, while
 `n_manual_groups` reports the actual number of S-LDDMM channels. Use the saved
-`manual_pairs_grouped_valid_for_lddmm.csv` to audit which requested ST and
+`manual_pairs_grouped_valid_for_lddmm.csv` to check which requested ST and
 Allen IDs were present in this run. `result.matched_pairs` is retained as the
 standard result-field name, but here it is a normalized copy of UI-accepted
 pairs—not the output of a new matching calculation. The stage summary records
@@ -477,11 +477,11 @@ display(transfer_summary.to_frame())
             ),
             markdown(
                 r"""
-## Output contract and troubleshooting
+## Saved output and troubleshooting
 
 The returned AnnData preserves `X` and `obsm["spatial"]` and adds
 `x_prealigned`, `y_prealigned`, `x_aligned`, `y_aligned` plus Allen label
-columns to `obs`. Provenance is stored under
+columns to `obs`. Parameters and source details are stored under
 `uns["spAlignDE"]["st_to_allen_atlas"]` with
 `pairing_mode="ui_curated"`. The output directory also contains the aligned
 H5AD, raw/grouped/valid pair tables, coordinate table, filtering statistics

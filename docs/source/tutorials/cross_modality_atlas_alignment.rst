@@ -36,7 +36,7 @@ requires:
 - ``adata.obs["cluster"]``: selected single-sample spatial labels.
 
 The same clustering tutorial accepts either H5AD or paired CSV input, so the
-Atlas workflow itself uses one normalized AnnData contract.
+Atlas workflow itself uses one normalized AnnData layout.
 
 Allen CCF reference
 ^^^^^^^^^^^^^^^^^^^
@@ -189,7 +189,7 @@ The checked-in example is tied to the seed-1234 clustering notebook in this
 release. Its Allen selections and nine deformation groups are unchanged from
 the reviewed UI session; ST IDs were revalidated by cell overlap against the
 fresh fixed-seed clusters. The resulting CSV contains 54 selection rows and
-12 ST cluster-level provenance records. One original region split across
+12 ST cluster-level source records. One original region split across
 fixed-seed clusters 2 and 13 and is represented by their union.
 
 .. code-block:: python
@@ -217,7 +217,7 @@ Each ``group_id`` is converted to one S-LDDMM channel by unioning all selected
 ST clusters and Allen labels in that group. These pairs are accepted directly:
 automatic candidate discovery, pair scoring/gating, non-overlap selection and
 pair rematching are skipped. The ``matched_pairs`` result field contains
-normalized UI pair provenance rather than newly inferred pairs.
+normalized UI pair records rather than newly inferred pairs.
 
 The remaining alignment preparation is still required. The function performs
 point filtering, ST and Allen mask construction, mask cleanup, signed-distance
@@ -292,7 +292,7 @@ priority.
    for the six highest-scoring accepted pairs. The reported gated score, Dice
    and ASD are calculated from these same matching masks.
 
-The shared-color point overlay provides the complementary whole-section audit.
+The shared-color point overlay provides a complementary whole-section check.
 In the left panel, verify that every pre-aligned ST feature occupies the
 intended Allen structure with compatible position, width and boundary shape.
 The right panel shows the deformation driven by those same accepted channels.
@@ -342,7 +342,7 @@ for every annotation ID; label 0 remains white.
 
    Allen annotation slice 675 (left) and labels sampled at the final aligned
    MERFISH coordinates (right). Identical label colors allow a direct visual
-   audit of transfer coverage and background cells.
+   check of transfer coverage and background cells.
 
 In the fixed-seed three-stage run, the scheduled stages accept 3, 8 and 16
 structure pairs. Continuation identifies 17 pairs before its first deformation,
@@ -356,8 +356,8 @@ The complete fixed run retains all 83,546 cells and takes 13.2 minutes with
 coverage is reported by the freshly executed notebook rather than copied from
 an earlier uncontrolled result.
 
-Output contract
----------------
+Saved output
+------------
 
 The returned ``STAtlasAlignmentResult`` contains:
 
@@ -372,7 +372,7 @@ The returned ``STAtlasAlignmentResult`` contains:
 
 Fresh runs write ``st_to_allen_atlas_aligned.h5ad``, the ST hierarchy table,
 stage and pair CSV files, and before/after QC figures. Configuration and
-provenance use the canonical ``adata.uns["spAlignDE"]`` namespace.
+source details are stored in ``adata.uns["spAlignDE"]``.
 
 Quality control
 ---------------

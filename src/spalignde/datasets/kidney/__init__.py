@@ -27,7 +27,7 @@ def load_kidney_aligned_coordinates(sample_id: str) -> pd.DataFrame:
 
 
 def kidney_alignment_metadata() -> dict:
-    """Return provenance and schema metadata for the packaged coordinates."""
+    """Return source and schema metadata for the packaged coordinates."""
 
     resource = files(__package__).joinpath("metadata.json")
     with resource.open("r", encoding="utf-8") as stream:

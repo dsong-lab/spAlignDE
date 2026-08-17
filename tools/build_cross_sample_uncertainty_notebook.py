@@ -30,8 +30,6 @@ def build_notebook():
     notebook["metadata"]["spAlignDE_reproducibility"] = {
         "workflow_seed": 1000,
         "seed_scope": "Python, NumPy, Torch and configured stochastic methods",
-        "discrete_repeat_contract": "exact",
-        "cuda_coordinate_contract": "workflow-specific numerical tolerance",
     }
     notebook.cells = [
         md(
@@ -50,10 +48,10 @@ transformations; it is not a calibrated probability or confidence interval.
 
 Data source: [Vizgen Mouse Brain Receptor Map](https://info.vizgen.com/mouse-brain-map).
 
-**Fixed-seed reproducibility.** This workflow uses seed `1000`. Launch Python
-with `PYTHONHASHSEED=1000` before kernel startup, keep the documented input
-order and pinned environment fixed, and retain `restore_best=False`. Two full
-executions of all ten replicates produced identical pointwise tables.
+**Fixed-seed reproducibility.** This workflow uses seed `1000`. Keep the same
+input order and parameters, including `restore_best=False`, and set the seed
+before sampling. Two independent executions of all ten replicates produced the
+same pointwise table.
 """
         ),
         md(
@@ -144,11 +142,11 @@ and the reference count is 67,337 (80% of 84,172, rounded down).
         ),
         code(
             r"""
-manifest = uq.discover_lddmm_inputs(INPUT_DIR)
-assert [item["repeat"] for item in manifest] == list(range(1, 11))
+repeat_inputs = uq.discover_lddmm_inputs(INPUT_DIR)
+assert [item["repeat"] for item in repeat_inputs] == list(range(1, 11))
 
 replicate_rows = []
-for item in manifest:
+for item in repeat_inputs:
     dat = uq.load_repeat_input(item["path"])
     replicate_rows.append(
         {
@@ -176,7 +174,7 @@ directory is controlled by ``SPALIGNDE_UNCERTAINTY_OUTPUT_DIR`` and defaults to
 ``outputs/cross_sample_uncertainty`` under the notebook working directory.
 
 The reported workflow explicitly retains the final optimizer iterate
-(`restore_best=False`). This setting is part of the analysis contract: changing
+(`restore_best=False`). This setting is part of the reported analysis: changing
 it returns different transformations even though the logged final energy
 history is unchanged.
 """
@@ -206,7 +204,7 @@ optim_cfg = {
 }
 
 aligned_by_repeat, run_summary = uq.run_or_load_alignments(
-    manifest,
+    repeat_inputs,
     output_dir=OUTPUT_DIR,
     model_cfg=model_cfg,
     optim_cfg=optim_cfg,
@@ -234,7 +232,7 @@ failed before pointwise variability is summarized.
         ),
         code(
             r"""
-target_xy = uq.load_target_xy(manifest[0]["path"])
+target_xy = uq.load_target_xy(repeat_inputs[0]["path"])
 fig = uq.plot_all_replicate_overlays(aligned_by_repeat, target_xy, ncols=5)
 fig.savefig(FIG_DIR / "ten_replicate_alignment_qc.svg", bbox_inches="tight")
 fig.savefig(FIG_DIR / "ten_replicate_alignment_qc.png", dpi=180, bbox_inches="tight")
@@ -274,7 +272,7 @@ In the output table, $s_i$ is `std_total` and $v_{d,i}$ is `dist_var`.
         ),
         code(
             r"""
-reference_input = manifest[0]["path"]
+reference_input = repeat_inputs[0]["path"]
 transforms_by_repeat = uq.load_saved_transforms(OUTPUT_DIR / "transforms")
 assert sorted(transforms_by_repeat) == list(range(1, 11))
 

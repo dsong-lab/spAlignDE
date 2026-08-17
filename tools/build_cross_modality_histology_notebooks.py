@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build the canonical ST-to-histology executable notebooks."""
+"""Build the ST-to-histology executable notebooks."""
 
 from __future__ import annotations
 
@@ -31,8 +31,6 @@ def notebook(cells):
     result.metadata["spAlignDE_reproducibility"] = {
         "workflow_seed": 0,
         "seed_scope": "Python, NumPy, Torch and configured stochastic methods",
-        "discrete_repeat_contract": "exact",
-        "cuda_coordinate_contract": "workflow-specific numerical tolerance",
     }
     return result
 
@@ -408,7 +406,7 @@ structures.
             ),
             markdown(
                 r"""
-## Output contract and next step
+## Saved output and next step
 
 The stage writes:
 
@@ -416,7 +414,7 @@ The stage writes:
 - `embeddings-hist-vit.pickle`: the newly extracted image-only HIPT feature
   field (`192 cls + 384 sub + 3 rgb` channels); and
 - `histology_image_preparation.json`: source-image, physical-resolution,
-  resizing, padding, and prepared-image provenance; and
+  resizing, padding, and prepared-image details; and
 - `histology_feature_manifest.json`: model route, tiling/shift/smoothing
   parameters, feature schema and file information.
 
@@ -551,7 +549,7 @@ plt.show()
             ),
             markdown(
                 r"""
-## Output contract and next step
+## Saved output and next step
 
 The compact result stores the tissue mask and raw, merged, and cleaned integer
 label rasters at feature-grid resolution. Continue with **Xenium Replicate 1
@@ -583,7 +581,7 @@ paper reserves them for independent molecular-concordance evaluation.
             ),
             markdown(
                 r"""
-## Input contract and notebook order
+## Input format and notebook order
 
 Run these steps in order:
 
@@ -940,9 +938,9 @@ plt.show()
 
 The original `X`, observation order, metadata, and `obsm["spatial"]` are
 preserved. Alignment adds `x_prealigned`, `y_prealigned`, `x_aligned`, and
-`y_aligned`. Reproducibility metadata is stored only under
-`adata.uns["spAlignDE"]`. The final AnnData, pair table, filter summary, and
-JSON manifest are written to `tutorials/cross_modality/histology/output/alignment/`.
+`y_aligned`. Run parameters are stored only under
+`adata.uns["spAlignDE"]`. The final AnnData, pair table, filter summary and
+JSON run summary are written to `tutorials/cross_modality/histology/output/alignment/`.
 """
             ),
             code(

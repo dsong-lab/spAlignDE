@@ -9,7 +9,7 @@ The ST-to-Allen-CCF, ST-to-H&E, and spatial-ATAC-to-ST workflows are
 package-integrated reference implementations. They follow the same
 documentation framework as cross-sample alignment: explicit input contracts,
 package functions, ordered executable notebooks, standard coordinate outputs,
-visual QC and reproducible provenance.
+visual QC and recorded settings.
 
 Use the workflow-specific seeds and exact-versus-tolerance criteria in
 :doc:`Reproducibility and fixed random seeds <reproducibility>` before running

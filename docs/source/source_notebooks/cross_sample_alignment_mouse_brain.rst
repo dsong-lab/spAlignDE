@@ -11,7 +11,7 @@ clusters, with exact labels in two independent processes.
 First run :doc:`the mouse-brain joint-clustering notebook
 <clustering/clustering_joint_nb>`, which is maintained under the
 :doc:`Clustering <clustering>` section. It accepts either a combined AnnData
-file or paired CSV files following the :ref:`cross-sample-csv-contract`.
+file or paired CSV files following the :ref:`cross-sample-csv-format`.
 
 Then run the alignment notebook below. It displays the automatic or
 interactive manual pre-alignment, the rasterized cluster and density fields,
@@ -25,7 +25,7 @@ and the final overlays with and without cluster colors.
 The output AnnData retains the original coordinates and adds
 ``x_prealigned``, ``y_prealigned``, ``x_aligned`` and ``y_aligned`` to
 ``adata.obs``. See :doc:`../tutorials/cross_sample_alignment` for the complete
-data contract and workflow explanation.
+data format and workflow explanation.
 
 Use :doc:`../tutorials/parameter_tuning` to adapt clustering, raster spacing,
 ``a``, ``grid_step``, integration steps and optimizer settings; first correct

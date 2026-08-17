@@ -3059,7 +3059,7 @@ def batch_run_one_gene_and_save_multi_conditional(
                 )
                 infl_local = 1 + risk_local_lambda * (np.maximum(rr_t["r01"], 0) ** risk_power_fixed)
                 # The promoted A=0 calibration is local-only. The comparison-level
-                # global score is retained for provenance but does not inflate variance.
+                # The global score is retained for diagnostics but does not inflate variance.
                 infl_global = 1.0
                 v_risk = v_base * infl_local * infl_global
                 v_floor_base = np.nanmedian(v_risk[use & np.isfinite(v_risk)]) if np.any(use & np.isfinite(v_risk)) else np.nan

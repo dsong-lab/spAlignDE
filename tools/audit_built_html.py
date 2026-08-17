@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Audit local links, fragments, and media in a built Sphinx HTML tree."""
+"""Check local links, fragments, and media in a built Sphinx HTML tree."""
 
 from __future__ import annotations
 
