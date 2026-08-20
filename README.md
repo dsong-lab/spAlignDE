@@ -21,7 +21,7 @@ shared-grid local inference after alignment.
 
 ## What spAlignDE does
 
-- cross-sample spatial transcriptomics alignment;
+- cross-sample spatial transcriptomics alignment:
 - ST-to-Allen-CCF alignment and label transfer;
 - ST-to-histology-image alignment through HIPT image features;
 - spatial-ATAC-to-ST alignment;
