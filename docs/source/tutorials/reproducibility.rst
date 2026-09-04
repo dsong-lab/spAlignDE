@@ -100,17 +100,17 @@ inference example continues from the fixed-seed manual-prealignment result.
 Checking an edited tutorial
 ---------------------------
 
-Run an affected notebook from a fresh kernel, then repeat it once with the same
-inputs, parameters and seed. Compare the labels, accepted pairs and reported
-summary values. The repository helpers can execute and inspect the public
-notebooks:
+For an ordinary notebook edit, run the affected notebook once from a fresh
+kernel and inspect its results. Maintainers changing a reported scientific
+result should also repeat it independently with the same inputs, parameters
+and seed, then compare labels, accepted pairs and reported summary values. The
+repository helpers execute and inspect the canonical public notebooks:
 
 .. code-block:: bash
 
    python tools/execute_fixed_seed_tutorials.py --only path/to/notebook.ipynb
-   python tools/audit_tutorial_reproducibility.py
+   python tools/audit_source_notebooks.py source_notebooks
 
-The execution helper stops when a cell fails and updates the documentation copy
-after a successful run. The checking helper verifies that notebooks declare
-their workflow seed, contain completed outputs and match their documentation
-copies.
+The execution helper stops when a cell fails and updates the canonical notebook
+after a successful run. The audit checks portable source, saved execution
+state and consistency between each declared seed and its execution metadata.
