@@ -24,6 +24,8 @@ venv/
 
 # Documentation build products
 docs/build/
+docs/source/source_notebooks/**/*.ipynb
+docs/source/_static/environment/
 
 # Downloaded datasets, pretrained models and generated workflow outputs
 /data/

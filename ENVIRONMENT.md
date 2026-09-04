@@ -29,7 +29,6 @@ installation before running a full dataset:
 ```bash
 python tools/check_notebook_environment.py
 python tools/check_notebook_environment.py --require-cuda  # GPU workstation
-python -m pytest -q
 ```
 
 The first checker command also supports CPU-only hosts. Use
@@ -44,7 +43,8 @@ Clearing `PYTHONPATH` before environment creation is important. Otherwise Pip
 may see packages from an unrelated shared directory, report them as already
 installed, and omit them from the new environment. `PYTHONNOUSERSITE=1`
 prevents the same problem through the per-user site-packages directory. The
-checker fails when either isolation condition is not satisfied.
+checker fails when either isolation condition is not satisfied. Package tests
+are a maintainer check and are not required before using a notebook.
 
 ## GPU and CPU execution
 
@@ -119,7 +119,8 @@ When a dependency is intentionally changed:
 3. run `tools/check_notebook_environment.py` and the package tests;
 4. execute the affected source notebooks;
 5. rebuild Sphinx; and
-6. repeat the affected workflow and compare its reported results.
+6. if the change affects a reported result, repeat that workflow independently
+   and compare its scientific outputs.
 
 Do not regenerate this file from an unrestricted long-lived developer
 environment without reviewing local paths, unrelated packages and conflicting

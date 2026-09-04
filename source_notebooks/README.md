@@ -2,34 +2,31 @@
 
 This directory contains the executable notebooks published under the
 documentation site's **Source Notebooks** section.
-Its folder structure mirrors `docs/source/source_notebooks`:
+Sphinx stages this folder into its build tree when documentation is built:
 
 - `clustering/`: joint and single-sample clustering;
 - `cross_modality/`: ATAC–ST, H&E–ST, and interactive region-pairing workflows;
 - top-level cross-sample, atlas, uncertainty, and post-alignment notebooks,
   including kidney and aging-brain inference workflows.
 
-Notebooks are executed here first and then copied to the matching Sphinx source
-path. Public Python examples use the case-preserving `spAlignDE` name, and
+These files are the single source of truth; generated Sphinx copies are ignored
+by Git. Public Python examples use the case-preserving `spAlignDE` name, and
 package-generated AnnData metadata is stored under `adata.uns["spAlignDE"]`.
 
-Release outputs are regenerated from the repository root with:
+Affected release outputs are regenerated and checked from the repository root
+with:
 
 ```bash
-python tools/execute_fixed_seed_tutorials.py
-python tools/audit_tutorial_reproducibility.py
+python tools/execute_fixed_seed_tutorials.py --only path/to/notebook.ipynb
+python tools/audit_source_notebooks.py source_notebooks
 ```
 
 The executor uses a fresh kernel per notebook, imports the current checkout
-through an absolute `src` path, stops on cell errors, sanitizes local paths and
-checks that saved outputs and documentation copies are complete and consistent.
+through an absolute `src` path, stops on cell errors and sanitizes local paths.
+The audit checks syntax, portable paths, saved execution state and seed metadata.
 The public execution set contains 17 computational notebooks. External inputs
 used for these examples are listed in the documentation by role and filename.
-
-The task-specific **How to adapt...** cells are maintained by
-`tools/add_parameter_guidance.py`. They preserve executed outputs and should be
-reapplied after a notebook builder regenerates a notebook. The full
-cross-workflow reference is the website `Parameter Tuning Guide`.
+The full cross-workflow reference is the website `Parameter Tuning Guide`.
 
 ## Recommended notebook routes
 

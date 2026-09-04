@@ -34,12 +34,10 @@ jobs:
         env:
           PYTHONNOUSERSITE: "1"
         run: python tools/audit_source_notebooks.py source_notebooks
-      - name: Audit public paths, notebook mirrors and pins
+      - name: Audit public paths, pins and versions
         run: python tools/audit_public_references.py
       - name: Audit public API documentation coverage
         run: python tools/audit_api_documentation.py
-      - name: Audit fixed-seed notebook contracts
-        run: python tools/audit_tutorial_reproducibility.py
       - name: Build and audit the public wheel
         run: |
           python -m pip wheel . --no-deps --no-build-isolation --wheel-dir dist

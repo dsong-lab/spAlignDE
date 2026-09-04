@@ -50,7 +50,6 @@ Verify before running data
 
    python tools/check_notebook_environment.py
    python tools/check_notebook_environment.py --require-cuda  # GPU workstation
-   python -m pytest -q
 
 The checker prints Python, platform, package, imported PyTorch, CUDA runtime
 and visible GPU information as JSON. The first command also supports CPU-only
@@ -58,6 +57,9 @@ hosts; ``--require-cuda`` additionally requires a visible GPU to complete the
 kernel smoke test. A PyTorch metadata/import mismatch is a
 sign of an environment modified in place; create a fresh environment before
 executing release notebooks.
+
+The package test suite is a maintainer check and is not required before using
+a tutorial notebook.
 
 GPU and CPU variants
 --------------------

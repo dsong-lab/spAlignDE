@@ -116,10 +116,10 @@ policy.
 
 ## Choose a workflow
 
-Run notebooks in workflow order. The executed copies are under
-[`source_notebooks/`](source_notebooks/); the documentation contains the same
-saved outputs. The public notebook collection contains only the full data
-analysis workflows listed below.
+Run notebooks in workflow order. The canonical executed notebooks are under
+[`source_notebooks/`](source_notebooks/); documentation builds render those
+files directly. The public notebook collection contains the full data analysis
+workflows listed below.
 
 | Goal | Run in this order | Main handoff or result |
 |---|---|---|
@@ -192,6 +192,7 @@ Build it locally with:
 
 ```bash
 python -m pip install -r docs/requirements.txt
+python tools/stage_documentation.py
 sphinx-build -W --keep-going -b html docs/source docs/build/html
 python tools/audit_built_html.py docs/build/html
 ```
@@ -229,19 +230,19 @@ input format. In particular:
 ```bash
 python -m pytest -q
 python tools/audit_source_notebooks.py source_notebooks
-python tools/audit_tutorial_reproducibility.py
 python tools/audit_public_references.py
 python tools/audit_api_documentation.py
 python -m pip wheel . --no-deps --no-build-isolation --wheel-dir dist
 python tools/audit_distribution_contents.py dist/*.whl
+python tools/stage_documentation.py
 sphinx-build -W --keep-going -b html docs/source docs/build/html
 python tools/audit_built_html.py docs/build/html
 ```
 
-These commands run the package tests, check the saved notebooks and their
-documentation copies, build the wheel and website, and check local links and
-images. Repeated workflow runs are compared using the criteria in the
-reproducibility guide.
+These maintainer commands run the package tests, inspect the canonical saved
+notebooks, build the wheel and website, and check local links and images.
+Repeated workflow runs are only needed when updating a reported scientific
+result; use the criteria in the reproducibility guide.
 
 ## Citation
 
