@@ -16,6 +16,7 @@ LEGACY_PUBLIC_PATTERNS = (
     re.compile(r"uns\s*\[\s*['\"]spalignde['\"]\s*\]"),
 )
 DEVELOPER_PATH_PATTERN = re.compile(r"(?:/home/[^/]+/|[A-Za-z]:\\Users\\[^\\]+\\)")
+WORKFLOW_SEED_PATTERN = re.compile(r"(?m)^\s*WORKFLOW_SEED\s*=\s*(\d+)\s*$")
 
 
 def main() -> int:
@@ -33,6 +34,9 @@ def main() -> int:
         notebook = nbformat.read(path, as_version=4)
         relative = path.relative_to(args.notebook_dir)
         raw_text = path.read_text(encoding="utf-8")
+        code = "\n".join(
+            cell.source for cell in notebook.cells if cell.cell_type == "code"
+        )
         if DEVELOPER_PATH_PATTERN.search(raw_text):
             failures.append(f"{relative}: contains a developer-only absolute path")
         for pattern in LEGACY_PUBLIC_PATTERNS:
@@ -56,6 +60,29 @@ def main() -> int:
                         f"{relative}: code cell {index} saved "
                         f"{output.get('ename', 'an error')} output"
                     )
+
+        reproducibility = notebook.metadata.get("spAlignDE_reproducibility", {})
+        if reproducibility:
+            seed = reproducibility.get("workflow_seed")
+            seed_match = WORKFLOW_SEED_PATTERN.search(code)
+            if not isinstance(seed, int):
+                failures.append(
+                    f"{relative}: reproducibility metadata has no integer workflow_seed"
+                )
+            elif seed_match is None or int(seed_match.group(1)) != seed:
+                failures.append(
+                    f"{relative}: WORKFLOW_SEED does not match notebook metadata"
+                )
+
+            execution = notebook.metadata.get("spAlignDE_execution", {})
+            if execution.get("fully_executed") is not True:
+                failures.append(
+                    f"{relative}: execution metadata does not mark the notebook complete"
+                )
+            if execution.get("workflow_seed") != seed:
+                failures.append(
+                    f"{relative}: execution seed does not match reproducibility metadata"
+                )
 
     print(f"Notebooks: {len(notebook_paths)}")
     print(f"Non-empty code cells: {code_cells}")

@@ -75,10 +75,12 @@ the remaining rows at the closest validated tutorial settings.
 For a controlled sweep, freeze the input files and row order, use one fixed
 workflow seed, and change three nearby values from one parameter group. Reject
 geometrically implausible runs before looking at downstream biological
-statistics. After selecting a configuration, execute it twice in clean working
-directories. Compare cluster partitions and pair identities exactly; compare
-CUDA coordinates within the documented tolerance. Save the selected config,
-input file identifiers, seed, accepted-pair table and overlays with the result.
+statistics. Execute the selected configuration twice in clean working
+directories only when validating a reported or published result. In that case,
+compare cluster partitions and pair identities exactly and CUDA coordinates
+within the documented tolerance. For routine analyses, save the selected
+config, input file identifiers, seed, accepted-pair table and overlays with the
+result.
 
 Save the selected configuration under ``adata.uns["spAlignDE"]`` with the
 aligned coordinates. Parameter choices are part of the result, not merely
@@ -698,7 +700,6 @@ Failure-oriented checklist
      - Energy plateau and incorrect pairs
      - Fix inputs/pairs; do not increase ``niter`` blindly
 
-For every new dataset, retain the configuration, pre-alignment overlay,
-structure/mask panels, accepted-pair table, final overlay and energy history.
-These artifacts are the minimum evidence required to interpret an aligned
-coordinate output.
+Retain the configuration, pre-alignment overlay, relevant structure or mask
+panels, accepted-pair table, final overlay and energy history needed to
+interpret an aligned coordinate output.

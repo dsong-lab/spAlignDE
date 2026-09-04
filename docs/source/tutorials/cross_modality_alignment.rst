@@ -11,9 +11,9 @@ documentation framework as cross-sample alignment: explicit input contracts,
 package functions, ordered executable notebooks, standard coordinate outputs,
 visual QC and recorded settings.
 
-Use the workflow-specific seeds and exact-versus-tolerance criteria in
-:doc:`Reproducibility and fixed random seeds <reproducibility>` before running
-any of the executable notebooks.
+Use the workflow-specific seeds in :doc:`Reproducibility and fixed random
+seeds <reproducibility>`. Its repeat-comparison criteria apply when validating
+a reported result, not to every exploratory notebook run.
 
 Every workflow now exposes **paired-feature overlap** as a required QC
 checkpoint. The individual query/reference structures and their shared-color

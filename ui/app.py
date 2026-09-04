@@ -1,12 +1,12 @@
 from io import BytesIO
 import base64
 from datetime import datetime
-import hashlib
 import json
 import os
 from pathlib import Path
 import re
 from typing import Callable, Optional
+from uuid import uuid4
 
 import matplotlib
 
@@ -1311,10 +1311,6 @@ def safe_filename(filename: str) -> str:
     return clean or "uploaded_dataset"
 
 
-def stable_file_signature(file_bytes: bytes) -> str:
-    return hashlib.sha1(file_bytes).hexdigest()
-
-
 def dataset_display_name(dataset_name: str, definition: Optional[dict] = None) -> str:
     if definition and definition.get("display_name"):
         return str(definition["display_name"])
@@ -1363,7 +1359,10 @@ def manifest_entry_to_definition(entry: dict) -> Optional[dict]:
     definition = {
         "kind": dataset_type,
         "source": "uploaded",
-        "dataset_id": str(entry.get("dataset_id", stable_file_signature(str(entry).encode())[:12])),
+        "dataset_id": str(
+            entry.get("dataset_id")
+            or f"custom_{safe_filename(saved_file_path.stem)}"
+        ),
         "display_name": str(entry.get("display_name", saved_file_path.stem)),
         "file_name": str(entry.get("original_filename", saved_file_path.name)),
         "original_filename": str(entry.get("original_filename", saved_file_path.name)),
@@ -1696,13 +1695,12 @@ def add_custom_dataset(name: str, definition: dict) -> str:
 
     dataset_name = unique_custom_dataset_name(name)
     display_name = dataset_display_name(dataset_name)
-    file_signature = stable_file_signature(file_bytes)
     existing_ids = {
         str(item.get("dataset_id"))
         for item in uploaded_manifest_entries()
         if item.get("dataset_id")
     }
-    base_dataset_id = f"custom_{file_signature[:12]}"
+    base_dataset_id = f"custom_{uuid4().hex[:12]}"
     dataset_id = base_dataset_id
     suffix = 2
     while dataset_id in existing_ids:
@@ -1720,7 +1718,7 @@ def add_custom_dataset(name: str, definition: dict) -> str:
     saved_definition = {
         key: value
         for key, value in definition.items()
-        if key not in {"data_bytes", "file_signature"}
+        if key != "data_bytes"
     }
     saved_definition.update(
         {
