@@ -9,6 +9,7 @@ From the repository root:
 
 ```bash
 python -m pip install -r docs/requirements.txt
+python tools/stage_documentation.py
 sphinx-build -W --keep-going -b html docs/source docs/build/html
 python tools/audit_built_html.py docs/build/html
 python docs/serve_docs_nocache.py
@@ -31,13 +32,17 @@ Import the GitHub repository into Read the Docs. The root
 
 ## Updating a notebook page
 
-1. regenerate or edit the canonical notebook under `source_notebooks/`;
-2. execute it with the `spAlignDE-notebooks` kernel;
-3. run `tools/add_parameter_guidance.py` when a builder replaced tuning cells;
-4. sanitize nonportable output paths with `tools/sanitize_notebook_outputs.py`;
-5. copy it to the matching `docs/source/source_notebooks/` path;
-6. run `tools/audit_source_notebooks.py source_notebooks`; and
-7. rebuild and audit the website strictly.
+1. edit the canonical notebook under `source_notebooks/`;
+2. execute it with `tools/execute_fixed_seed_tutorials.py --only ...` or a
+   fresh `spAlignDE-notebooks` kernel;
+3. sanitize nonportable output paths when needed with
+   `tools/sanitize_notebook_outputs.py`;
+4. run `tools/audit_source_notebooks.py source_notebooks`; and
+5. stage, rebuild and audit the website strictly.
+
+`tools/stage_documentation.py` creates ignored build inputs under
+`docs/source/source_notebooks/` and `docs/source/_static/environment/`. Do not
+edit or commit those generated copies.
 
 The website intentionally contains no dataset, Allen annotation, HIPT
 checkpoint or generated H5AD dependency. Those assets remain linked external

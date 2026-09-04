@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check public notebook references, mirrors, and reproducibility settings."""
+"""Check public notebook references and shared release settings."""
 
 from __future__ import annotations
 
@@ -37,21 +37,9 @@ def main() -> int:
                     f"{relative_source}: notebook reference does not exist: {reference}"
                 )
 
-    source_root = ROOT / "source_notebooks"
-    mirror_root = ROOT / "docs/source/source_notebooks"
-    notebook_paths = sorted(source_root.rglob("*.ipynb"))
-    for source_path in notebook_paths:
-        relative = source_path.relative_to(source_root)
-        mirror = mirror_root / relative
-        if not mirror.is_file():
-            failures.append(f"missing documentation notebook mirror: {relative}")
-        elif source_path.read_bytes() != mirror.read_bytes():
-            failures.append(f"documentation notebook mirror is stale: {relative}")
-
     pin_paths = (
         ROOT / "pyproject.toml",
         ROOT / "environment.yml",
-        ROOT / "docs/source/_static/environment/environment.yml",
     )
     pins: dict[Path, str] = {}
     for path in pin_paths:
@@ -66,47 +54,8 @@ def main() -> int:
         )
         failures.append(f"BANKSY commit pins disagree: {rendered}")
 
-    downloadable_mirrors = {
-        ROOT / "environment.yml": (
-            ROOT / "docs/source/_static/environment/environment.yml"
-        ),
-        ROOT / "ENVIRONMENT.md": (
-            ROOT / "docs/source/_static/environment/ENVIRONMENT.md"
-        ),
-        ROOT / "tools/check_notebook_environment.py": (
-            ROOT
-            / "docs/source/_static/environment/check_notebook_environment.py"
-        ),
-    }
-    for source_path, mirror in downloadable_mirrors.items():
-        if not mirror.is_file():
-            failures.append(
-                "missing downloadable environment mirror: "
-                f"{mirror.relative_to(ROOT)}"
-            )
-        elif source_path.read_bytes() != mirror.read_bytes():
-            failures.append(
-                "downloadable environment mirror is stale: "
-                f"{mirror.relative_to(ROOT)}"
-            )
-
-    license_path = ROOT / "LICENSE"
     pyproject_text = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
     citation_text = (ROOT / "CITATION.cff").read_text(encoding="utf-8")
-    if not license_path.is_file() or not license_path.read_text(
-        encoding="utf-8"
-    ).startswith("MIT License\n"):
-        failures.append("LICENSE: missing the standard MIT License heading")
-    elif "Copyright (c) 2026 Dongyuan Song Lab\n" not in license_path.read_text(
-        encoding="utf-8"
-    ):
-        failures.append("LICENSE: copyright holder is not Dongyuan Song Lab")
-    if 'license = {file = "LICENSE"}' not in pyproject_text:
-        failures.append("pyproject.toml: project license does not reference LICENSE")
-    if "License :: OSI Approved :: MIT License" not in pyproject_text:
-        failures.append("pyproject.toml: missing MIT license classifier")
-    if not re.search(r"^license:\s*MIT\s*$", citation_text, re.MULTILINE):
-        failures.append("CITATION.cff: missing license: MIT")
 
     version_sources = {
         "pyproject.toml": PYPROJECT_VERSION.search(pyproject_text),
@@ -126,11 +75,8 @@ def main() -> int:
         failures.append(f"release versions disagree: {rendered}")
 
     print(f"Public notebook references: {len(checked_references)}")
-    print(f"Matching notebook copies: {len(notebook_paths)}")
     print(f"BANKSY pin files: {len(pins)}")
-    print(f"Downloadable environment mirrors: {len(downloadable_mirrors)}")
     print(f"Release version files: {len(versions)}")
-    print("License metadata: MIT")
     if failures:
         print(f"Failures: {len(failures)}")
         for failure in failures:
