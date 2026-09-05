@@ -157,13 +157,10 @@ reference subsampling. `spAlignDE.set_random_seed()` resets Python, NumPy and
 Torch before randomized PCA or sampling.
 
 Use the same cleaned inputs, observation order and workflow parameters when
-repeating an analysis. The reproducibility checks compare the artifacts that
-drive each next step: exact labels for clustering workflows and documented
-summary values for downstream inference. Joint clustering defaults to CPU
-Harmony with one PyTorch thread so the corrected representation is repeatable;
-accelerator or parallel Harmony is available for speed-first runs. Very small
-differences in the last digits of GPU alignment coordinates may remain without
-changing those results. See the
+repeating an analysis. Two independent runs of the documented workflows with
+these seeds reproduced the reported clusters, structure pairs and summary
+results. Very small differences in the last digits of GPU coordinates may
+remain without changing those results. See the
 [reproducibility guide](docs/source/tutorials/reproducibility.rst).
 
 ## Interactive region-pairing UI

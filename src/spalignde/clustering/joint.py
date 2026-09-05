@@ -31,8 +31,6 @@ class JointClusteringConfig:
     snn_neighbors: int = 50
     harmony_theta: float = 2.0
     harmony_max_iter: int = 30
-    harmony_device: str = "cpu"
-    harmony_threads: int | None = 1
     random_state: int = 1000
     leiden_flavor: str = "leidenalg"
     leiden_n_iterations: int = -1
@@ -115,8 +113,6 @@ def cluster_joint(
     always written to ``adata.obs[cluster_key]``.
     """
     config = config or JointClusteringConfig()
-    if config.harmony_threads is not None and config.harmony_threads < 1:
-        raise ValueError("harmony_threads must be positive or None")
     validate_cross_sample_anndata(
         adata,
         sample_key=sample_key,
@@ -167,8 +163,6 @@ def cluster_joint(
         random_state=config.random_state,
         harmony_max_iter=config.harmony_max_iter,
         harmony_theta=config.harmony_theta,
-        harmony_device=config.harmony_device,
-        harmony_threads=config.harmony_threads,
     )
     if config.compute_umap:
         banksy_adata = core.compute_pre_post_harmony_umap(

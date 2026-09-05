@@ -202,8 +202,9 @@ identical and ``cluster_refined`` is not added.
 
 ``JointClusteringConfig`` contains BANKSY neighborhood and lambda settings,
 PCA dimension, SNN neighborhood size, Leiden resolution, Harmony settings,
-boundary refinement, and random state. Harmony uses CPU with one PyTorch
-thread by default so a fixed seed reproduces the same corrected representation.
+boundary refinement, and random state. The random state is passed to PCA,
+Harmony, UMAP and Leiden; use the documented paper environment when exact
+paper-result reproduction is required.
 
 ``layer`` selects an AnnData expression layer; the default uses ``adata.X``.
 ``copy=False`` permits mutation of the input. With ``return_details=True``,
@@ -228,10 +229,6 @@ the return value is ``(clustered_adata, details)`` instead of AnnData alone.
    * - ``harmony_theta`` / ``harmony_max_iter``
      - ``2.0`` / ``30``
      - Sample correction strength and iteration limit.
-   * - ``harmony_device`` / ``harmony_threads``
-     - ``"cpu"`` / ``1``
-     - Deterministic default. Use an accelerator or ``None`` threads when
-       speed is more important than bitwise repeatability.
    * - ``random_state``
      - ``1000``
      - Seed applied before BANKSY, joint PCA, Harmony and Leiden.
