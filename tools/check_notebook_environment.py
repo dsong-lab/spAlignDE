@@ -52,6 +52,7 @@ PACKAGES = {
     "torch": ("torch",),
     "torchvision": ("torchvision",),
     "umap-learn": ("umap-learn",),
+    "webdataset": ("webdataset",),
 }
 
 EXPECTED_VERSIONS = {
@@ -92,6 +93,7 @@ EXPECTED_VERSIONS = {
     "torch": "2.10.0+cu128",
     "torchvision": "0.25.0+cu128",
     "umap-learn": "0.5.11",
+    "webdataset": "1.0.2",
 }
 EXPECTED_PYTHON = "3.10.14"
 EXPECTED_CUDA_RUNTIME = "12.8"
@@ -135,6 +137,7 @@ IMPORT_CHECKS = {
     "torch": "torch",
     "torchvision": "torchvision",
     "umap-learn": "umap",
+    "webdataset": "webdataset",
 }
 
 IMPORT_FALLBACKS = {

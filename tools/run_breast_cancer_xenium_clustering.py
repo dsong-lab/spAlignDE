@@ -24,6 +24,7 @@ import numpy as np
 import pandas as pd
 import scanpy as sc
 import scipy.sparse as sp
+import torch
 from banksy.initialize_banksy import initialize_banksy
 from sklearn.decomposition import PCA
 from sklearn.linear_model import LogisticRegression
@@ -572,6 +573,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--pca-components", type=int, default=30)
     parser.add_argument("--harmony-theta", type=float, default=4.0)
     parser.add_argument("--harmony-max-iter", type=int, default=30)
+    parser.add_argument("--harmony-device", default="cpu")
+    parser.add_argument(
+        "--harmony-threads",
+        type=int,
+        default=1,
+        help="PyTorch threads used by Harmony; use 0 to retain the process setting.",
+    )
     parser.add_argument("--leiden-resolution", type=float, default=0.3)
     parser.add_argument("--max-cells-per-sample", type=int)
     parser.add_argument("--seed", type=int, default=RANDOM_STATE)
@@ -584,6 +592,8 @@ def main() -> None:
     args.source_dir = args.source_dir.expanduser().resolve()
     args.output_dir = args.output_dir.expanduser().resolve()
     args.output_dir.mkdir(parents=True, exist_ok=True)
+    if args.harmony_threads < 0:
+        raise ValueError("--harmony-threads must be non-negative")
     lambdas = validate_lambdas(args.lambdas)
     seed_controls = spAlignDE.set_random_seed(
         args.seed,
@@ -608,6 +618,8 @@ def main() -> None:
         "pca_components": args.pca_components,
         "harmony_theta": args.harmony_theta,
         "harmony_max_iter": args.harmony_max_iter,
+        "harmony_device": args.harmony_device,
+        "harmony_threads": args.harmony_threads,
         "graph_neighbors": args.graph_neighbors,
         "leiden_resolution": args.leiden_resolution,
         "leiden_flavor": "igraph",
@@ -675,15 +687,23 @@ def main() -> None:
         gc.collect()
 
         log(f"Running Harmony theta={args.harmony_theta:g} for lambda={lambda_value:g}")
-        harmony = hm.run_harmony(
-            pca_scores,
-            joint.obs,
-            "sample_id",
-            theta=args.harmony_theta,
-            max_iter_harmony=args.harmony_max_iter,
-            random_state=args.seed,
-            verbose=False,
-        )
+        previous_threads = torch.get_num_threads()
+        try:
+            if args.harmony_threads:
+                torch.set_num_threads(args.harmony_threads)
+            harmony = hm.run_harmony(
+                pca_scores,
+                joint.obs,
+                "sample_id",
+                theta=args.harmony_theta,
+                max_iter_harmony=args.harmony_max_iter,
+                random_state=args.seed,
+                device=args.harmony_device,
+                verbose=False,
+            )
+        finally:
+            if args.harmony_threads:
+                torch.set_num_threads(previous_threads)
         harmony_scores = np.asarray(harmony.Z_corr, dtype=np.float32)
         if harmony_scores.shape != pca_scores.shape:
             if harmony_scores.T.shape == pca_scores.shape:

@@ -20,12 +20,16 @@ PUBLIC_PATH_REPLACEMENTS = {
     str(PROJECT_ROOT): "/path/to/spAlignDE",
 }
 DEVELOPER_HOME = re.compile(r"/home/[^/\s<]+/")
+VALIDATION_ROOT = re.compile(
+    r"/mnt/[^/\s<]+/[^/\s<]+/spAlignDE_tutorial_validation_[^/\s<]+/"
+)
 
 
 def public_paths(text: str) -> str:
     """Replace validated-machine paths without changing numeric results."""
     for source, destination in PUBLIC_PATH_REPLACEMENTS.items():
         text = text.replace(source, destination)
+    text = VALIDATION_ROOT.sub("/path/to/", text)
     return DEVELOPER_HOME.sub("/path/to/", text)
 
 

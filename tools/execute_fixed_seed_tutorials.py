@@ -59,6 +59,7 @@ def _kernel_environment():
                 else os.pathsep.join((source_path, existing_pythonpath))
             ),
             "PYTHONNOUSERSITE": "1",
+            "SPALIGNDE_ENABLE_WIDGETS": "0",
         }
     )
     try:
