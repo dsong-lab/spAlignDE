@@ -15,7 +15,7 @@ dependencies:
       - torchvision==0.25.0+cu128
 
       # Core AnnData and S-LDDMM runtime
-      - anndata==0.10.9
+      - anndata==0.10.8
       - h5py==3.15.1
       - matplotlib==3.10.7
       - numpy==1.26.4

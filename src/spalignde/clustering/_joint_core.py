@@ -34,13 +34,12 @@ import pandas as pd
 import scanpy as sc
 import scipy.sparse as sp
 import seaborn as sns
-import torch
 from banksy.embed_banksy import generate_banksy_matrix
 from banksy.initialize_banksy import initialize_banksy
+from banksy_utils.umap_pca import pca_umap
 from scipy import ndimage as ndi
 from scipy.spatial import cKDTree
 from skimage.morphology import binary_closing, disk, remove_small_holes
-from sklearn.decomposition import PCA
 from sklearn.neighbors import NearestNeighbors
 
 
@@ -320,8 +319,6 @@ def integrate_joint_with_harmony(
     random_state: int = 1000,
     harmony_max_iter: int = 30,
     harmony_theta: float = 2.0,
-    harmony_device: str = "cpu",
-    harmony_threads: int | None = 1,
 ) -> ad.AnnData:
     """Concatenate BANKSY outputs, run joint PCA, then Harmony correction."""
     parts = []
@@ -333,32 +330,25 @@ def integrate_joint_with_harmony(
         parts.append(sample_adata)
 
     banksy_adata = ad.concat(parts, join="outer")
-    x = banksy_adata.X.toarray() if sp.issparse(banksy_adata.X) else np.asarray(banksy_adata.X)
-    x = np.nan_to_num(x, copy=True)
-    for pca_dim in pca_dims:
-        banksy_adata.obsm[f"reduced_pc_{pca_dim}"] = PCA(
-            n_components=pca_dim,
-            random_state=random_state,
-        ).fit_transform(x)
+    tmp = {decay: {selected_lambda: {"adata": banksy_adata}}}
+    # This is the PCA implementation used for the paper analysis. Seed it
+    # immediately before execution because pyBANKSY delegates to randomized
+    # sklearn PCA for manuscript-scale inputs.
+    np.random.seed(random_state)
+    sc.settings.seed = random_state
+    pca_umap(tmp, pca_dims=list(pca_dims), add_umap=False, plt_remaining_var=False)
+    banksy_adata = tmp[decay][selected_lambda]["adata"]
 
     pca_key = f"reduced_pc_{list(pca_dims)[0]}"
-    previous_threads = torch.get_num_threads()
-    try:
-        if harmony_threads is not None:
-            torch.set_num_threads(harmony_threads)
-        harmony = hm.run_harmony(
-            banksy_adata.obsm[pca_key],
-            banksy_adata.obs,
-            "sample_id",
-            max_iter_harmony=harmony_max_iter,
-            theta=harmony_theta,
-            random_state=random_state,
-            device=harmony_device,
-            verbose=False,
-        )
-    finally:
-        if harmony_threads is not None:
-            torch.set_num_threads(previous_threads)
+    harmony = hm.run_harmony(
+        banksy_adata.obsm[pca_key],
+        banksy_adata.obs,
+        "sample_id",
+        max_iter_harmony=harmony_max_iter,
+        theta=harmony_theta,
+        random_state=random_state,
+        verbose=False,
+    )
     banksy_adata.obsm["Harmony_BANKSY"] = harmony.Z_corr
     return banksy_adata
 

@@ -24,7 +24,6 @@ import numpy as np
 import pandas as pd
 import scanpy as sc
 import scipy.sparse as sp
-import torch
 from banksy.initialize_banksy import initialize_banksy
 from sklearn.decomposition import PCA
 from sklearn.linear_model import LogisticRegression
@@ -110,11 +109,26 @@ def read_xenium_sample(
         )
 
     csv_ids = cells["cell_id"].to_numpy()
-    if not np.array_equal(barcodes, csv_ids):
+    csv_rows_source = len(cells)
+    barcodes_exact_and_ordered = np.array_equal(barcodes, csv_ids)
+    duplicate_ids = cells.loc[cells["cell_id"].duplicated(keep=False), "cell_id"].unique()
+    if len(duplicate_ids):
         raise ValueError(
-            f"{sample_id}: official cells CSV and H5 barcodes are not identical and in the same order "
-            f"({len(csv_ids)} CSV rows versus {len(barcodes)} H5 barcodes)."
+            f"{sample_id}: cells CSV contains duplicate cell_id values; examples: "
+            f"{duplicate_ids[:5].tolist()}."
         )
+    csv_index = pd.Index(csv_ids)
+    h5_index = pd.Index(barcodes)
+    missing_barcodes = h5_index[~h5_index.isin(csv_index)]
+    if len(missing_barcodes):
+        raise ValueError(
+            f"{sample_id}: cells CSV is missing {len(missing_barcodes)} H5 barcodes; "
+            f"examples: {missing_barcodes[:5].tolist()}."
+        )
+
+    # A cells table may contain metadata-only rows with no matching expression
+    # column. Match by cell_id and reorder to the H5 matrix in that case.
+    cells = cells.set_index("cell_id", drop=False).loc[barcodes].reset_index(drop=True)
 
     gene_mask = feature_types == "Gene Expression"
     if int(gene_mask.sum()) != 313:
@@ -162,8 +176,11 @@ def read_xenium_sample(
         "matrix_path": str(matrix_path),
         "cells_path": str(cells_path),
         "n_cells_h5": int(shape[1]),
-        "n_cells_csv": int(len(cells)),
-        "barcodes_exact_and_ordered": True,
+        "n_cells_csv_source": int(csv_rows_source),
+        "n_cells_csv_used": int(len(cells)),
+        "n_cells_csv_ignored": int(csv_rows_source - len(cells)),
+        "barcodes_exact_and_ordered": bool(barcodes_exact_and_ordered),
+        "h5_barcodes_present_once": True,
         "gene_sums_equal_csv_transcript_counts": True,
         "n_features_total": int(shape[0]),
         "n_gene_expression_features": int(gene_mask.sum()),
@@ -573,13 +590,6 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--pca-components", type=int, default=30)
     parser.add_argument("--harmony-theta", type=float, default=4.0)
     parser.add_argument("--harmony-max-iter", type=int, default=30)
-    parser.add_argument("--harmony-device", default="cpu")
-    parser.add_argument(
-        "--harmony-threads",
-        type=int,
-        default=1,
-        help="PyTorch threads used by Harmony; use 0 to retain the process setting.",
-    )
     parser.add_argument("--leiden-resolution", type=float, default=0.3)
     parser.add_argument("--max-cells-per-sample", type=int)
     parser.add_argument("--seed", type=int, default=RANDOM_STATE)
@@ -592,8 +602,6 @@ def main() -> None:
     args.source_dir = args.source_dir.expanduser().resolve()
     args.output_dir = args.output_dir.expanduser().resolve()
     args.output_dir.mkdir(parents=True, exist_ok=True)
-    if args.harmony_threads < 0:
-        raise ValueError("--harmony-threads must be non-negative")
     lambdas = validate_lambdas(args.lambdas)
     seed_controls = spAlignDE.set_random_seed(
         args.seed,
@@ -618,8 +626,6 @@ def main() -> None:
         "pca_components": args.pca_components,
         "harmony_theta": args.harmony_theta,
         "harmony_max_iter": args.harmony_max_iter,
-        "harmony_device": args.harmony_device,
-        "harmony_threads": args.harmony_threads,
         "graph_neighbors": args.graph_neighbors,
         "leiden_resolution": args.leiden_resolution,
         "leiden_flavor": "igraph",
@@ -687,23 +693,15 @@ def main() -> None:
         gc.collect()
 
         log(f"Running Harmony theta={args.harmony_theta:g} for lambda={lambda_value:g}")
-        previous_threads = torch.get_num_threads()
-        try:
-            if args.harmony_threads:
-                torch.set_num_threads(args.harmony_threads)
-            harmony = hm.run_harmony(
-                pca_scores,
-                joint.obs,
-                "sample_id",
-                theta=args.harmony_theta,
-                max_iter_harmony=args.harmony_max_iter,
-                random_state=args.seed,
-                device=args.harmony_device,
-                verbose=False,
-            )
-        finally:
-            if args.harmony_threads:
-                torch.set_num_threads(previous_threads)
+        harmony = hm.run_harmony(
+            pca_scores,
+            joint.obs,
+            "sample_id",
+            theta=args.harmony_theta,
+            max_iter_harmony=args.harmony_max_iter,
+            random_state=args.seed,
+            verbose=False,
+        )
         harmony_scores = np.asarray(harmony.Z_corr, dtype=np.float32)
         if harmony_scores.shape != pca_scores.shape:
             if harmony_scores.T.shape == pca_scores.shape:
