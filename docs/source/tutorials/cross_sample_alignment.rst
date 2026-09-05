@@ -209,7 +209,7 @@ The returned object has the original ``(170130, 649)`` shape in the MERFISH
 example; BANKSY-expanded features are used internally and do not replace
 ``adata.X``. The raw, refined, and selected final labels are stored as
 ``cluster_raw``, ``cluster_refined``, and ``cluster`` in ``adata.obs``.
-The fixed-seed run contains 28 raw clusters and 27 refined/final clusters;
+The fixed-seed run contains 29 raw clusters and 28 refined/final clusters;
 the two fresh-process label vectors are identical.
 
 .. figure:: ../_static/tutorial_figures/joint_clustering_tab20.png

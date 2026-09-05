@@ -34,10 +34,14 @@ class JointClusteringTests(unittest.TestCase):
         )
         self.assertEqual(config.leiden_flavor, "leidenalg")
         self.assertEqual(config.leiden_n_iterations, -1)
+        self.assertEqual(config.harmony_device, "cpu")
+        self.assertEqual(config.harmony_threads, 1)
         output = spAlignDE.cluster_joint(adata, config=config)
+        repeated = spAlignDE.cluster_joint(adata, config=config)
 
         self.assertNotIn("cluster", adata.obs)
         self.assertIn("cluster", output.obs)
+        np.testing.assert_array_equal(output.obs["cluster"], repeated.obs["cluster"])
         self.assertIn("cluster_raw", output.obs)
         self.assertNotIn("cluster_refined", output.obs)
         self.assertTrue(

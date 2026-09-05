@@ -85,7 +85,7 @@ HIPT must run with a mutually compatible PyTorch/torchvision build. By default
 it uses the notebook kernel's Python. If HIPT is installed in a separate
 validated environment, set
 ``SPALIGNDE_HIPT_PYTHON=/path/to/hipt-environment/bin/python``; the notebook
-still controls the seed and records the extractor route and checkpoint hashes.
+still controls the seed and records the extractor route.
 
 HIPT divides the prepared image into 4,096-pixel context tiles, encodes local
 256-pixel patches on a 16-pixel feature stride, and repeats inference at four

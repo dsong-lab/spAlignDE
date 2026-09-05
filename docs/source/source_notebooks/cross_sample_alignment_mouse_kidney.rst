@@ -66,7 +66,7 @@ Coordinates are multiplied by 50 internally, rasterized with grid spacing 30,
 and returned in the original coordinate scale. The recorded manual values in
 the internally scaled coordinate system are ``scale=1.0``, ``theta=0.0``,
 ``tx=-36.20040965`` and ``ty=-153.38356513``. The executed alignment improves
-nearest-neighbor shared-cluster agreement from ``0.6637`` to ``0.7366``.
+nearest-neighbor shared-cluster agreement from ``0.6631`` to ``0.7413``.
 
 Independent fresh-process validation uses the same fixed cluster labels,
 observation order, manual transform and S-LDDMM configuration. Continuous
