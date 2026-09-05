@@ -63,6 +63,7 @@ histology = [
   "tifffile>=2024.2",
   "torchvision>=0.22,<0.26",
   "umap-learn>=0.5",
+  "webdataset>=0.2",
 ]
 ui = [
   "matplotlib>=3.7",

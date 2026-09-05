@@ -10,8 +10,7 @@ a reported analysis, use:
 
 No ``PYTHONHASHSEED`` or thread environment variables are required by these
 tutorials. The supplied environment file lists the package versions used for
-the examples, but reproducibility is tested by independently running the
-workflow twice and comparing its scientific outputs.
+the examples, and reproducibility is assessed from the scientific outputs.
 
 Seeds used in the tutorials
 ---------------------------
@@ -56,11 +55,13 @@ clustering method can change its labels.
 Independent-run check
 ---------------------
 
-The computational notebooks were each run twice from fresh kernels with the
-same inputs, observation order, parameters and seed. The repeated runs retained
-the same cluster labels and structure pairs and reproduced the reported summary
-results. GPU calculations can differ slightly in the last digits of transformed
-coordinates without changing these scientific outputs.
+The complete public notebook set was run from fresh kernels with the documented
+inputs. Repeat runs were targeted to clustering paths affected by a
+repeatability change or observed run-to-run drift, and their labels were
+compared observation by observation. Downstream alignment and inference
+notebooks were checked against their reported scientific summaries. GPU
+calculations can differ slightly in the last digits of transformed coordinates
+without changing those summaries.
 
 The main fixed-seed examples produced:
 
@@ -69,7 +70,7 @@ The main fixed-seed examples produced:
    :widths: 55 45
 
    * - Workflow
-     - Result retained in both runs
+     - Fresh validation result
    * - MERFISH S2R1 single clustering
      - 25 final structures.
    * - ST to Allen CCF slice 675
@@ -81,7 +82,7 @@ The main fixed-seed examples produced:
    * - MERFISH S2R3 to S2R2
      - 27 refined shared structures.
    * - Kidney IL3 to NL3
-     - 4 structures and label agreement ``0.6637`` to ``0.7366``.
+     - 4 structures and label agreement ``0.6631`` to ``0.7413``.
    * - Breast cancer Rep2 to Rep1
      - 10 shared structures.
    * - MERFISH alignment uncertainty

@@ -331,8 +331,9 @@ def integrate_joint_with_harmony(
 
     banksy_adata = ad.concat(parts, join="outer")
     tmp = {decay: {selected_lambda: {"adata": banksy_adata}}}
-    # pyBANKSY's PCA helper delegates to randomized sklearn PCA without
-    # exposing random_state. Seed immediately before that PCA call.
+    # This is the PCA implementation used for the paper analysis. Seed it
+    # immediately before execution because pyBANKSY delegates to randomized
+    # sklearn PCA for manuscript-scale inputs.
     np.random.seed(random_state)
     sc.settings.seed = random_state
     pca_umap(tmp, pca_dims=list(pca_dims), add_umap=False, plt_remaining_var=False)

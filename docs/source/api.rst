@@ -202,7 +202,9 @@ identical and ``cluster_refined`` is not added.
 
 ``JointClusteringConfig`` contains BANKSY neighborhood and lambda settings,
 PCA dimension, SNN neighborhood size, Leiden resolution, Harmony settings,
-boundary refinement, and random state.
+boundary refinement, and random state. The random state is passed to PCA,
+Harmony, UMAP and Leiden; use the documented paper environment when exact
+paper-result reproduction is required.
 
 ``layer`` selects an AnnData expression layer; the default uses ``adata.X``.
 ``copy=False`` permits mutation of the input. With ``return_details=True``,

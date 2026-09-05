@@ -68,6 +68,68 @@ def _clear_cuda(device: str) -> None:
         torch.cuda.empty_cache()
 
 
+def _forward_all256(model, image: torch.Tensor):
+    """Return ViT-256 CLS and patch tokens using the official HIPT API."""
+    patch_batch, patch_rows, patch_columns = model.prepare_img_tensor(image)
+    patch_batch = patch_batch.unfold(2, 256, 256).unfold(3, 256, 256)
+    patch_batch = rearrange(
+        patch_batch,
+        "b c p1 p2 h w -> (b p1 p2) c h w",
+    )
+
+    cls_batches = []
+    subpatch_batches = []
+    with torch.no_grad():
+        for start in range(0, int(patch_batch.shape[0]), 256):
+            minibatch = patch_batch[start : start + 256].to(
+                model.device256,
+                non_blocking=True,
+            )
+            tokens = model.model256.get_intermediate_layers(minibatch, n=1)[0]
+            cls_batches.append(tokens[:, 0].detach().cpu())
+            subpatch_batches.append(tokens[:, 1:].detach().cpu())
+
+    cls_tokens = torch.vstack(cls_batches)
+    subpatch_tokens = torch.vstack(subpatch_batches)
+    cls_field = (
+        cls_tokens.reshape(patch_rows, patch_columns, 384)
+        .transpose(0, 1)
+        .transpose(0, 2)
+        .unsqueeze(0)
+    )
+    subpatch_field = (
+        subpatch_tokens.reshape(
+            patch_rows,
+            patch_columns,
+            16,
+            16,
+            384,
+        )
+        .permute(4, 0, 1, 2, 3)
+        .unsqueeze(0)
+    )
+    return cls_field, subpatch_field
+
+
+def _forward_all4k(model, cls_field: torch.Tensor):
+    """Return ViT-4K CLS and spatial tokens using the official HIPT API."""
+    _, _, patch_rows, patch_columns = cls_field.shape
+    with torch.no_grad():
+        tokens = model.model4k.get_intermediate_layers(
+            cls_field.to(model.device4k, non_blocking=True),
+            n=1,
+        )[0]
+    cls_token = tokens[:, 0].detach().cpu()
+    context_field = (
+        tokens[:, 1:]
+        .detach()
+        .cpu()
+        .reshape(1, patch_rows, patch_columns, 192)
+        .permute(0, 3, 1, 2)
+    )
+    return cls_token, context_field
+
+
 def _extract_single_view(
     image: np.ndarray,
     *,
@@ -97,7 +159,7 @@ def _extract_single_view(
         if index % 10 == 0:
             print(f"tile {index} / {len(tiles)}", flush=True)
         tensor = transform(tile.astype(np.float32) / 255.0)
-        patch_features, subpatch_features = model.forward_all256(tensor[None])
+        patch_features, subpatch_features = _forward_all256(model, tensor[None])
         patch_tiles.append(
             patch_features.cpu().detach().numpy()[0].transpose(1, 2, 0)
         )
@@ -115,7 +177,7 @@ def _extract_single_view(
     )
     patch_tensor = torch.tensor(patch_grid.transpose(2, 0, 1))
     with torch.no_grad():
-        _, context_tokens = model.forward_all4k(patch_tensor[None])
+        _, context_tokens = _forward_all4k(model, patch_tensor[None])
     context_grid = (
         context_tokens.cpu().detach().numpy()[0].transpose(1, 2, 0)
     )
