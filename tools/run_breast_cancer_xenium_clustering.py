@@ -109,11 +109,26 @@ def read_xenium_sample(
         )
 
     csv_ids = cells["cell_id"].to_numpy()
-    if not np.array_equal(barcodes, csv_ids):
+    csv_rows_source = len(cells)
+    barcodes_exact_and_ordered = np.array_equal(barcodes, csv_ids)
+    duplicate_ids = cells.loc[cells["cell_id"].duplicated(keep=False), "cell_id"].unique()
+    if len(duplicate_ids):
         raise ValueError(
-            f"{sample_id}: official cells CSV and H5 barcodes are not identical and in the same order "
-            f"({len(csv_ids)} CSV rows versus {len(barcodes)} H5 barcodes)."
+            f"{sample_id}: cells CSV contains duplicate cell_id values; examples: "
+            f"{duplicate_ids[:5].tolist()}."
         )
+    csv_index = pd.Index(csv_ids)
+    h5_index = pd.Index(barcodes)
+    missing_barcodes = h5_index[~h5_index.isin(csv_index)]
+    if len(missing_barcodes):
+        raise ValueError(
+            f"{sample_id}: cells CSV is missing {len(missing_barcodes)} H5 barcodes; "
+            f"examples: {missing_barcodes[:5].tolist()}."
+        )
+
+    # A cells table may contain metadata-only rows with no matching expression
+    # column. Match by cell_id and reorder to the H5 matrix in that case.
+    cells = cells.set_index("cell_id", drop=False).loc[barcodes].reset_index(drop=True)
 
     gene_mask = feature_types == "Gene Expression"
     if int(gene_mask.sum()) != 313:
@@ -161,8 +176,11 @@ def read_xenium_sample(
         "matrix_path": str(matrix_path),
         "cells_path": str(cells_path),
         "n_cells_h5": int(shape[1]),
-        "n_cells_csv": int(len(cells)),
-        "barcodes_exact_and_ordered": True,
+        "n_cells_csv_source": int(csv_rows_source),
+        "n_cells_csv_used": int(len(cells)),
+        "n_cells_csv_ignored": int(csv_rows_source - len(cells)),
+        "barcodes_exact_and_ordered": bool(barcodes_exact_and_ordered),
+        "h5_barcodes_present_once": True,
         "gene_sums_equal_csv_transcript_counts": True,
         "n_features_total": int(shape[0]),
         "n_gene_expression_features": int(gene_mask.sum()),

@@ -15,7 +15,7 @@ dependencies:
       - torchvision==0.25.0+cu128
 
       # Core AnnData and S-LDDMM runtime
-      - anndata==0.10.9
+      - anndata==0.10.8
       - h5py==3.15.1
       - matplotlib==3.10.7
       - numpy==1.26.4
@@ -45,6 +45,7 @@ dependencies:
       - pyyaml==6.0
       - tifffile==2025.5.10
       - umap-learn==0.5.11
+      - webdataset==1.0.2
 
       # Jupyter execution and interactive controls
       - ipykernel==7.1.0

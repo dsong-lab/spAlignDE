@@ -15,7 +15,9 @@ from IPython.core.inputtransformer2 import TransformerManager
 LEGACY_PUBLIC_PATTERNS = (
     re.compile(r"uns\s*\[\s*['\"]spalignde['\"]\s*\]"),
 )
-DEVELOPER_PATH_PATTERN = re.compile(r"(?:/home/[^/]+/|[A-Za-z]:\\Users\\[^\\]+\\)")
+DEVELOPER_PATH_PATTERN = re.compile(
+    r"(?:/home/[^/]+/|/mnt/[^/]+/[^/]+/|[A-Za-z]:\\Users\\[^\\]+\\)"
+)
 WORKFLOW_SEED_PATTERN = re.compile(r"(?m)^\s*WORKFLOW_SEED\s*=\s*(\d+)\s*$")
 
 
