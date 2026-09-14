@@ -246,6 +246,10 @@ result; use the criteria in the reproducibility guide.
 
 ## Citation
 
+If you use **spAlignDE** in your research, please cite our preprint:
+
+Xu, S., Wang, Y., Meng, L., Dalal, A., Yin, Y., & Song, D. (2026). **spAlignDE unifies cross-sample and cross-modal spatial alignment with mismatch-aware differential expression.** *bioRxiv*. [doi:10.64898/2026.09.05.749632](https://doi.org/10.64898/2026.09.05.749632)
+
 
 ## License
 
