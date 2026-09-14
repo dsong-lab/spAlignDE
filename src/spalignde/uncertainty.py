@@ -259,7 +259,7 @@ def compute_point_uncertainty(
     *,
     min_repeats: int = 2,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Compute mean mapped coordinates and coordinate spread by source cell."""
+    """Summarize and rank cells by mean distance from their mean mapped position."""
     all_aligned = pd.concat(aligned_by_repeat.values(), ignore_index=True)
     all_aligned["source_cell_id"] = all_aligned["source_cell_id"].astype(str)
 
@@ -298,8 +298,8 @@ def compute_point_uncertainty(
     out["y_var"] = out["y_var"].fillna(0.0)
     out["std_total"] = np.sqrt(out["x_var"] + out["y_var"])
     out["dist_std"] = out["dist_std"].fillna(0.0)
-    out["uncertainty_rank"] = out["std_total"].rank(method="first", ascending=False).astype(int)
-    out["uncertainty_percentile"] = out["std_total"].rank(pct=True)
+    out["uncertainty_rank"] = out["dist_mean"].rank(method="first", ascending=False).astype(int)
+    out["uncertainty_percentile"] = out["dist_mean"].rank(pct=True)
     out = out.sort_values("uncertainty_rank").reset_index(drop=True)
     return out, all_aligned
 
@@ -371,16 +371,15 @@ def map_reference_points_through_transforms(
     return src_lddmm_xy_by_repeat, x_src_new, y_src_new
 
 
-def compute_repeat_point_variance(
+def compute_repeat_point_statistics(
     src_lddmm_xy_by_repeat: dict[int, np.ndarray],
     x_src_new,
     y_src_new,
 ) -> tuple[pd.DataFrame, np.ndarray]:
     """Compute pointwise mean distances and variances across repeat transforms.
 
-    This intentionally matches the robustness tutorial helper of the same name.
-    It expects every repeat array to contain the same source point set in the
-    same order. ``dist_mean`` is the mean Euclidean distance to the replicate
+    Every repeat array must contain the same source point set in the same
+    order. ``dist_mean`` is the mean Euclidean distance to the replicate
     mean mapped position, in coordinate units; ``dist_var`` is the sample
     variance of those distances, in squared coordinate units.
     """
@@ -411,6 +410,15 @@ def compute_repeat_point_variance(
     point_var_df["std_y"] = np.sqrt(point_var_df["var_y"])
     point_var_df["std_total"] = np.sqrt(point_var_df["var_total"])
     return point_var_df, dist_to_mean
+
+
+def compute_repeat_point_variance(
+    src_lddmm_xy_by_repeat: dict[int, np.ndarray],
+    x_src_new,
+    y_src_new,
+) -> tuple[pd.DataFrame, np.ndarray]:
+    """Compatibility name for :func:`compute_repeat_point_statistics`."""
+    return compute_repeat_point_statistics(src_lddmm_xy_by_repeat, x_src_new, y_src_new)
 
 
 def plot_distance_variance_map(
@@ -618,11 +626,11 @@ def plot_uncertainty_map(
     uncertainty_df: pd.DataFrame,
     target_xy: np.ndarray | None = None,
     *,
-    value_col: str = "std_total",
+    value_col: str = "dist_mean",
     clip_percentile: float = 99.0,
     title: str = "Spatial map of alignment uncertainty",
 ):
-    """Map coordinate uncertainty on mean aligned source coordinates."""
+    """Map mean distance on mean aligned source coordinates by default."""
     vals = uncertainty_df[value_col].to_numpy(dtype=float)
     vmax = np.nanpercentile(vals, clip_percentile) if clip_percentile is not None else np.nanmax(vals)
     vals_plot = np.clip(vals, None, vmax)
@@ -646,7 +654,7 @@ def plot_uncertainty_map(
     ax.set_xticks([])
     ax.set_yticks([])
     cbar = fig.colorbar(sc, ax=ax, fraction=0.046, pad=0.02)
-    cbar.set_label(value_col)
+    cbar.set_label("Mean distance across repeats" if value_col == "dist_mean" else value_col)
     return fig
 
 
@@ -681,7 +689,7 @@ def write_brief_report(
     value_col: str = "dist_mean",
     high_percentile: float = 95.0,
 ) -> Path:
-    """Write the paper-aligned machine-readable benchmark summary."""
+    """Summarize the selected metric, using mean distance by default."""
     output_dir = Path(output_dir)
     cutoff = float(np.nanpercentile(uncertainty_df[value_col], high_percentile))
     high = uncertainty_df.loc[uncertainty_df[value_col] >= cutoff]
@@ -692,16 +700,10 @@ def write_brief_report(
         "primary_metric": value_col,
         "high_percentile": float(high_percentile),
         "high_variability_threshold": cutoff,
-        "median_dist_mean": float(uncertainty_df["dist_mean"].median()),
-        "p95_dist_mean": float(np.nanpercentile(uncertainty_df["dist_mean"], 95.0)),
-        "p99_dist_mean": float(np.nanpercentile(uncertainty_df["dist_mean"], 99.0)),
-        "max_dist_mean": float(uncertainty_df["dist_mean"].max()),
-        "median_dist_var": float(uncertainty_df["dist_var"].median()),
-        "p95_dist_var": float(np.nanpercentile(uncertainty_df["dist_var"], 95.0)),
-        "max_dist_var": float(uncertainty_df["dist_var"].max()),
-        "median_std_total": float(uncertainty_df["std_total"].median()),
-        "p95_std_total": float(np.nanpercentile(uncertainty_df["std_total"], 95.0)),
-        "max_std_total": float(uncertainty_df["std_total"].max()),
+        f"median_{value_col}": float(uncertainty_df[value_col].median()),
+        f"p95_{value_col}": float(np.nanpercentile(uncertainty_df[value_col], 95.0)),
+        f"p99_{value_col}": float(np.nanpercentile(uncertainty_df[value_col], 99.0)),
+        f"max_{value_col}": float(uncertainty_df[value_col].max()),
         "n_high_variability_points": int(len(high)),
         "interpretation": (
             "Most fixed query points have low transformation variability across the ten "

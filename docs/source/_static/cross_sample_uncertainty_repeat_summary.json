@@ -31,13 +31,7 @@
     "p95_dist_mean": 83.42861079190804,
     "p99_dist_mean": 99.9767133048002,
     "max_dist_mean": 107.6344214496222,
-    "n_top_5_percent_points": 3439,
-    "secondary_distance_variance": {
-      "median_dist_var": 429.538350756525,
-      "p95_dist_var": 2352.74032676407,
-      "p99_dist_var": 5790.770405495069,
-      "max_dist_var": 11556.464520476658
-    }
+    "n_top_5_percent_points": 3439
   },
   "repeat_result": {
     "runs_compared": 2,
@@ -47,45 +41,5 @@
   },
   "primary_metric": "dist_mean",
   "metric_definition": "For each fixed point: mean across replicates of Euclidean distance from its replicate-mean mapped position.",
-  "metric_units": "aligned-coordinate units",
-  "display": {
-    "outline_percentile": 95,
-    "outline_interpretation": "Ellipse summarizing high-mean-distance point locations; not a confidence region or exact selection boundary.",
-    "color_scale_max_percentile": 99,
-    "all_points_retained": true
-  },
-  "mean_distance_report_execution": {
-    "all_code_cells_executed": true,
-    "cached_transformations_reused": 10,
-    "pointwise_table_identical_to_previous_validated_table": true
-  },
-  "reference_figure": {
-    "original_pdf": "distance_mean_map_adjusted_p95.pdf",
-    "pdf_sha256": "33e7d0ff596382fc7ce6e6f95e1a3884b7d48154ab04e668ed39bd51f298a6d7",
-    "original_pointwise_table": "pointwise_distance_variance.csv",
-    "original_pointwise_table_sha256": "b053b1051b54f235810c99f917d331bbe4ca9014f4ecf75af8f14731e5d7f785",
-    "original_mapped_coordinates": "common_source_mapped_all_repeats.npz",
-    "original_mapped_coordinates_sha256": "4c6a42ae399b95a61303f333dbdb283245adfae9a90e5234e0d259d74088c923",
-    "published_source_data": "cross_sample_distance_mean_source.csv.gz",
-    "source_data_columns": [
-      "point_idx",
-      "x_aligned_rep01",
-      "y_aligned_rep01",
-      "dist_mean",
-      "high_mean_distance"
-    ],
-    "source_data_scope": "Fixed query points in replicate-1 aligned coordinates, original mean distances and top-5% membership. Gray reference background is read from lddmm_input_rep01.npz.",
-    "result": {
-      "n_fixed_query_points": 68766,
-      "median_dist_mean": 40.248330733633516,
-      "p95_dist_mean": 83.42864208609105,
-      "p99_dist_mean": 99.9766071952594,
-      "max_dist_mean": 107.63424308454178,
-      "n_top_5_percent_points": 3439
-    },
-    "independent_mean_recomputation_max_abs_difference": 1.4210854715202004e-14,
-    "validated_vs_reference_max_abs_dist_mean_difference": 0.0007081432388602593,
-    "validated_vs_reference_top_5_percent_membership_identical": true,
-    "note": "Original and validated saved coordinate sets have small floating-point differences; statistics agree to two decimal places."
-  }
+  "metric_units": "aligned-coordinate units"
 }

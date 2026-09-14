@@ -371,18 +371,22 @@ The reusable functions used by the MERFISH stability report are available as
 saves the learned transformations. ``map_reference_points_through_transforms``
 then applies every transformation to one fixed query support, avoiding a
 confound between transformation variation and changing subsample membership.
-``compute_repeat_point_variance`` returns ``dist_mean``, the mean Euclidean
+``compute_repeat_point_statistics`` returns ``dist_mean``, the mean Euclidean
 distance from each point's replicate-mean mapped position, along with
 coordinate and distance variances as secondary diagnostics.
 ``plot_distance_mean_map`` displays the Figure 2E metric on a selected
 replicate's mapped coordinates. Its default ellipse summarizes the top 5% of
 mean distances, while the color scale saturates at the 99th percentile.
 
-``plot_uncertainty_distribution`` and ``write_brief_report`` also use
-``dist_mean`` by default. Set ``value_col="dist_var"`` to inspect distance
-variance; the existing ``plot_distance_variance_map`` remains available for
-that diagnostic. Mean distance has the same units as the aligned coordinates,
-whereas distance variance has squared coordinate units.
+``plot_uncertainty_map``, ``plot_uncertainty_distribution`` and
+``write_brief_report`` use ``dist_mean`` by default. The report summarizes only
+the selected metric. ``compute_point_uncertainty`` also ranks cells by mean
+distance. Mean distance has the same units as the aligned coordinates.
+
+For compatibility, ``compute_repeat_point_variance`` remains an alias for
+``compute_repeat_point_statistics``. The explicit
+``plot_distance_variance_map`` function and ``value_col="dist_var"`` option
+remain available for older analyses; the Figure 2E tutorial uses mean distance.
 
 Prepared replicate inputs are ordinary ``lddmm_input_repNN.npz`` files. The
 source notebook reads their directory from
