@@ -4,35 +4,80 @@
 [![Documentation](https://github.com/dsong-lab/spAlignDE/actions/workflows/docs.yml/badge.svg)](https://github.com/dsong-lab/spAlignDE/actions/workflows/docs.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-**spAlignDE** is an integrated framework for structure-guided spatial alignment
-and mismatch-aware post-alignment local differential-expression analysis. It
-supports cross-sample spatial transcriptomics alignment, cross-modality
-registration to histology, anatomical atlases and spatial ATAC-seq, and
-shared-grid local inference after alignment.
+**spAlignDE** uses tissue structure to align spatial omics datasets across
+samples and modalities. For aligned spatial transcriptomics samples, it tests
+local differences in gene expression while accounting for residual alignment
+mismatch.
 
-**[Documentation](https://dsong-lab.github.io/spAlignDE/) · [Tutorials](https://dsong-lab.github.io/spAlignDE/tutorial.html) · [Executable notebooks](https://dsong-lab.github.io/spAlignDE/source_notebooks.html)**
+It supports alignment between tissue sections, registration with histology
+images and anatomical atlases, spatial ATAC-seq to spatial transcriptomics
+alignment, and interactive region pairing.
+
+**[Documentation](https://dsong-lab.github.io/spAlignDE/) · [Tutorials](https://dsong-lab.github.io/spAlignDE/tutorial.html) · [Notebooks](https://dsong-lab.github.io/spAlignDE/source_notebooks.html)**
 
 <p align="center">
   <a href="assets/Figure_1_08132026_DS.png">
-    <img src="assets/Figure_1_08132026_DS.png" alt="Overview of the spAlignDE spatial alignment and mismatch-aware local inference framework" width="600">
+    <img src="assets/Figure_1_08132026_DS.png" alt="Overview of spatial alignment and mismatch-aware local differential expression with spAlignDE" width="600">
   </a>
 </p>
-<p align="center"><em>Overview of the spAlignDE framework. Click the figure to enlarge.</em></p>
 
-## What spAlignDE does
+## Installation
 
-- cross-sample spatial transcriptomics alignment;
-- ST-to-Allen-CCF alignment and label transfer;
-- ST-to-histology-image alignment through HIPT image features;
-- spatial-ATAC-to-ST alignment;
-- interactive many-to-many region pairing and refinement; and
-- mismatch-aware post-alignment local differential-expression inference.
+To run the tutorials and interactive interface, use the Conda environment
+below. It pins the dependencies used by the published examples. The reference
+environment uses CUDA 12.8; for a CPU-only setup, follow the
+[installation guide](https://dsong-lab.github.io/spAlignDE/installation.html#gpu-and-cpu-variants)
+before creating the environment.
 
-## Quick start
+```bash
+git clone https://github.com/dsong-lab/spAlignDE.git
+cd spAlignDE
+unset PYTHONPATH
+export PYTHONNOUSERSITE=1
+conda env create -f environment.yml
+conda activate spAlignDE-notebooks
+python -m pip install --no-deps --no-build-isolation -e .
+python -m ipykernel install --user \
+  --name spAlignDE-notebooks \
+  --display-name "Python (spAlignDE-notebooks)"
+python tools/check_notebook_environment.py
+```
 
-The public import is case preserving. This deterministic CPU example checks
-the installation and the complete cross-sample wrapper on a bundled synthetic
-dataset:
+Select **Python (spAlignDE-notebooks)** as the Jupyter kernel. On a GPU
+workstation, also run `python tools/check_notebook_environment.py --require-cuda`.
+See the [installation guide](https://dsong-lab.github.io/spAlignDE/installation.html)
+for hardware requirements and installation into an existing environment.
+
+## Choose a workflow
+
+Read the guide for the method and input requirements, then open the notebooks
+for the complete example. Each notebook page lists the order to run them.
+
+| Task | Guide | Notebooks |
+|---|---|---|
+| Align spatial transcriptomics samples | [Cross-sample alignment](https://dsong-lab.github.io/spAlignDE/tutorials/cross_sample_alignment.html) | [Mouse brain](https://dsong-lab.github.io/spAlignDE/source_notebooks/cross_sample_alignment_mouse_brain.html) · [Mouse kidney](https://dsong-lab.github.io/spAlignDE/source_notebooks/cross_sample_alignment_mouse_kidney.html) · [Breast cancer](https://dsong-lab.github.io/spAlignDE/source_notebooks/cross_sample_alignment_breast_cancer.html) |
+| Align to the Allen brain atlas | [Atlas alignment](https://dsong-lab.github.io/spAlignDE/tutorials/cross_modality_atlas_alignment.html) | [Automatic and interactive pairing](https://dsong-lab.github.io/spAlignDE/source_notebooks/cross_modality_atlas_alignment.html) |
+| Align to a histology image | [Histology alignment](https://dsong-lab.github.io/spAlignDE/tutorials/st_histology_image_processing.html) | [Mouse brain H&E](https://dsong-lab.github.io/spAlignDE/source_notebooks/cross_modality_he_alignment.html) |
+| Align spatial ATAC-seq to spatial transcriptomics | [ATAC alignment](https://dsong-lab.github.io/spAlignDE/tutorials/cross_modality_atac_alignment.html) | [Mouse brain ATAC](https://dsong-lab.github.io/spAlignDE/source_notebooks/cross_modality_atac_alignment.html) |
+| Assess alignment stability | [Subsampling and variability](https://dsong-lab.github.io/spAlignDE/source_notebooks/cross_sample_uncertainty_qualification.html) | [Stability notebook](source_notebooks/cross_sample_uncertainty_report.ipynb) |
+| Test local differential expression after alignment | [Local inference](https://dsong-lab.github.io/spAlignDE/tutorials/post_alignment_inference.html) | [Kidney and aging brain](https://dsong-lab.github.io/spAlignDE/source_notebooks/post_alignment_inference.html) |
+
+The kidney inference example uses the saved coordinates from the kidney
+alignment workflow. The aging-brain inference example uses precomputed
+coordinates for **five sections**; the manuscript's complete 20-section
+analysis and Nissl analysis are not provided as complete public notebooks.
+
+Large datasets, Allen atlas volumes and pretrained HIPT image-model weights
+must be downloaded separately. Each workflow links its inputs and explains
+where to store them. See [external inputs](https://dsong-lab.github.io/spAlignDE/installation.html#inputs-outside-the-python-environment).
+
+<a id="quick-start"></a>
+
+## Try a small example
+
+After installation, run this synthetic example to check that alignment works
+on the CPU. It uses only two optimization iterations to finish quickly. Use
+the workflow notebooks above for real-data settings.
 
 ```python
 import spAlignDE
@@ -61,195 +106,42 @@ result.adata.write_h5ad("cross_sample_example_aligned.h5ad")
 print(result.metrics)
 ```
 
-This is an API smoke test, not a parameter recommendation for biological data.
-Choose an executed workflow below for dataset-scale configuration, diagnostics
-and interpretation.
+The example saves aligned data to `cross_sample_example_aligned.h5ad`.
+Alignment adds `x_prealigned`, `y_prealigned`, `x_aligned` and `y_aligned`,
+preserving the expression matrix and original `obsm["spatial"]` coordinates.
+The [Python API](https://dsong-lab.github.io/spAlignDE/api.html) describes the
+available functions and output fields.
 
-Single-sample input can be AnnData/H5AD or one metadata/expression CSV pair.
-Cross-sample input can be a combined AnnData/H5AD object or a directory of
-per-sample CSV pairs. Alignment writes `x_prealigned`, `y_prealigned`,
-`x_aligned` and `y_aligned` while preserving the original expression matrix
-and `obsm["spatial"]`.
+## Interactive region pairing
 
-## Installation
-
-### Complete repository environment
-
-```bash
-git clone https://github.com/dsong-lab/spAlignDE.git
-cd spAlignDE
-python -m pip install -e ".[clustering,atlas,histology,ui,tutorial]"
-```
-
-This editable installation is the recommended route for the published
-workflows because the clone also contains the executed notebooks, Streamlit
-interface, documentation source and validation tools. A wheel installation
-contains the Python API and bundled small example data, but not those
-repository-level resources.
-
-### Validated notebook environment
-
-The reference environment contains the complete package, notebook, UI and
-documentation dependency set. Run from the cloned repository root:
-
-```bash
-unset PYTHONPATH
-export PYTHONNOUSERSITE=1
-conda env create -f environment.yml
-conda activate spAlignDE-notebooks
-python -m pip install --no-deps --no-build-isolation -e .
-python -m ipykernel install --user \
-  --name spAlignDE-notebooks \
-  --display-name "Python (spAlignDE-notebooks)"
-python tools/check_notebook_environment.py
-```
-
-On a GPU workstation, require the CUDA compatibility check:
-
-```bash
-python tools/check_notebook_environment.py --require-cuda
-```
-
-See [ENVIRONMENT.md](ENVIRONMENT.md) for the validated CUDA/CPU variants,
-external HIPT and Allen CCF assets, reproducibility expectations and update
-policy.
-
-## Choose a workflow
-
-Run notebooks in workflow order. The canonical executed notebooks are under
-[`source_notebooks/`](source_notebooks/); documentation builds render those
-files directly. The public notebook collection contains the full data analysis
-workflows listed below.
-
-| Goal | Run in this order | Main handoff or result |
-|---|---|---|
-| MERFISH mouse-brain cross-sample alignment | [`clustering_joint_nb.ipynb`](source_notebooks/clustering/clustering_joint_nb.ipynb) → [`cross_sample_alignment_nb.ipynb`](source_notebooks/cross_sample_alignment_nb.ipynb) | aligned AnnData with query coordinates in the reference frame |
-| Mouse-kidney cross-sample alignment | [`cross_sample_alignment_mouse_kidney_clustering_nb.ipynb`](source_notebooks/cross_sample_alignment_mouse_kidney_clustering_nb.ipynb) → [`cross_sample_alignment_mouse_kidney_alignment_nb.ipynb`](source_notebooks/cross_sample_alignment_mouse_kidney_alignment_nb.ipynb) | fixed-manual-initialization aligned AnnData |
-| Breast-cancer cross-sample alignment | [`cross_sample_alignment_breast_cancer_clustering_nb.ipynb`](source_notebooks/cross_sample_alignment_breast_cancer_clustering_nb.ipynb) → [`cross_sample_alignment_breast_cancer_alignment_nb.ipynb`](source_notebooks/cross_sample_alignment_breast_cancer_alignment_nb.ipynb) | aligned Rep2-to-Rep1 AnnData |
-| Transformation stability | [`cross_sample_uncertainty_report.ipynb`](source_notebooks/cross_sample_uncertainty_report.ipynb), after preparing the ten MERFISH subsamples | pointwise empirical transformation-variability table |
-| ST to Allen CCF | [`clustering_single_nb.ipynb`](source_notebooks/clustering/clustering_single_nb.ipynb) → [`cross_modal_atlas_alignment_nb.ipynb`](source_notebooks/cross_modal_atlas_alignment_nb.ipynb) | aligned ST coordinates, 18 final pairs and transferred Allen labels |
-| UI-curated ST to Allen CCF | [`interactive_region_pairing_nb.ipynb`](source_notebooks/cross_modality/interactive_region_pairing_nb.ipynb) → [`ui_paired_atlas_alignment_nb.ipynb`](source_notebooks/cross_modality/ui_paired_atlas_alignment_nb.ipynb) | curated pairing CSV and aligned ST AnnData |
-| ST to H&E | [`st_he_feature_extraction_nb.ipynb`](source_notebooks/cross_modality/st_he_feature_extraction_nb.ipynb) → [`st_he_feature_clustering_nb.ipynb`](source_notebooks/cross_modality/st_he_feature_clustering_nb.ipynb) → [`st_he_alignment_nb.ipynb`](source_notebooks/cross_modality/st_he_alignment_nb.ipynb) | 21 image structures, 2 accepted pairs and aligned Xenium AnnData |
-| Spatial ATAC to ST | [`atac_st_single_clustering_nb.ipynb`](source_notebooks/cross_modality/atac_st_single_clustering_nb.ipynb) → [`atac_st_alignment_nb.ipynb`](source_notebooks/cross_modality/atac_st_alignment_nb.ipynb) | aligned ATAC AnnData and 8 accepted pairs |
-| Post-alignment local inference | [`post_alignment_inference_nb.ipynb`](source_notebooks/post_alignment_inference_nb.ipynb) for injured kidney; [`post_alignment_inference_aging_brain_nb.ipynb`](source_notebooks/post_alignment_inference_aging_brain_nb.ipynb) for aging brain | local statistics, P values, q values, connected regions and gene-level ACAT summaries |
-
-### Alignment-to-inference handoff
-
-The kidney inference notebook uses the packaged
-fixed-seed manual-alignment H5AD produced by the public Kidney workflow: 2,965
-IL3 query spots and the unchanged 3,215-spot NL3 reference. Set
-`SPALIGNDE_KIDNEY_ALIGNED_H5AD` only when testing your own alignment instead.
-The aging-brain notebook uses four query outputs
-from the full 19-query, 800-iteration analysis plus the unchanged 4.3-month
-reference. This five-section website example is not the manuscript's full
-20-section inference analysis. See the
-[post-alignment inference guide](docs/source/tutorials/post_alignment_inference.rst)
-for coordinate sources, grid construction, mismatch calibration, local
-testing and gene-level aggregation.
-
-## Reproducibility
-
-Every published workflow declares its seed before the first randomized step:
-seed `1234` for single-sample BANKSY and the Atlas/ATAC workflows, seed `1000`
-for joint cross-sample workflows, seed `0` for histology processing and
-alignment, and seed `1` for stochastic post-alignment inference and RCTD
-reference subsampling. `spAlignDE.set_random_seed()` resets Python, NumPy and
-Torch before randomized PCA or sampling.
-
-Use the same cleaned inputs, observation order and workflow parameters when
-repeating an analysis. Two independent runs of the documented workflows with
-these seeds reproduced the reported clusters, structure pairs and summary
-results. Very small differences in the last digits of GPU coordinates may
-remain without changing those results. See the
-[reproducibility guide](docs/source/tutorials/reproducibility.rst).
-
-## Interactive region-pairing UI
-
-The complete Streamlit source and custom Plotly component are included under
-[`ui/`](ui/README.md). The Allen annotation volume is an external input and is
-not stored in GitHub:
+Use the Streamlit interface to review tissue regions, choose their
+correspondences and export a pairing CSV for alignment. For Allen atlas data:
 
 ```bash
 export SPALIGNDE_ALLEN_CCF_DIR=/path/to/allen_ccf_2022
 streamlit run ui/app.py
 ```
 
-UI-based alignment uses the exported pairing CSV directly and skips automatic
-candidate discovery, scoring and pair matching. It still performs pairing-file
-validation, whole-mask or provided manual pre-alignment, point filtering, mask
-processing, signed-distance construction, global channel weighting, S-LDDMM
-optimization and label transfer.
+See the [UI guide](ui/README.md) for setup and the
+[atlas notebooks](https://dsong-lab.github.io/spAlignDE/source_notebooks/cross_modality_atlas_alignment.html)
+for alignment with your exported pairs.
 
-## Documentation and parameter tuning
+## Adapting and reproducing an analysis
 
-The complete Sphinx website is published at
-**https://dsong-lab.github.io/spAlignDE/**. Start with the
-[tutorial index](https://dsong-lab.github.io/spAlignDE/tutorial.html), then open
-the [executable source notebooks](https://dsong-lab.github.io/spAlignDE/source_notebooks.html)
-for the corresponding complete workflows. The website source is versioned
-under [`docs/source/`](docs/source/).
-Build it locally with:
+Use the [parameter guide](https://dsong-lab.github.io/spAlignDE/tutorials/parameter_tuning.html)
+when changing datasets or coordinate units. To reproduce a tutorial, keep the
+same inputs, observation order, parameters and random seeds. The
+[reproducibility guide](https://dsong-lab.github.io/spAlignDE/tutorials/reproducibility.html)
+lists the seeds and explains how to compare results across runs.
 
-```bash
-python -m pip install -r docs/requirements.txt
-python tools/stage_documentation.py
-sphinx-build -W --keep-going -b html docs/source docs/build/html
-python tools/audit_built_html.py docs/build/html
-```
-
-Open `docs/build/html/index.html` after the build. The same pages are published
-at the documentation link above.
-
-The [Parameter Tuning Guide](docs/source/tutorials/parameter_tuning.rst)
-explains coordinate units, clustering/refinement, pre-alignment, the three
-grids, `kernel_scale` (legacy `a`), `velocity_grid_spacing` (legacy
-`grid_step`), time steps, iterations, momentum learning rate and
-workflow-specific pairing controls.
-
-## Package contents and external inputs
-
-The built wheel contains the complete public Python API for clustering,
-cross-sample and cross-modality alignment, transformation-stability analysis
-and mismatch-aware post-alignment inference. It also includes the compact
-kidney coordinate handoff, the five-section aging-brain example and synthetic
-test data. The GitHub clone additionally contains the executed notebooks,
-documentation, Streamlit UI, figures and validation tools.
-
-Large datasets and third-party model assets are kept outside both the wheel
-and Git. Each workflow links its public data source and validates the expected
-input format. In particular:
-
-- HIPT source/checkpoints: set `SPALIGNDE_HIPT_DIR`;
-- Allen CCF: set `SPALIGNDE_ALLEN_CCF_DIR`;
-- uncertainty inputs: set `SPALIGNDE_UNCERTAINTY_INPUT_DIR`; and
-- other workflow inputs: use the `SPALIGNDE_*` variables documented by the
-  corresponding notebook.
-
-## Checks before sharing changes
-
-```bash
-python -m pytest -q
-python tools/audit_source_notebooks.py source_notebooks
-python tools/audit_public_references.py
-python tools/audit_api_documentation.py
-python -m pip wheel . --no-deps --no-build-isolation --wheel-dir dist
-python tools/audit_distribution_contents.py dist/*.whl
-python tools/stage_documentation.py
-sphinx-build -W --keep-going -b html docs/source docs/build/html
-python tools/audit_built_html.py docs/build/html
-```
-
-These maintainer commands run the package tests, inspect the canonical saved
-notebooks, build the wheel and website, and check local links and images.
-Repeated workflow runs are only needed when updating a reported scientific
-result; use the criteria in the reproducibility guide.
+For tests, documentation builds and release checks, see the
+[maintainer guide](tools/README.md).
 
 ## Citation
 
 If you use **spAlignDE** in your research, please cite our preprint:
 
 Xu, S., Wang, Y., Meng, L., Dalal, A., Yin, Y., & Song, D. (2026). **spAlignDE unifies cross-sample and cross-modal spatial alignment with mismatch-aware differential expression.** *bioRxiv*. [doi:10.64898/2026.09.05.749632](https://doi.org/10.64898/2026.09.05.749632)
-
 
 ## License
 

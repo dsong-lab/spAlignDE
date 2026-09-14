@@ -1,11 +1,10 @@
 Overview
 ========
 
-spAlignDE is an integrated framework that connects **structure-guided spatial
-alignment** with **mismatch-aware post-alignment local differential-expression
-analysis**. It first places spatial datasets in a common coordinate system and
-then uses those aligned coordinates for location-resolved comparisons while
-accounting for residual correspondence errors.
+spAlignDE uses tissue structure to place spatial datasets in a common
+coordinate system. For aligned spatial transcriptomics samples, it then tests
+gene-expression differences at corresponding locations while accounting for
+residual alignment mismatch.
 
 The framework has two linked components:
 
@@ -89,7 +88,9 @@ For repeated or multi-sample analyses, subsampling-based uncertainty
 quantification can additionally summarize the positional stability of the
 estimated transformation.
 
-mismatch-aware post-alignment local inference
+.. _mismatch-aware-post-alignment-local-inference:
+
+Local differential expression after alignment
 ---------------------------------------------
 
 For aligned transcriptomic samples, spAlignDE defines fixed locations on a
@@ -111,14 +112,11 @@ therefore contribute less precise evidence instead of being interpreted as
 confident biological differential expression. This adjustment complements
 accurate registration; it is not a substitute for it.
 
-Calibration is gene-specific and local-only. First-pass statistics are
-median-centered within normalized-risk bins and scaled against the Student-t
-null MAD. A monotone nonnegative excess-variance curve is fitted as a
-through-origin quadratic, giving the final factor
-:math:`1+\lambda_{\mathrm{local},g}r_i^2`. The gene-specific global coefficient
-is fixed at zero, so a location with zero local risk receives no mismatch
-inflation. Cell-type support, when available, remains a separate precision
-adjustment.
+The adjustment is calibrated separately for each gene and depends on local
+mismatch risk. Locations with zero local risk receive no mismatch inflation;
+cell-type support, when available, provides a separate precision adjustment.
+The :doc:`inference guide <tutorials/post_alignment_inference>` describes the
+calibration model and equations.
 
 The inference workflow returns local test statistics and raw P values,
 false-discovery-rate-adjusted q-values, connected local DE regions, gene-level

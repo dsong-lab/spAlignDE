@@ -28,6 +28,18 @@ h1 { font-size: 175%; }
 h2 { font-size: 150%; }
 h3 { font-size: 125%; }
 
+/* Keep workflow descriptions readable within the page width. */
+.rst-content table.workflow-table {
+  width: 100%;
+  table-layout: fixed;
+}
+
+.rst-content table.workflow-table th,
+.rst-content table.workflow-table td {
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+
 /* Keep the lab mark in its own footer so long navigation trees scroll above it. */
 .wy-nav-side {
   padding-bottom: 0;

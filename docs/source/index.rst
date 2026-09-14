@@ -1,28 +1,31 @@
-Welcome to spAlignDE's documentation!
-=====================================
+.. _welcome-to-spalignde-s-documentation:
 
-**spAlignDE** is an integrated framework for structure-guided spatial alignment
-and mismatch-aware post-alignment local differential-expression analysis.
-It supports cross-sample spatial transcriptomics alignment, cross-modality
-registration to histology, anatomical atlases and spatial ATAC-seq, and
-shared-grid local inference after alignment.
+spAlignDE
+=========
 
-Start with the :doc:`overview` section for the project scope. Use
-:doc:`installation` to create the validated notebook environment,
-:doc:`tutorial` for workflow descriptions and parameter guidance,
-:doc:`source_notebooks` for executable source notebooks, and :doc:`api` for the
-current package API.
+**spAlignDE** uses tissue structure to align spatial omics datasets across
+samples and modalities. For aligned spatial transcriptomics samples, it tests
+local differences in gene expression while accounting for residual alignment
+mismatch.
 
-.. note::
-
-   This project is under active development and is distributed under the
-   :doc:`MIT License <license>`.
+Use it to align tissue sections, register data with histology images or
+anatomical atlases, align spatial ATAC-seq to spatial transcriptomics, and
+compare gene expression at corresponding locations.
 
 Getting started
 ---------------
 
+1. :doc:`Install spAlignDE <installation>` and set up the notebook environment.
+2. :doc:`Choose a workflow <tutorial>` for your data and analysis goal.
+3. Run its notebooks in the listed order, then use the
+   :doc:`parameter guide <tutorials/parameter_tuning>` when adapting the example.
+
+For the method and supported applications, read the :doc:`overview`.
+
 .. toctree::
-   :maxdepth: 2
+   :hidden:
+   :maxdepth: 1
+   :caption: Getting started
 
    overview
    installation
@@ -31,8 +34,15 @@ Getting started
 Reference
 ---------
 
+* :doc:`source_notebooks`: runnable examples with saved outputs.
+* :doc:`api`: Python functions, parameters and output fields.
+* :doc:`tutorials/reproducibility`: random seeds and comparisons across runs.
+* :doc:`license`: MIT License.
+
 .. toctree::
-   :maxdepth: 2
+   :hidden:
+   :maxdepth: 1
+   :caption: Reference
 
    source_notebooks
    api

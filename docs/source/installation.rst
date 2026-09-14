@@ -1,10 +1,12 @@
-Installation and Notebook Environment
-=====================================
+.. _installation-and-notebook-environment:
 
-The source notebooks use one validated, case-preserving ``spAlignDE`` Python
-environment. The public environment specification is cleaned of local paths
-and unrelated development packages, and pins the direct dependencies that can
-change clustering, pairing, rasterization or S-LDDMM results.
+Installation
+============
+
+Use the Conda environment below to run the published notebooks and interactive
+interface. It pins the package versions used by those examples. For a CPU-only
+setup, apply the changes in `GPU and CPU variants`_ before creating the
+environment.
 
 Download the current files:
 
@@ -12,15 +14,17 @@ Download the current files:
 * :download:`environment notes <_static/environment/ENVIRONMENT.md>`
 * :download:`environment checker <_static/environment/check_notebook_environment.py>`
 
-Create the environment
-----------------------
+.. _create-the-environment:
 
-Run the following commands from the package root, which contains
-``pyproject.toml`` and ``environment.yml``:
+Create the notebook environment
+-------------------------------
+
+Clone the repository, then create the environment from its root directory:
 
 .. code-block:: bash
 
-   cd /path/to/spAlignDE
+   git clone https://github.com/dsong-lab/spAlignDE.git
+   cd spAlignDE
    unset PYTHONPATH
    export PYTHONNOUSERSITE=1
    conda env create -f environment.yml
@@ -30,21 +34,18 @@ Run the following commands from the package root, which contains
      --name spAlignDE-notebooks \
      --display-name "Python (spAlignDE-notebooks)"
 
-Select **Python (spAlignDE-notebooks)** as the Jupyter kernel. The editable
-installation is kept outside ``environment.yml`` so that the exported file
-does not contain a developer's local filesystem path. ``--no-deps`` is
-intentional because the notebook dependencies are already pinned, while
-``--no-build-isolation`` uses the pinned Setuptools instead of downloading a
-second build environment.
+Select **Python (spAlignDE-notebooks)** as the Jupyter kernel. The Pip command
+installs spAlignDE from the clone using the dependencies already installed by
+Conda.
 
-Clearing ``PYTHONPATH`` before creation prevents Pip from treating packages in
-an unrelated shared directory as if they were installed in the new
-environment. ``PYTHONNOUSERSITE=1`` also prevents per-user packages from
-shadowing pinned dependencies. Keep both settings during validation and
-notebook execution; the checker reports either source of contamination.
+Keep ``PYTHONPATH`` unset and ``PYTHONNOUSERSITE=1`` when running notebooks so
+packages outside this environment do not override its dependencies. The
+downloadable environment notes explain these settings in detail.
 
-Verify before running data
---------------------------
+.. _verify-before-running-data:
+
+Check the installation
+----------------------
 
 .. code-block:: bash
 
@@ -60,6 +61,15 @@ executing release notebooks.
 
 The package test suite is a maintainer check and is not required before using
 a tutorial notebook.
+
+To start Jupyter from the repository root:
+
+.. code-block:: bash
+
+   jupyter lab
+
+Then :doc:`choose a workflow <tutorial>` and run its notebooks in the listed
+order.
 
 GPU and CPU variants
 --------------------
@@ -116,6 +126,21 @@ notebooks consume the AnnData and coordinate outputs generated upstream.
 Small floating-point differences between GPU models are expected; changes in
 tissue orientation, matched structures or local geometry require review.
 
+Using an existing Python environment
+------------------------------------
+
+If you manage your own dependencies, you can install the package and optional
+workflow libraries into an existing compatible environment. From the cloned
+repository root, run:
+
+.. code-block:: bash
+
+   python -m pip install -e ".[clustering,atlas,histology,ui,tutorial]"
+
+This is an alternative to creating the Conda environment above. Its dependency
+versions may differ from those used by the published examples; use the Conda
+route when reproducing those results.
+
 What the installation includes
 ------------------------------
 
@@ -131,9 +156,8 @@ Clone the repository and use the editable installation above when following
 the published workflows or running the UI. A wheel-only installation is
 sufficient when calling the Python API with user-provided inputs.
 
-The manuscript-scale Nissl and full 20-section aging-brain analyses are not
-bundled as complete public notebooks. The website provides the H&E,
-automatic/UI Atlas, spatial-ATAC and kidney workflows, plus a five-section
-aging-brain alignment-to-inference example. This distinction keeps the public
-workflow scope clear without implying that large third-party data are shipped
-inside the package.
+The public notebooks cover H&E, automatic and interactive atlas alignment,
+spatial ATAC-seq, cross-sample alignment and local differential expression.
+The aging-brain inference example contains five sections. The manuscript's
+complete 20-section aging-brain and Nissl analyses are not provided as complete
+public notebooks.
