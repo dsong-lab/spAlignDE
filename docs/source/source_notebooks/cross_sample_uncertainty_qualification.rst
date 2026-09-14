@@ -3,7 +3,19 @@ Cross-Sample Alignment — Subsampling-Based Transformation Variability
 
 This analysis assesses the local stability of the transformation learned by
 spAlignDE in the MERFISH mouse-brain cross-sample benchmark. It corresponds to
-Fig. 2E and the cross-sample uncertainty Supplementary Methods in the paper.
+Fig. 2E and uses the **mean distance from each point's replicate-mean mapped
+position** (``dist_mean``).
+
+.. image:: ../_static/tutorial_figures/cross_sample_distance_mean_p95.png
+   :alt: Mean distance across ten subsampling replicates, with high values near the left tissue boundary
+   :width: 560px
+   :align: center
+
+The dashed ellipse summarizes the top 5% of mean distances. The color scale
+saturates at the 99th percentile; these are separate display settings.
+Download the :download:`Figure 2E reference PDF
+<../_static/tutorial_figures/cross_sample_distance_mean_p95.pdf>` or its
+:download:`pointwise source data <../_static/cross_sample_distance_mean_source.csv.gz>`.
 
 .. toctree::
    :maxdepth: 1
@@ -41,8 +53,9 @@ introduce small numerical differences.
 
 The S-LDDMM runs explicitly use ``restore_best=False`` and therefore retain the
 final optimizer iterate. Two complete fixed-seed executions of all ten
-replicates produced identical pointwise uncertainty tables. The checkpoint
-policy must not be changed when reproducing the reported spatial pattern.
+replicates previously produced identical pointwise tables. The mean-distance
+report reuses those fitted transformations. The checkpoint policy must not be
+changed when reproducing the reported spatial pattern.
 
 The executable notebook starts from the replicate-specific pseudo-images and
 prealigned coordinates produced by steps 1--5. It runs or loads S-LDDMM,
@@ -74,32 +87,33 @@ that mean are
    \bar z_i=\frac{1}{R}\sum_{r=1}^{R}z_{r,i}, \qquad
    d_{r,i}=\lVert z_{r,i}-\bar z_i\rVert_2.
 
-Coordinate-wise sample variances are summarized as total positional spread,
+The primary metric shown in Fig. 2E is the mean of these distances,
 
 .. math::
 
-   s_i=\sqrt{s_{x,i}^{2}+s_{y,i}^{2}},
+   \bar d_i=\frac{1}{R}\sum_{r=1}^{R}d_{r,i}.
 
-which is stored as ``std_total``. The primary metric shown in Fig. 2E is the
-sample variance of displacement distance,
+It is stored as ``dist_mean`` and has the same units as the aligned
+coordinates. The spatial map displays replicate-1 aligned query coordinates
+colored by this metric. Its dashed ellipse summarizes the locations of points
+at or above the 95th percentile; it is not a confidence region or an exact
+boundary of the selected points. Values above the 99th percentile share the
+highest color, while all observations remain in the plot and source table.
 
-.. math::
-
-   v_{d,i}=\frac{1}{R-1}\sum_{r=1}^{R}
-   \left(d_{r,i}-\bar d_i\right)^2,
-
-which is stored as ``dist_var``. The spatial map displays replicate-1 aligned
-query coordinates colored by ``dist_var``. Its dashed contour summarizes
-points at or above the 95th percentile.
+The output table also retains ``std_total`` (total positional spread),
+``dist_std`` and ``dist_var`` as secondary diagnostics. Distance variance is
+expressed in squared coordinate units and is not the primary Figure 2E metric.
 
 Results
 -------
 
 The executed report evaluates 68,766 fixed query points across all ten
-transformations. The median ``dist_var`` is 429.54 and its 95th percentile is
-2,352.74; 3,439 points lie in this upper tail. Most of the section has low
-transformation variability, whereas high values concentrate near the weakly
-or incompletely overlapping tissue boundary.
+transformations. The median ``dist_mean`` is **40.25** and its 95th percentile
+is **83.43**; **3,439** points lie in this upper tail. The largest values
+concentrate near the weakly or incompletely overlapping left tissue boundary.
+The re-executed notebook agrees with the reference figure at the displayed
+precision and selects the same top-5% points. Small floating-point differences
+between the saved coordinate sets are recorded in the downloadable summary.
 
 These values measure empirical stability under cell subsampling. They are not
 a posterior probability, calibrated uncertainty, confidence interval, or
@@ -108,9 +122,18 @@ error relative to a known ground-truth deformation.
 Outputs and adaptation
 ----------------------
 
-The primary table is ``pointwise_transformation_variability.csv``; the main
-spatial map and distribution are written as both PNG and editable SVG. For a
-new dataset, rerun clustering, pre-alignment, rasterization and S-LDDMM inside
+The notebook writes:
+
+* ``pointwise_transformation_variability.csv``: all pointwise summaries,
+  including the primary ``dist_mean`` column;
+* ``figures/merfish_S2R3_to_S2R2_distance_mean_p95.*``: the spatial map in PDF,
+  PNG and editable SVG;
+* ``figures/merfish_S2R3_to_S2R2_dist_mean_distribution.*``: the mean-distance
+  distribution in the same formats; and
+* ``uncertainty_report.json``: summary statistics with
+  ``primary_metric="dist_mean"``.
+
+For a new dataset, rerun clustering, pre-alignment, rasterization and S-LDDMM inside
 every replicate, then evaluate all learned transformations on one fixed
 support. Record the retained fraction, seeds, number of repeats and full
 alignment configuration. See :doc:`../tutorials/parameter_tuning` before

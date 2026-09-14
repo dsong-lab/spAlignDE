@@ -365,16 +365,24 @@ Cross-sample subsampling stability
 ----------------------------------
 
 The reusable functions used by the MERFISH stability report are available as
-``spAlignDE.uncertainty``; the notebook no longer imports a helper from a
-developer workspace.
+``spAlignDE.uncertainty``.
 
 ``run_or_load_alignments`` runs each prepared replicate through S-LDDMM and
 saves the learned transformations. ``map_reference_points_through_transforms``
 then applies every transformation to one fixed query support, avoiding a
 confound between transformation variation and changing subsample membership.
-``compute_repeat_point_variance`` returns pointwise coordinate and distance
-variance. Plotting and report-writing helpers reproduce the documented Figure
-2E analysis.
+``compute_repeat_point_variance`` returns ``dist_mean``, the mean Euclidean
+distance from each point's replicate-mean mapped position, along with
+coordinate and distance variances as secondary diagnostics.
+``plot_distance_mean_map`` displays the Figure 2E metric on a selected
+replicate's mapped coordinates. Its default ellipse summarizes the top 5% of
+mean distances, while the color scale saturates at the 99th percentile.
+
+``plot_uncertainty_distribution`` and ``write_brief_report`` also use
+``dist_mean`` by default. Set ``value_col="dist_var"`` to inspect distance
+variance; the existing ``plot_distance_variance_map`` remains available for
+that diagnostic. Mean distance has the same units as the aligned coordinates,
+whereas distance variance has squared coordinate units.
 
 Prepared replicate inputs are ordinary ``lddmm_input_repNN.npz`` files. The
 source notebook reads their directory from

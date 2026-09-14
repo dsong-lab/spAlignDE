@@ -376,11 +376,13 @@ def compute_repeat_point_variance(
     x_src_new,
     y_src_new,
 ) -> tuple[pd.DataFrame, np.ndarray]:
-    """Compute pointwise coordinate/distance variance across repeat transforms.
+    """Compute pointwise mean distances and variances across repeat transforms.
 
     This intentionally matches the robustness tutorial helper of the same name.
     It expects every repeat array to contain the same source point set in the
-    same order.
+    same order. ``dist_mean`` is the mean Euclidean distance to the replicate
+    mean mapped position, in coordinate units; ``dist_var`` is the sample
+    variance of those distances, in squared coordinate units.
     """
     if len(src_lddmm_xy_by_repeat) < 2:
         raise RuntimeError("Need src_lddmm_xy_by_repeat with >=2 repeats.")
@@ -420,7 +422,50 @@ def plot_distance_variance_map(
     high_percentile: float = 95.0,
     vmax_percentile: float = 99.0,
 ):
-    """Plot the Figure 2E metric and outline its high-variability region."""
+    """Plot distance variance as a secondary transformation diagnostic.
+
+    For the mean-distance metric used in Figure 2E, use
+    :func:`plot_distance_mean_map`.
+    """
+    return _plot_distance_map(
+        point_var_df, src_lddmm_xy_by_repeat, tgt_xy,
+        value_col="dist_var", repeat=repeat,
+        high_percentile=high_percentile, vmax_percentile=vmax_percentile,
+    )
+
+
+def plot_distance_mean_map(
+    point_var_df: pd.DataFrame,
+    src_lddmm_xy_by_repeat: dict[int, np.ndarray],
+    tgt_xy,
+    *,
+    repeat: int = 1,
+    high_percentile: float = 95.0,
+    vmax_percentile: float = 99.0,
+):
+    """Plot Figure 2E mean distance from the replicate-mean mapped position.
+
+    The dashed ellipse summarizes the locations above ``high_percentile``;
+    it is not a confidence region. ``vmax_percentile`` caps only the color
+    scale, leaving all points and their underlying values unchanged.
+    """
+    return _plot_distance_map(
+        point_var_df, src_lddmm_xy_by_repeat, tgt_xy,
+        value_col="dist_mean", repeat=repeat,
+        high_percentile=high_percentile, vmax_percentile=vmax_percentile,
+    )
+
+
+def _plot_distance_map(
+    point_var_df: pd.DataFrame,
+    src_lddmm_xy_by_repeat: dict[int, np.ndarray],
+    tgt_xy,
+    *,
+    value_col: str,
+    repeat: int,
+    high_percentile: float,
+    vmax_percentile: float,
+):
     from matplotlib.colors import Normalize
     from matplotlib.patches import Ellipse
 
@@ -428,7 +473,8 @@ def plot_distance_variance_map(
         repeat = sorted(src_lddmm_xy_by_repeat.keys())[0]
     xy = np.asarray(src_lddmm_xy_by_repeat[repeat])
     target_xy = np.asarray(tgt_xy, dtype=float)
-    vals = point_var_df["dist_var"].to_numpy(dtype=float)
+    vals = point_var_df[value_col].to_numpy(dtype=float)
+    is_mean = value_col == "dist_mean"
     vmax = float(np.nanpercentile(vals, vmax_percentile))
     threshold = float(np.nanpercentile(vals, high_percentile))
     high = vals >= threshold
@@ -467,7 +513,7 @@ def plot_distance_variance_map(
         xy[:, 0],
         xy[:, 1],
         c=vals,
-        s=1.6,
+        s=2.0 if is_mean else 1.6,
         cmap="viridis",
         norm=norm,
         alpha=0.82,
@@ -489,6 +535,7 @@ def plot_distance_variance_map(
                 edgecolor="#2F3A45",
                 linewidth=1.0,
                 linestyle=(0, (3.2, 2.2)),
+                alpha=0.95 if is_mean else 1.0,
                 label=f"top {100 - high_percentile:g}% variability",
                 zorder=5,
             )
@@ -499,18 +546,31 @@ def plot_distance_variance_map(
     pad = 0.025 * max(xmax - xmin, ymax - ymin)
     ax.set_xlim(xmin - pad, xmax + pad)
     ax.set_ylim(ymin - pad, ymax + pad)
-    ax.set_title("Subsampling-based transformation variability", fontweight="bold")
+    if is_mean:
+        ax.set_title("Pointwise mean distance", fontsize=9, fontweight="bold")
+    else:
+        ax.set_title("Subsampling-based transformation variability", fontweight="bold")
     ax.set_aspect("equal", adjustable="box")
     ax.set_xticks([])
     ax.set_yticks([])
     for spine in ax.spines.values():
         spine.set_visible(False)
     cbar = fig.colorbar(sc, ax=ax, pad=0.01, fraction=0.04)
-    cbar.set_label("Distance variance across replicates")
+    if is_mean:
+        cbar.set_label("Mean distance across repeats", fontsize=7)
+        cbar.ax.tick_params(labelsize=6, length=2)
+    else:
+        cbar.set_label("Distance variance across replicates")
+    annotation = (
+        f"High mean-distance threshold: >= {threshold:,.1f} "
+        f"({high_percentile:g}th percentile; n={int(high.sum()):,})"
+        if is_mean else
+        f"{high_percentile:g}th percentile = {threshold:,.1f}; n = {int(high.sum()):,}"
+    )
     ax.text(
         0.01,
         0.01,
-        f"95th percentile = {threshold:,.1f}; n = {int(high.sum()):,}",
+        annotation,
         transform=ax.transAxes,
         ha="left",
         va="bottom",
@@ -593,7 +653,7 @@ def plot_uncertainty_map(
 def plot_uncertainty_distribution(
     uncertainty_df: pd.DataFrame,
     *,
-    value_col: str = "dist_var",
+    value_col: str = "dist_mean",
     high_percentile: float = 95.0,
 ):
     """Show the pointwise transformation-variability distribution."""
@@ -602,7 +662,10 @@ def plot_uncertainty_distribution(
     fig, ax = plt.subplots(1, 1, figsize=(4.8, 2.8), constrained_layout=True)
     ax.hist(vals, bins=60, color="#4C8C84", edgecolor="white", linewidth=0.3)
     ax.axvline(cutoff, color="#C44E52", linewidth=1.2, label=f"{high_percentile:.0f}th percentile")
-    label = "Distance variance across replicates" if value_col == "dist_var" else value_col
+    label = {
+        "dist_mean": "Mean distance across repeats",
+        "dist_var": "Distance variance across replicates",
+    }.get(value_col, value_col)
     ax.set_xlabel(label)
     ax.set_ylabel("Fixed query points")
     ax.set_title("Distribution of pointwise transformation variability")
@@ -615,22 +678,29 @@ def write_brief_report(
     output_dir: str | Path,
     summary: pd.DataFrame,
     uncertainty_df: pd.DataFrame,
+    value_col: str = "dist_mean",
     high_percentile: float = 95.0,
 ) -> Path:
     """Write the paper-aligned machine-readable benchmark summary."""
     output_dir = Path(output_dir)
-    cutoff = float(np.nanpercentile(uncertainty_df["dist_var"], high_percentile))
-    high = uncertainty_df.loc[uncertainty_df["dist_var"] >= cutoff]
+    cutoff = float(np.nanpercentile(uncertainty_df[value_col], high_percentile))
+    high = uncertainty_df.loc[uncertainty_df[value_col] >= cutoff]
     count_key = "n_points_with_uncertainty" if "point_idx" in uncertainty_df.columns else "n_cells_with_uncertainty"
     report = {
         "n_repeats": int(summary["repeat"].nunique()),
         count_key: int(len(uncertainty_df)),
-        "primary_metric": "dist_var",
+        "primary_metric": value_col,
+        "high_percentile": float(high_percentile),
+        "high_variability_threshold": cutoff,
+        "median_dist_mean": float(uncertainty_df["dist_mean"].median()),
+        "p95_dist_mean": float(np.nanpercentile(uncertainty_df["dist_mean"], 95.0)),
+        "p99_dist_mean": float(np.nanpercentile(uncertainty_df["dist_mean"], 99.0)),
+        "max_dist_mean": float(uncertainty_df["dist_mean"].max()),
         "median_dist_var": float(uncertainty_df["dist_var"].median()),
-        "p95_dist_var": cutoff,
+        "p95_dist_var": float(np.nanpercentile(uncertainty_df["dist_var"], 95.0)),
         "max_dist_var": float(uncertainty_df["dist_var"].max()),
         "median_std_total": float(uncertainty_df["std_total"].median()),
-        "p95_std_total": float(np.nanpercentile(uncertainty_df["std_total"], high_percentile)),
+        "p95_std_total": float(np.nanpercentile(uncertainty_df["std_total"], 95.0)),
         "max_std_total": float(uncertainty_df["std_total"].max()),
         "n_high_variability_points": int(len(high)),
         "interpretation": (
