@@ -16,8 +16,8 @@ alignment, and interactive region pairing.
 **[Documentation](https://dsong-lab.github.io/spAlignDE/) · [Tutorials](https://dsong-lab.github.io/spAlignDE/tutorial.html) · [Notebooks](https://dsong-lab.github.io/spAlignDE/source_notebooks.html)**
 
 <p align="center">
-  <a href="assets/Figure_1_08132026_DS.png">
-    <img src="assets/Figure_1_08132026_DS.png" alt="Overview of spatial alignment and mismatch-aware local differential expression with spAlignDE" width="600">
+  <a href="assets/Figure_1_spAlignDE.png">
+    <img src="assets/Figure_1_spAlignDE.png" alt="Overview of spatial alignment and mismatch-aware local differential expression with spAlignDE" width="600">
   </a>
 </p>
 
