@@ -8,16 +8,35 @@ spots: 2,965 from ``IL3`` and 3,215 from ``NL3``.
 Input data
 ----------
 
-The IL3 and NL3 Visium matrices, spatial coordinates and region annotations
-are publicly available from the `STcompare Zenodo record
-<https://zenodo.org/records/20647680>`_, as listed in the manuscript Data
-Availability section.
+Download the raw Visium inputs from `Zenodo record 17676992
+<https://zenodo.org/records/17676992>`_:
 
-The input may be a combined AnnData file or paired per-sample CSV files
-following the :ref:`cross-sample-csv-format`. The recorded run starts from
-``kidney_combined.h5ad`` and filters observations using
-``adata.obs["is_spatial_filtered"]`` before validation. Public paths in both
-notebooks are configured through environment variables.
+- ``IL3_filtered_feature_bc_matrix.h5`` and ``NL3_filtered_feature_bc_matrix.h5``;
+- ``IL3_tissue_positions.csv`` and ``NL3_tissue_positions.csv``.
+
+Place them in ``data/cross_sample/kidney/`` or set
+``SPALIGNDE_KIDNEY_DATA_DIR`` to their directory. The clustering notebook
+creates ``kidney_combined.h5ad`` by:
+
+1. matching expression and coordinate rows by barcode, after removing the
+   coordinate tables' ``IR3_`` or ``CTRL3_`` prefixes;
+2. retaining the barcodes present in the coordinate tables, in expression-matrix
+   order, with ``x=array_col`` and ``y=array_row``; and
+3. merging IL3 and NL3 into one AnnData with raw counts, ``sample_id`` and
+   ``obsm["spatial"]``.
+
+This yields the 6,180 spots used by the example. The spatial selection is
+barcode membership in the supplied coordinate tables, with no additional
+distance or tissue-boundary cutoff. Region annotations from the
+`STcompare record <https://zenodo.org/records/20647680>`_ are optional comparison
+data, not inputs to clustering or alignment.
+
+An existing combined H5AD or :ref:`paired per-sample CSV directory
+<cross-sample-csv-format>` can be supplied through ``SPALIGNDE_KIDNEY_INPUT``.
+The legacy ``kidney_combined.h5ad`` contains both original and spatially matched
+CSV copies; ``is_spatial_filtered`` selects the matched copies when that
+column is present. The newly constructed H5AD contains only matched spots
+and does not require this flag.
 
 Source notebooks
 ----------------

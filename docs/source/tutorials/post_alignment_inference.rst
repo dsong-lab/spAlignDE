@@ -78,11 +78,11 @@ Download these files from `Zenodo record 17676992
 - ``NL3_tissue_positions.csv``; and
 - ``IL3_tissue_positions.csv``.
 
-The upstream alignment notebook uses the same NL3/IL3 sections plus region
-annotations from the `STcompare record 20647680
-<https://zenodo.org/records/20647680>`_. The inference notebook deliberately
-reloads the source 10x files above and joins them to aligned coordinates by
-terminal barcode, so the two records have distinct and explicit roles.
+The upstream clustering notebook uses these same files to construct the
+combined NL3/IL3 AnnData before alignment. The inference notebook reloads the
+source 10x files and joins them to aligned coordinates by terminal barcode.
+Region annotations from the `STcompare record 20647680
+<https://zenodo.org/records/20647680>`_ are optional comparison data.
 
 Configure their directory without editing the notebook:
 
