@@ -79,12 +79,14 @@ See the [tutorial guide](https://dsong-lab.github.io/spAlignDE/tutorial.html)
 and [notebooks](https://dsong-lab.github.io/spAlignDE/source_notebooks.html)
 for detailed examples:
 
-- [Cross-sample alignment](https://dsong-lab.github.io/spAlignDE/tutorials/cross_sample_alignment.html)
-- [Allen brain atlas alignment](https://dsong-lab.github.io/spAlignDE/tutorials/cross_modality_atlas_alignment.html)
-- [Histology image alignment](https://dsong-lab.github.io/spAlignDE/tutorials/st_histology_image_processing.html)
-- [Spatial ATAC-seq to spatial transcriptomics alignment](https://dsong-lab.github.io/spAlignDE/tutorials/cross_modality_atac_alignment.html)
-- [Alignment stability](https://dsong-lab.github.io/spAlignDE/source_notebooks/cross_sample_uncertainty_qualification.html)
-- [Local differential expression](https://dsong-lab.github.io/spAlignDE/tutorials/post_alignment_inference.html)
+| Task | Guide | Notebooks |
+|---|---|---|
+| Align spatial transcriptomics samples | [Cross-sample alignment](https://dsong-lab.github.io/spAlignDE/tutorials/cross_sample_alignment.html) | [Mouse brain](https://dsong-lab.github.io/spAlignDE/source_notebooks/cross_sample_alignment_mouse_brain.html) · [Mouse kidney](https://dsong-lab.github.io/spAlignDE/source_notebooks/cross_sample_alignment_mouse_kidney.html) · [Breast cancer](https://dsong-lab.github.io/spAlignDE/source_notebooks/cross_sample_alignment_breast_cancer.html) |
+| Align to the Allen brain atlas | [Atlas alignment](https://dsong-lab.github.io/spAlignDE/tutorials/cross_modality_atlas_alignment.html) | [Automatic and interactive pairing](https://dsong-lab.github.io/spAlignDE/source_notebooks/cross_modality_atlas_alignment.html) |
+| Align to a histology image | [Histology alignment](https://dsong-lab.github.io/spAlignDE/tutorials/st_histology_image_processing.html) | [Mouse brain H&E](https://dsong-lab.github.io/spAlignDE/source_notebooks/cross_modality_he_alignment.html) |
+| Align spatial ATAC-seq to spatial transcriptomics | [ATAC alignment](https://dsong-lab.github.io/spAlignDE/tutorials/cross_modality_atac_alignment.html) | [Mouse brain ATAC](https://dsong-lab.github.io/spAlignDE/source_notebooks/cross_modality_atac_alignment.html) |
+| Assess alignment stability | [Subsampling and variability](https://dsong-lab.github.io/spAlignDE/source_notebooks/cross_sample_uncertainty_qualification.html) | [Stability notebook](source_notebooks/cross_sample_uncertainty_report.ipynb) |
+| Test local differential expression after alignment | [Local inference](https://dsong-lab.github.io/spAlignDE/tutorials/post_alignment_inference.html) | [Kidney and aging brain](https://dsong-lab.github.io/spAlignDE/source_notebooks/post_alignment_inference.html) |
 
 ## Citation
 
