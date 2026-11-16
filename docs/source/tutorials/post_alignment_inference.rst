@@ -21,10 +21,14 @@ manual-alignment workflow:
 .. code-block:: text
 
    cross_sample_alignment_mouse_kidney_alignment_nb.ipynb
-       -> fixed-seed manual-alignment coordinates
+       -> kidney_IL3_to_NL3_aligned.h5ad (one final result containing IL3 and NL3)
        -> packaged aligned_coords_NL3.csv.gz and aligned_coords_IL3.csv.gz
        -> barcode-validated coordinate tables
        -> post_alignment_inference_nb.ipynb
+
+Keep the single final H5AD as the alignment result. The two packaged coordinate
+tables are per-section extracts of that result, supplied for the recorded
+inference example.
 
 Upstream clustering and alignment use seed ``1000``, Leiden resolution ``0.2``
 and a selected manual similarity pre-alignment with scale ``1``, rotation ``0``

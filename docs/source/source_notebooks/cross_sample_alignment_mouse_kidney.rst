@@ -33,10 +33,8 @@ data, not inputs to clustering or alignment.
 
 An existing combined H5AD or :ref:`paired per-sample CSV directory
 <cross-sample-csv-format>` can be supplied through ``SPALIGNDE_KIDNEY_INPUT``.
-The legacy ``kidney_combined.h5ad`` contains both original and spatially matched
-CSV copies; ``is_spatial_filtered`` selects the matched copies when that
-column is present. The newly constructed H5AD contains only matched spots
-and does not require this flag.
+The combined input contains one row per retained spot. This same 6,180-spot
+pair continues through clustering, alignment, and kidney inference.
 
 Source notebooks
 ----------------
@@ -46,6 +44,13 @@ Source notebooks
 
    cross_sample_alignment_mouse_kidney_clustering_nb
    cross_sample_alignment_mouse_kidney_alignment_nb
+
+Save one final alignment result:
+``tutorials/cross_sample/kidney/output/kidney_IL3_to_NL3_aligned.h5ad``.
+It contains both IL3 and NL3 with their ``x_aligned`` and ``y_aligned``
+coordinates. The :doc:`kidney inference example <post_alignment_inference_nb>`
+uses the fixed coordinate extract of this result, distributed with the package
+as one table per section.
 
 The clustering notebook follows the same presentation as the MERFISH example:
 raw joint clusters are shown in the top row and boundary-refined clusters in

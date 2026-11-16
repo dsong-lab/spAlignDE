@@ -11,9 +11,10 @@ Alignment-to-inference handoff
 
 The alignment workflows save ``x_aligned`` and ``y_aligned`` as the explicit
 handoff to inference; the inference notebooks consume these coordinates
-without estimating another transformation. For kidney, the recorded source is
-the package's copy of the fixed-seed manual-prealignment
-IL3-to-NL3 tutorial output (resolution ``0.2``, 5,000 iterations, upstream seed
+without estimating another transformation. Kidney has one final alignment
+result, ``kidney_IL3_to_NL3_aligned.h5ad``, containing both IL3 and NL3.
+The recorded inference example uses its fixed coordinate extract supplied
+with the package (resolution ``0.2``, 5,000 iterations, upstream seed
 ``1000``). IL3 contributes 2,965 query spots and the unchanged NL3 reference
 contributes 3,215 spots. Inference uses seed ``1`` and requests ``n_jobs=1``.
 
@@ -27,18 +28,17 @@ complete kidney handoff.
 Injured Mouse Kidney
 --------------------
 
-The kidney workflow continues from the packaged fixed-seed manual-alignment
-Visium coordinates.
-It joins those coordinates to the public NL3 and IL3 10x counts by terminal
+The kidney workflow continues from this single saved alignment result.
+The packaged NL3 and IL3 coordinate tables contain its two sections. Inference
+joins those coordinates to the public NL3 and IL3 10x counts by terminal
 barcode, then fits local tests for ``Cbr1``, ``Cd44`` and ``Myo5a``. The raw
 count matrices and tissue-position tables are available
 from `Zenodo record 17676992 <https://zenodo.org/records/17676992>`_. Users can
 replace the packaged coordinates with their own standardized spAlignDE output
 through ``SPALIGNDE_ALIGNMENT_DIR``.
-The upstream clustering/alignment input and region annotations are documented
-separately under `STcompare record 20647680
-<https://zenodo.org/records/20647680>`_; aligned coordinates and source 10x
-tables are joined by terminal barcode rather than row order.
+The :doc:`upstream kidney workflow <cross_sample_alignment_mouse_kidney>`
+uses the same raw files to build the combined input, cluster the two sections,
+and save the final alignment H5AD.
 
 .. toctree::
    :maxdepth: 1
