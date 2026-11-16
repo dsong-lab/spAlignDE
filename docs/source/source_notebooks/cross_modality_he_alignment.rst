@@ -1,9 +1,19 @@
 ST-to-Histology Image Workflow
 ==============================
 
-These three notebooks implement the complete image-only reference
-workflow. Run them in order. Prepare the query AnnData first with the standard
-:doc:`single-clustering notebook <clustering/clustering_single_nb>`.
+First download the **Replicate 1 Xenium output bundle** from the
+`10x Fresh Frozen Mouse Brain dataset
+<https://www.10xgenomics.com/datasets/fresh-frozen-mouse-brain-replicates-1-standard>`_.
+Use its expression matrix and cell coordinates as the input to the
+:doc:`single-clustering workflow <../tutorials/clustering_single>`.
+When adapting the :doc:`example notebook <clustering/clustering_single_nb>`,
+replace its MERFISH S2R1 input paths with your Xenium Rep1 inputs and save the
+clustered AnnData as ``xenium_rep1_single_clustered.h5ad`` under
+``data/cross_modality/histology/mouse_brain/``. It should contain
+``obsm["spatial"]``, ``obs["cluster_raw"]`` and ``obs["cluster"]``.
+
+Once the Xenium clustering result is ready, run these three notebooks in
+order to prepare the H&E reference image and align Xenium Rep1 to it:
 
 .. toctree::
    :maxdepth: 1

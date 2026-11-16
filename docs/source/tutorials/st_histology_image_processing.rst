@@ -32,8 +32,20 @@ Download the query and reference from:
 Query AnnData
 ~~~~~~~~~~~~~
 
-Run :doc:`Single Clustering (CSV or AnnData Input) <clustering_single>` first.
-The alignment input requires:
+Download the **Replicate 1 Xenium output bundle** from the query dataset above.
+Use the cell-by-gene expression matrix and the matching cell coordinates to
+prepare an AnnData object or paired CSV files in the
+:doc:`single-clustering input format <clustering_single>`. Match expression
+rows and coordinates by cell ID; Xenium's ``x_centroid`` and ``y_centroid``
+provide the x/y coordinates.
+
+Follow the single-clustering steps using these Xenium Rep1 inputs. In the
+:doc:`example notebook <../source_notebooks/clustering/clustering_single_nb>`,
+replace the MERFISH S2R1 input paths and save the clustered result to
+``data/cross_modality/histology/mouse_brain/xenium_rep1_single_clustered.h5ad``.
+Set ``SPALIGNDE_CLUSTERED_ST_H5AD`` if you save it elsewhere. Then continue
+with the H&E feature-extraction, image-clustering and alignment notebooks
+below. The alignment input requires:
 
 .. list-table::
    :header-rows: 1
@@ -224,6 +236,11 @@ from the original BANKSY partition. With five levels and 75% retained gene
 variance, this example produces k7, k14, k20, and k26 partitions and selects
 k7 for histology correspondence.
 
+For an upright anatomical view, the notebook rotates the original Xenium
+plots by 180° and the H&E-aligned plots by 90° clockwise. These are display
+rotations only: handedness, saved coordinates and alignment metrics are
+preserved.
+
 .. figure:: ../_static/tutorial_figures/histology_st_hierarchy.png
    :alt: Coarse-to-fine Xenium spatial structure hierarchy
    :width: 100%
@@ -231,10 +248,9 @@ k7 for histology correspondence.
 
    Original BANKSY labels and expression-derived coarse-to-fine partitions.
    The k7 level is selected for H&E correspondence; the remaining panels show
-   how anatomical detail changes with hierarchy resolution. The raw Xenium
-   hierarchy is displayed with a lower-origin y axis so the dorsal cortex and
-   hippocampal structures match the validated paper orientation; stored
-   coordinates are unchanged.
+   how anatomical detail changes with hierarchy resolution. The tissue is
+   rotated 180° for display, placing the dorsal cortex above the hippocampal
+   structures.
 
 Global pre-alignment uses whole-tissue mask overlap by default. It estimates
 rotation, isotropic scale, and translation while disabling reflection. The
@@ -251,8 +267,8 @@ feature-grid coordinate frame.
    :width: 84%
    :align: center
 
-   Tissue-mask initialization before local deformation. The blue Xenium
-   outline should cover the same H&E anatomy; if it does not, use the
+   Tissue-mask initialization before local deformation. The Xenium points
+   should cover the same H&E anatomy; if they do not, use the
    interactive manual controls before changing structure-pair thresholds.
 
 After pre-alignment, ST and H&E structures are converted to binary masks on a
