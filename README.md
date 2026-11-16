@@ -37,9 +37,7 @@ python -m ipykernel install --user \
 
 Select **Python (spAlignDE-notebooks)** as the Jupyter kernel.
 
-<a id="quick-start"></a>
-
-## Try a small example
+## Quick Start
 
 This synthetic example runs on the CPU with two optimization iterations.
 See the tutorials below for real-data analyses.
