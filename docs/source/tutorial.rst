@@ -34,7 +34,8 @@ notebook, follow the :doc:`installation` instructions and select the
      - :doc:`Subsampling and variability <source_notebooks/cross_sample_uncertainty_qualification>`
      - :doc:`Stability notebook <source_notebooks/cross_sample_uncertainty_report>`
    * - Test local differential expression after alignment
-     - :doc:`Local inference <tutorials/post_alignment_inference>`
+     - :doc:`Local inference <tutorials/post_alignment_inference>`;
+       :doc:`use your own aligned data <tutorials/own_aligned_data>`
      - :doc:`Kidney and aging brain <source_notebooks/post_alignment_inference>`
 
 Each notebook page lists the run order and required downloads. Alignment
@@ -55,5 +56,6 @@ example, follow the input, seed and comparison guidance in
    tutorials/cross_sample_alignment
    tutorials/cross_modality_alignment
    tutorials/post_alignment_inference
+   tutorials/own_aligned_data
    tutorials/parameter_tuning
    tutorials/reproducibility

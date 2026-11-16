@@ -5,6 +5,11 @@ spAlignDE tests location-resolved expression differences after samples have
 been transformed into a common coordinate frame. The public tutorials cover
 two aligned-tissue examples: injured mouse kidney and aging mouse brain.
 
+For a complete AnnData-to-DataFrame example, see
+:doc:`Run differential expression on your own aligned data <own_aligned_data>`.
+The study's post-alignment data and analysis notebooks are described in the
+`Zenodo archive <https://zenodo.org/records/21983769>`_.
+
 Alignment-to-inference handoff
 ------------------------------
 
@@ -202,13 +207,29 @@ whereas the maximum normalized distance gives factor :math:`e`.
 Public workflow
 ~~~~~~~~~~~~~~~
 
-The package performs the complete reusable handoff. After concatenating the
-standardized outputs of ``build_visium_coordinate_table`` into
-``coordinate_data``, the executed analysis runs:
+``coordinate_data`` contains spot identities and coordinates. Construct
+``inference_data`` by joining those rows to raw expression and adding the
+batch label. The existing Visium helper performs this step and returns the
+risk-gene candidates used for preparation:
 
 .. code-block:: python
 
+   from pathlib import Path
    from spalignde import fit_local_de, prepare_inference
+   from spalignde.datasets import build_visium_inference_table
+
+   data_dir = Path("data/cross_sample/kidney")
+   inputs = build_visium_inference_table(
+       coordinate_data,
+       raw_counts={
+           "NL3": data_dir / "NL3_filtered_feature_bc_matrix.h5",
+           "IL3": data_dir / "IL3_filtered_feature_bc_matrix.h5",
+       },
+       genes=["Cbr1", "Cd44", "Myo5a"],
+       batch="kidney_pair",
+   )
+   inference_data = inputs.data
+   risk_genes = inputs.risk_genes
 
    prepared = prepare_inference(
        inference_data,
