@@ -35,14 +35,11 @@ Keep the single final H5AD as the alignment result. The two packaged coordinate
 tables are per-section extracts of that result, supplied for the recorded
 inference example.
 
-Upstream clustering and alignment use seed ``1000``, Leiden resolution ``0.2``
-and a selected manual similarity pre-alignment with scale ``1``, rotation ``0``
-degrees and translation ``(-36.20040965, -153.38356513)`` in the scaled
-alignment coordinates. The workflow then runs 5,000 S-LDDMM iterations with
-``restore_best_checkpoint=False``. The inference stage uses seed ``1`` and
-requests ``n_jobs=1``. The notebook loads the packaged fixed-seed coordinate
-copy through the public dataset API and joins it one-to-one to public Visium
-counts by terminal 10x barcode.
+The notebook loads the packaged coordinate copy through the public dataset
+API and joins it one-to-one to public Visium counts by terminal 10x barcode.
+The :doc:`kidney workflow <../source_notebooks/cross_sample_alignment_mouse_kidney>`
+describes the alignment settings; :doc:`reproducibility` records the seeds and
+comparisons across runs.
 
 Standardized coordinate CSV inputs remain supported through
 ``SPALIGNDE_ALIGNMENT_DIR``. They reproduce the website numbers only when
@@ -72,12 +69,8 @@ users can substitute coordinates from their own spAlignDE run.
 Installation and data
 ~~~~~~~~~~~~~~~~~~~~~
 
-Install the integrated package and tutorial dependencies from the repository
-root:
-
-.. code-block:: bash
-
-   python -m pip install -e ".[tutorial]"
+Follow :doc:`../installation` and use the **Python (spAlignDE-notebooks)**
+kernel.
 
 Download these files from `Zenodo record 17676992
 <https://zenodo.org/records/17676992>`_:
@@ -479,29 +472,4 @@ connected subset of grid locations passing within-contrast BH FDR at
 biological replicates, so its local maps should not be interpreted as
 replicate-level population inference.
 
-Fixed-seed repeat check
------------------------
-
-Both public workflows use seed 1 with the same aligned-coordinate inputs and
-documented parameters. The two seeded auto-geometry passes use one worker
-internally; subsequent preparation and fitting stages use the caller-requested
-``n_jobs`` value. Two independent fresh-kernel runs reproduced the saved
-summaries. The aging row refers only to the compact five-section example.
-
-.. list-table::
-   :header-rows: 1
-   :widths: 35 30 35
-
-   * - Workflow
-     - Shared-grid locations
-     - Repeat result
-   * - Kidney NL3 versus IL3
-     - 6,187
-     - Current public-API execution
-   * - Aging-brain five-section example
-     - 74,908
-     - Current public-API execution
-
-With ``n_jobs>1`` the scientific arrays remain deterministic in this workflow,
-although diagnostic messages from parallel workers may appear in a different
-order.
+See :doc:`reproducibility` for seeds, worker settings and comparisons across runs.

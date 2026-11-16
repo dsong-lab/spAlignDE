@@ -8,9 +8,8 @@ a reported analysis, use:
 2. the same workflow parameters; and
 3. the same seed, set before the first stochastic step.
 
-No ``PYTHONHASHSEED`` or thread environment variables are required by these
-tutorials. The supplied environment file lists the package versions used for
-the examples, and reproducibility is assessed from the scientific outputs.
+The supplied environment file lists the package versions used for the examples.
+Reproducibility is assessed from the scientific outputs.
 
 Seeds used in the tutorials
 ---------------------------
@@ -75,7 +74,7 @@ The main fixed-seed examples produced:
      - 25 final structures.
    * - ST to Allen CCF slice 675
      - 18 final matched pairs.
-   * - Xenium S2R1 to H&E
+   * - Xenium Rep1 to H&E
      - 21 cleaned image structures and 2 accepted pairs.
    * - Spatial ATAC to MERFISH S3R1
      - 17 ATAC structures and 8 accepted pairs.
@@ -86,7 +85,7 @@ The main fixed-seed examples produced:
    * - Breast cancer Rep2 to Rep1
      - 10 shared structures.
    * - MERFISH alignment uncertainty
-     - 10 seeded 80% repeats and the same pointwise summary table.
+     - 10 seeded 80% repeats; median ``dist_mean`` 40.25, in aligned-coordinate units.
 
 The three automatic Atlas stages progressively refine only the ST partition.
 All stages search the same Allen hierarchy depths 2--10. The scheduled stages
@@ -97,6 +96,35 @@ from the validated interactive session.
 The website aging-brain inference example continues from five sections of the
 saved 19-query fixed-seed alignment; it does not rerun alignment. The kidney
 inference example continues from the fixed-seed manual-prealignment result.
+
+Numerical comparisons
+---------------------
+
+Independent runs reproduced the raw, refined and final labels for MERFISH
+single clustering, MERFISH joint clustering, kidney and ATAC. MERFISH joint
+clustering produced 28 raw and 27 refined/final structures; kidney produced
+four. The uncertainty workflow's two complete ten-repeat executions produced
+identical pointwise tables with the final optimizer iterate retained.
+
+For the continuous alignment outputs:
+
+- **Kidney:** compare float32 CUDA coordinates with a ``0.01``-unit tolerance
+  in the original coordinate system, keeping labels, observation order,
+  manual initialization and S-LDDMM settings fixed. The website alignment and
+  inference examples use the same saved result.
+- **ATAC to ST:** the accepted pair table and scores matched exactly across
+  two independent runs; float64 aligned coordinates agreed within ``1e-12``.
+- **H&E:** the S-LDDMM configuration used in the manuscript uses float64.
+  Two independent runs from the same HIPT features reproduced image labels,
+  pre-alignment and accepted pairs exactly. Aligned coordinates differed by
+  at most ``0.00114`` feature-grid unit and pairwise Dice by at most ``9.23e-5``.
+
+The kidney and five-section aging-brain inference examples use seed ``1`` and
+request ``n_jobs=1``. The two auto-geometry passes always use one worker;
+subsequent stages use the requested worker count. Two independent runs
+reproduced the saved summaries, with 6,187 shared-grid locations for kidney
+and 74,908 for aging brain. Parallel workers can change diagnostic message
+order without changing the fitted scientific results.
 
 Checking an edited tutorial
 ---------------------------

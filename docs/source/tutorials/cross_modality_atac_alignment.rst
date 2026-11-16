@@ -35,26 +35,12 @@ alignment notebook.
 Installation
 ------------
 
-From the repository root:
+Follow :doc:`../installation` and select the **Python (spAlignDE-notebooks)**
+kernel. A CUDA-capable GPU is recommended for S-LDDMM; clustering can run on CPU.
 
-.. code-block:: bash
-
-   cd /path/to/spAlignDE
-   python -m pip install -e ".[clustering,atlas,tutorial]"
-
-A CUDA-capable GPU is recommended for S-LDDMM. BANKSY clustering can be run on
-CPU. Dependency versions are pinned for the validated release; using different
-versions can cause minor BANKSY boundary changes and label renumbering. Such
-changes should be evaluated spatially rather than by comparing cluster
-integers alone.
-
-The validated release environment is pinned in the repository-level
-``environment.yml``, including the exact BANKSY commit. Run the notebooks from
-the repository root with that environment and do not reuse a previously
-cropped ``st_reference_analysis_frame.h5ad`` as the S3R1 input: the alignment
-notebook expects the complete 70,844-cell reference and performs the half-brain crop
-once, yielding 35,422 fixed cells. Use the input files listed for this tutorial
-rather than a previously cropped intermediate file.
+Use the complete 70,844-cell S3R1 reference. The alignment notebook selects the
+matching half brain once, yielding 35,422 fixed cells. A previously cropped
+``st_reference_analysis_frame.h5ad`` is an output, not the reference input.
 
 Data sources
 ------------
@@ -177,8 +163,8 @@ The P22 ATAC settings are:
        return_details=True,
    )
 
-The fixed result contains 17 ``cluster_raw``, ``cluster_refined``, and
-``cluster`` structures, with exact labels in two fresh processes. The
+The example contains 17 ``cluster_raw``, ``cluster_refined``, and
+``cluster`` structures. The
 paper ATAC-to-ST workflow uses ``cluster_raw`` as its structure partition and
 retains refined labels for boundary QC. This avoids making the alignment
 dependent on an additional local-voting decision.
@@ -270,9 +256,8 @@ overlap of at least 0.01. Greedy selection then produces a one-to-one set of
 structure pairs. No anatomical names or region-specific weights enter this
 step.
 
-With the fixed inputs and seed ``1234``, this threshold retains eight pairs.
-The accepted pair table and pair scores were identical in an independent
-repeat; float64 aligned coordinates agreed within ``1e-12``.
+This threshold retains eight pairs in the example. See
+:doc:`reproducibility` for comparisons across runs.
 
 Stage 4: structure-guided S-LDDMM
 ---------------------------------

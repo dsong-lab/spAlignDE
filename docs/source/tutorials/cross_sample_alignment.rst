@@ -1,5 +1,5 @@
-Cross-Sample Alignment - Two Adult Mouse Brain Sections from MERFISH
-====================================================================
+Cross-sample alignment
+======================
 
 spAlignDE aligns a moving spatial transcriptomics sample (the **query**) to a
 fixed sample (the **reference**). Input may be supplied as paired CSV files or
@@ -15,20 +15,17 @@ to one combined ``AnnData`` object, which is then used throughout the workflow:
 Installation
 ------------
 
-Clone the repository, enter its root directory and install the package with the
-optional clustering and tutorial dependencies:
+Follow :doc:`../installation` and use the **Python (spAlignDE-notebooks)**
+kernel. That page also describes the pip alternative for an existing environment.
+A CUDA-capable GPU is recommended for large datasets; small examples can use
+``device="cpu"``.
 
-.. code-block:: bash
+This guide applies to mouse brain, kidney and breast cancer workflows. Their
+:doc:`notebook pages <../source_notebooks/cross_sample_alignment>` list the
+dataset-specific inputs and settings.
 
-   cd /path/to/spAlignDE
-   python -m pip install -e ".[clustering,tutorial]"
-
-The clustering extra installs BANKSY, Scanpy and Harmony. A CUDA-enabled PyTorch
-installation is recommended for S-LDDMM on large datasets; the alignment API
-also supports ``device="cpu"`` for small tests.
-
-Example data
-------------
+Worked example: MERFISH mouse brain
+-------------------------------------
 
 The tutorial uses two biological replicates from the `Vizgen MERFISH Mouse
 Brain Receptor Map <https://info.vizgen.com/mouse-brain-map>`_. These
@@ -91,6 +88,8 @@ The sample identifier is parsed from each filename. At least two matched file
 pairs are required for joint clustering. Vendor exports must be renamed to
 this file and column format before loading; conversion from vendor-specific
 containers is upstream preprocessing and is not performed by spAlignDE.
+
+.. _cross-sample-anndata-format:
 
 AnnData input format
 --------------------
@@ -209,8 +208,8 @@ The returned object has the original ``(170130, 649)`` shape in the MERFISH
 example; BANKSY-expanded features are used internally and do not replace
 ``adata.X``. The raw, refined, and selected final labels are stored as
 ``cluster_raw``, ``cluster_refined``, and ``cluster`` in ``adata.obs``.
-The paper fixed-seed run contains 28 raw clusters and 27 refined/final clusters;
-the two fresh-process label vectors are identical.
+The example contains 28 raw clusters and 27 refined/final clusters.
+See :doc:`reproducibility` for comparisons across runs.
 
 .. figure:: ../_static/tutorial_figures/joint_clustering_tab20.png
    :alt: Joint clustering results for MERFISH S2R2 and S2R3

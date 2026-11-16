@@ -12,12 +12,10 @@ Visium count matrix and spot coordinates paired with that H&E section are not
 used to estimate the transformation; in the paper they provide an independent
 post-alignment molecular-concordance assessment.
 
-The validated workflow uses seed ``0`` for feature extraction, K-means and
-automatic pre-alignment. Call
-``spAlignDE.set_random_seed(0, deterministic_torch=True)`` before the first
-stage. The manuscript-grade S-LDDMM run uses float64: image structures, masks
-and accepted pairs reproduce exactly, while CUDA coordinates are compared
-with a declared numerical tolerance.
+Follow :doc:`../installation`, then prepare the Xenium query and H&E
+reference in the :doc:`listed notebook order
+<../source_notebooks/cross_modality_he_alignment>`. The workflow produces an
+aligned Xenium AnnData and overlays of its coordinates on the H&E image.
 
 Data
 ----
@@ -389,13 +387,9 @@ Troubleshooting
 Validation and interpretation
 -----------------------------
 
-Two August 12 fresh-process runs from the same HIPT feature input
-reproduced the H&E labels, pre-alignment and accepted pair table exactly. The
-selected result contains 21 final regions and two accepted ST/H&E pairs. CUDA
-S-LDDMM coordinates differed by at most 0.00114 feature-grid unit and pairwise
-Dice by at most 9.23e-5 across the two runs. Anatomical overlap and accepted
-structure pairs are therefore the relevant checks; tiny coordinate differences
-do not change the interpretation.
+The example contains 21 final image regions and two accepted ST/H&E pairs.
+Inspect the paired structures and before/after overlays. See
+:doc:`reproducibility` for numerical comparisons across runs.
 
 The before/after overlay establishes geometric plausibility, not biological
 ground truth. The paper's comparison against Visium expression is independent

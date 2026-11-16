@@ -14,9 +14,8 @@ handoff to inference; the inference notebooks consume these coordinates
 without estimating another transformation. Kidney has one final alignment
 result, ``kidney_IL3_to_NL3_aligned.h5ad``, containing both IL3 and NL3.
 The recorded inference example uses its fixed coordinate extract supplied
-with the package (resolution ``0.2``, 5,000 iterations, upstream seed
-``1000``). IL3 contributes 2,965 query spots and the unchanged NL3 reference
-contributes 3,215 spots. Inference uses seed ``1`` and requests ``n_jobs=1``.
+with the package. IL3 contributes 2,965 query spots and the unchanged NL3
+reference contributes 3,215 spots.
 
 The aging-brain notebook is explicitly a five-section website example. It uses
 the current PyPI package's precomputed spAlignDE coordinates for the 6.6-,
@@ -88,13 +87,5 @@ adjustment requires complete validated labels in every sample. See
 :doc:`../tutorials/parameter_tuning` for filtering, density-risk and region-
 cleanup guidance.
 
-The public kidney and aging-brain notebooks use workflow seed 1 and request
-``n_jobs=1`` for inference preparation and fitting. The two seeded
-auto-geometry passes always use one worker to keep per-sample RNG consumption
-independent of thread scheduling; all subsequent stages use the caller's
-requested ``n_jobs`` value, so this is not a claim that the complete analysis
-must be single-threaded. The saved executions
-contain 6,187 shared-grid locations for kidney and 74,908 for the compact
-aging-brain example. Parallel workers can be used for exploratory acceleration,
-but their diagnostic messages may be emitted in a different order even when
-the fitted scientific results are unchanged.
+For seeds, worker settings and comparisons across runs, see
+:doc:`../tutorials/reproducibility`.

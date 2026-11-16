@@ -752,8 +752,9 @@ raw expression and determines the broad risk-gene pool before calling
        random_state=1,
    )
 
-Accepts a long spot/cell table with sample identity, original and aligned
-coordinates, batch identity and non-negative expression columns. It builds the
+Accepts a table with one row per cell or spot and one expression column per
+gene, plus sample identity, original and aligned coordinates and batch identity.
+Expression values must be non-negative. It builds the
 fixed shared grid, sample-specific local neighborhoods, technical
 quality-control profiles, stable-gene/density mismatch-risk maps and optional
 cell-type support maps. The returned ``PreparedInference`` is reusable across

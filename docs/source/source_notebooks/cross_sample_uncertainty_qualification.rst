@@ -35,15 +35,9 @@ was re-estimated independently for each replicate:
 5. rasterization into structure-composition and tissue-density pseudo-images;
 6. S-LDDMM registration.
 
-Every replicate uses seed ``1000`` with fixed observation ordering. Discrete
-inputs and labels should repeat exactly; transformation coordinates are
-summarized by their empirical variability because CUDA calculations can
-introduce small numerical differences.
-
 The S-LDDMM runs explicitly use ``restore_best=False`` and therefore retain the
-final optimizer iterate. Two complete fixed-seed executions of all ten
-replicates previously produced identical pointwise tables. The checkpoint
-policy must not be changed when reproducing the reported spatial pattern.
+final optimizer iterate. See :doc:`../tutorials/reproducibility` for seeds and
+comparisons across runs.
 
 The executable notebook starts from the replicate-specific pseudo-images and
 prealigned coordinates produced by steps 1--5. It runs or loads S-LDDMM,

@@ -23,11 +23,9 @@ raster-canvas units. See :doc:`../tutorials/cross_modality_atac_alignment` for
 the data and output fields and :doc:`../tutorials/parameter_tuning` for failure-
 oriented tuning.
 
-Both notebooks use seed ``1234``. The fixed result contains 17 ATAC
-structures and eight accepted ATAC-to-ST pairs. In two fresh processes, the
-pair table was identical and the aligned coordinates agreed within
-``1e-12``; this numerical tolerance is used for float64 GPU output rather
-than requiring byte-identical H5AD files.
+The example produces 17 ATAC structures, eight accepted ATAC-to-ST pairs,
+and an AnnData with the ATAC coordinates aligned to the ST reference.
+See :doc:`../tutorials/reproducibility` for comparisons across runs.
 
 .. toctree::
    :maxdepth: 1

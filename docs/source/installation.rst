@@ -159,5 +159,5 @@ sufficient when calling the Python API with user-provided inputs.
 The public notebooks cover H&E, automatic and interactive atlas alignment,
 spatial ATAC-seq, cross-sample alignment and local differential expression.
 The aging-brain inference example contains five sections. The manuscript's
-complete 20-section aging-brain and Nissl analyses are not provided as complete
-public notebooks.
+complete 20-section aging-brain and Nissl analyses are not included as complete
+executable tutorials on this site.

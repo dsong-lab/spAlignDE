@@ -14,8 +14,8 @@ The framework has two linked components:
 The alignment component represents tissue organization as spatial structures
 and estimates a smooth transformation with shooting-based large deformation
 diffeomorphic metric mapping (S-LDDMM). The inference component constructs a
-shared testing grid and reduces the precision of local comparisons when the
-aligned neighborhoods remain poorly matched.
+shared testing grid and inflates the variance of local expression contrasts
+where residual mismatch is high.
 
 Why spAlignDE
 -------------
@@ -101,7 +101,7 @@ query-versus-reference contrasts.
 Residual mismatch is spatially heterogeneous, so spAlignDE estimates the local
 reliability of each comparison using:
 
-- disagreement among prespecified stable genes;
+- disagreement among stable genes selected from a prespecified candidate set;
 - local sampling-density discordance;
 - optional inconsistency in cell-type or anatomical-compartment support; and
 - optional technical covariates such as local library size and detection rate.
@@ -124,10 +124,10 @@ ACAT summaries and inputs for spatial trajectory analysis across ordered
 samples. ACAT combines the retained raw local P values; q-values are used only
 for grid-level FDR masks.
 
-Applications
-------------
+Applications demonstrated in the manuscript
+-------------------------------------------
 
-The documented workflows cover the main settings evaluated in the manuscript:
+The manuscript evaluates spAlignDE in the following settings:
 
 - cross-sample MERFISH mouse-brain alignment;
 - spot-level alignment of normal and injured 10x Visium kidney sections;
@@ -137,6 +137,13 @@ The documented workflows cover the main settings evaluated in the manuscript:
   Coordinate Framework and spatial ATAC-seq; and
 - mismatch-aware local inference for spatial expression trajectories,
   cell-neighborhood remodeling and compartment-specific programs.
+
+Public executable tutorials cover cross-sample mouse brain, kidney and
+breast cancer alignment; H&E, Allen CCF and ATAC-to-ST alignment;
+transformation variability; and kidney and aging-brain inference. The
+aging-brain inference tutorial uses five sections. The complete 20-section
+aging-brain and Nissl analyses are not included as complete executable
+tutorials on this site. See :doc:`tutorial` for the available guides and run order.
 
 Where to go next
 ----------------

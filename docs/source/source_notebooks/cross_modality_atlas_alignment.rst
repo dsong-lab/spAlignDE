@@ -15,18 +15,17 @@ rather than duplicated in the Cross-Modality navigation.
 Use :doc:`Interactive region pairing and refinement
 <cross_modality/interactive_region_pairing_nb>` to create the pairing CSV,
 then pass that export together with the clustered H5AD from the same run to
-the UI-curated alignment notebook. The checked-in fixed-seed example preserves
-the reviewed Allen selections while revalidating ST-side IDs against the
-seed-1234 clustering output.
+the UI-curated alignment notebook. The pairing CSV must refer to the cluster
+IDs in that H5AD.
 
 Use :doc:`../tutorials/cross_modality_atlas_alignment` for the Allen input and
 output contracts. The :doc:`../tutorials/parameter_tuning` guide explains
 hierarchy depth, whole-mask initialization, global area/thickness weighting,
 pair gates and the separate UI-curated deformation controls.
 
-The automatic workflow uses seed ``1234``, three ST levels (7/16/25
-structures), scheduled-stage pair counts 3/8/16 and a final post-continuation
-set of 18. Allen hierarchy depths 2–10 remain searchable at every stage.
+The automatic example produces 18 final structure pairs and an AnnData
+with coordinates aligned to the Allen slice. See
+:doc:`../tutorials/reproducibility` for seeds and comparisons across runs.
 
 .. toctree::
    :hidden:

@@ -129,7 +129,7 @@ returned AnnData adds:
 
 The MERFISH S2R1 example contains 83,546 cells, 649 measured genes and 25
 refined clusters. It is used as the query for the ST-to-Allen-CCF tutorial.
-Two fresh-process runs produced identical raw, refined and final label vectors.
+See :doc:`reproducibility` for comparisons across runs.
 
 Troubleshooting
 ---------------

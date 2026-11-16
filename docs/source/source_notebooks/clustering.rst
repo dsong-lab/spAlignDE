@@ -14,9 +14,7 @@ select spatially coherent structures rather than matching example cluster
 numbers. See :doc:`../tutorials/parameter_tuning` for boundary-refinement and
 cross-sample integration guidance.
 
-Single-sample notebooks use seed ``1234`` and joint clustering uses seed
-``1000``. The package resets the seed before BANKSY feature generation and
-randomized PCA; see :doc:`../tutorials/reproducibility`.
+For seeds and comparisons across runs, see :doc:`../tutorials/reproducibility`.
 
 - :doc:`Single clustering for cross-modality alignment (CSV or AnnData)
   <clustering/clustering_single_nb>`

@@ -41,13 +41,21 @@ notebook, follow the :doc:`installation` instructions and select the
 Each notebook page lists the run order and required downloads. Alignment
 produces the coordinates used for local differential-expression analysis.
 The aging-brain inference example covers five sections; the manuscript's full
-20-section analysis and Nissl analysis are not provided as complete public
-notebooks.
+20-section analysis and Nissl analysis are not included as complete executable
+tutorials on this site.
 
-When using your own data, start with the
-:doc:`parameter guide <tutorials/parameter_tuning>`. To repeat a published
-example, follow the input, seed and comparison guidance in
-:doc:`tutorials/reproducibility`.
+For your own data:
+
+1. Choose a workflow from the table above.
+2. Check its input format: :ref:`paired CSV <cross-sample-csv-format>` or
+   :ref:`AnnData <cross-sample-anndata-format>` for cross-sample alignment,
+   the corresponding guide for cross-modality inputs, or
+   :doc:`aligned data for inference <tutorials/own_aligned_data>`.
+3. Run the :ref:`Quick Start <quick-start>` to try alignment, then follow the
+   matching workflow's example with your data.
+4. Use the :doc:`parameter guide <tutorials/parameter_tuning>` to adjust settings.
+
+For reproducing a reported example, see :doc:`tutorials/reproducibility`.
 
 .. toctree::
    :hidden:

@@ -57,8 +57,6 @@ The clustering notebook follows the same presentation as the MERFISH example:
 raw joint clusters are shown in the top row and boundary-refined clusters in
 the bottom row, with a shared palette across ``IL3`` and ``NL3``. The executed
 workflow identifies four refined shared clusters.
-With seed ``1000``, both fresh-process runs produced the same four raw,
-refined and final cluster labels.
 
 Because only four shared structures are available for this spot-level pair,
 the automatic similarity fit is unstable. The validated workflow therefore
@@ -73,7 +71,7 @@ center-to-center translation. It then shows:
 Alignment parameters
 --------------------
 
-The requested kidney S-LDDMM settings are used exactly:
+The kidney example uses the following S-LDDMM settings:
 
 .. code-block:: python
 
@@ -94,11 +92,7 @@ the internally scaled coordinate system are ``scale=1.0``, ``theta=0.0``,
 inference improves nearest-neighbor shared-cluster agreement from ``0.6587``
 to ``0.7417``.
 
-Independent fresh-process validation uses the same fixed cluster labels,
-observation order, manual transform and S-LDDMM configuration. Continuous
-float32 CUDA coordinates are compared using a ``0.01``-unit tolerance in the
-original coordinate system because GPU computation can introduce small
-numerical differences.
+See :doc:`../tutorials/reproducibility` for comparisons across runs.
 
 Here ``a`` controls deformation smoothness and ``grid_step`` controls velocity
 field resolution. Increasing either makes the warp more global/coarse;
