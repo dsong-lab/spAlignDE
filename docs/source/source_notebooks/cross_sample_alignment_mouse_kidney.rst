@@ -49,8 +49,9 @@ Save one final alignment result:
 ``tutorials/cross_sample/kidney/output/kidney_IL3_to_NL3_aligned.h5ad``.
 It contains both IL3 and NL3 with their ``x_aligned`` and ``y_aligned``
 coordinates. The :doc:`kidney inference example <post_alignment_inference_nb>`
-uses the fixed coordinate extract of this result, distributed with the package
-as one table per section.
+uses the same saved alignment shown in this notebook. The package supplies
+its coordinates as one table per section, with ``x_aligned`` and
+``y_aligned`` multiplied by 50 for the inference coordinate scale.
 
 The clustering notebook follows the same presentation as the MERFISH example:
 raw joint clusters are shown in the top row and boundary-refined clusters in
@@ -89,8 +90,9 @@ The requested kidney S-LDDMM settings are used exactly:
 Coordinates are multiplied by 50 internally, rasterized with grid spacing 30,
 and returned in the original coordinate scale. The recorded manual values in
 the internally scaled coordinate system are ``scale=1.0``, ``theta=0.0``,
-``tx=-36.20040965`` and ``ty=-153.38356513``. The executed alignment improves
-nearest-neighbor shared-cluster agreement from ``0.6631`` to ``0.7413``.
+``tx=-36.20040965`` and ``ty=-153.38356513``. The recorded alignment used by
+inference improves nearest-neighbor shared-cluster agreement from ``0.6587``
+to ``0.7417``.
 
 Independent fresh-process validation uses the same fixed cluster labels,
 observation order, manual transform and S-LDDMM configuration. Continuous

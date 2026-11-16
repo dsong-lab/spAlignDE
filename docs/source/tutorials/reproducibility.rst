@@ -70,7 +70,7 @@ The main fixed-seed examples produced:
    :widths: 55 45
 
    * - Workflow
-     - Fresh validation result
+     - Recorded result
    * - MERFISH S2R1 single clustering
      - 25 final structures.
    * - ST to Allen CCF slice 675
@@ -82,7 +82,7 @@ The main fixed-seed examples produced:
    * - MERFISH S2R3 to S2R2
      - 27 refined shared structures.
    * - Kidney IL3 to NL3
-     - 4 structures and label agreement ``0.6631`` to ``0.7413``.
+     - 4 structures and label agreement ``0.6587`` to ``0.7417``, using the same saved coordinates as kidney inference.
    * - Breast cancer Rep2 to Rep1
      - 10 shared structures.
    * - MERFISH alignment uncertainty
