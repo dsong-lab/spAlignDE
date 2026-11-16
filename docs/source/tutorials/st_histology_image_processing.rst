@@ -126,12 +126,12 @@ spatial-transcriptomic coordinates are stored in the feature pickle.
 
 .. figure:: ../_static/tutorial_figures/histology_prepared_image.png
    :alt: Prepared H and E image supplied to HIPT feature extraction
-   :width: 48%
+   :width: 75%
    :align: center
 
-   Prepared H&E image after physical-resolution handling and padding. This is
-   the exact RGB image supplied to HIPT; the accompanying preparation record
-   lists the resizing and padding needed to map feature-grid coordinates back
+   Prepared H&E image after physical-resolution handling and padding, rotated
+   90° clockwise for display. HIPT uses the saved image in its original
+   orientation; the preparation record maps feature-grid coordinates back
    to pixels.
 
 `UNI <https://github.com/mahmoodlab/UNI>`_ and its `gated Hugging Face weights
@@ -174,17 +174,14 @@ The complete image-only construction is:
 Image orientation and symmetry axis
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The prepared benchmark image contains **two coronal sections stacked
-vertically** and is displayed exactly as stored with an upper-left image
-origin. The paper setting ``symmetry_axis="ud"`` therefore compares
-corresponding features between the upper and lower sections. It does not assume
-that one section is anatomically symmetric along its dorsal--ventral axis.
+The benchmark uses ``symmetry_axis="ud"`` in the stored ``he.jpg`` coordinate
+frame, with an upper-left origin. The previews are rotated 90° clockwise for
+an upright view; this display rotation leaves the saved image, feature grid,
+and clustering parameters unchanged.
 
-For a single upright bilateral section with the two hemispheres arranged
-left-to-right, use ``symmetry_axis="lr"``. Select the axis from the prepared
-``he.jpg`` after all resizing, rotation, and cropping—not from the scanner's
-original orientation. Partial or strongly asymmetric tissue requires direct
-review of reflected-mask candidates before any symmetry-driven merge.
+Choose the symmetry axis from the prepared image used for clustering:
+``"ud"`` for top-to-bottom correspondence or ``"lr"`` for left-to-right
+correspondence.
 
 .. code-block:: python
 
@@ -196,7 +193,7 @@ review of reflected-mask candidates before any symmetry-driven merge.
        coordinate_weight=0.05,
        cleanup_min_size=250,
        do_reflection_merge=True,
-       symmetry_axis="ud",  # benchmark: two sections stacked vertically
+       symmetry_axis="ud",  # stored image coordinate frame
        reflection_min_area=200,
        reflection_min_iou=0.20,
        reflection_min_dice=0.30,
@@ -221,9 +218,8 @@ review of reflected-mask candidates before any symmetry-driven merge.
 
    Image-to-structure quality-control sequence: prepared H&E, initial
    HIPT/RGB/coordinate feature clusters, symmetry-aware merging, and the final
-   21 cleaned structures. The vertical arrangement is intentional for this
-   two-section benchmark. Compare every stage with the prepared image before
-   using the labels as alignment features.
+   21 cleaned structures. All panels are rotated 90° clockwise for display,
+   keeping the same orientation across stages.
 
 3. ST structures, pre-alignment, pairing and S-LDDMM
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
