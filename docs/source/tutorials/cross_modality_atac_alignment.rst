@@ -114,7 +114,7 @@ spAlignDE.
 .. _atac-st-prepare-s3r1:
 
 ST reference: prepare MERFISH S3R1
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Download the **S3R1** cell-by-gene matrix and cell metadata from the Vizgen
 dataset above. Follow :doc:`Single Clustering <clustering_single>` to load,
@@ -135,7 +135,7 @@ cell ID. In the notebook's input cell, use:
    )
 
 Run the single-clustering and spatial inspection cells on ``input_adata``,
-then replace the notebook's S2R1 save path with:
+then replace the notebook's save cell with:
 
 .. code-block:: python
 
