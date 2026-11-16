@@ -13,21 +13,24 @@ need the same genes, shared feature dimensions, transferred anatomical labels,
 or a joint latent representation. Cross-modality correspondence is inferred
 from the geometry of their spatial structures.
 
-Notebooks
----------
+Execution order
+---------------
 
-Run the two notebooks in order:
+Prepare both clustered inputs before running alignment:
 
-1. :doc:`Spatial ATAC single clustering — P22 mouse brain <../source_notebooks/cross_modality/atac_st_single_clustering_nb>`
+1. Prepare **MERFISH S3R1** with the
+   :doc:`Single Clustering workflow <clustering_single>`, replacing the
+   example's S2R1 input and output paths as described in
+   :ref:`atac-st-prepare-s3r1`. Save ``merfish_s3r1_clustered.h5ad``.
+2. :doc:`Spatial ATAC single clustering — P22 mouse brain <../source_notebooks/cross_modality/atac_st_single_clustering_nb>`
    reads ATAC gene activity and coordinates, runs single-sample BANKSY, and
    writes ``p22_atac_single_clustered.h5ad``.
-2. :doc:`P22 spatial ATAC to MERFISH S3R1 <../source_notebooks/cross_modality/atac_st_alignment_nb>`
-   loads that clustered ATAC object and an independently clustered S3R1
-   AnnData, constructs cross-modality structure fields, and reruns S-LDDMM.
+3. :doc:`P22 spatial ATAC to MERFISH S3R1 <../source_notebooks/cross_modality/atac_st_alignment_nb>`
+   loads both clustered AnnData files, constructs cross-modality structure
+   fields, and runs S-LDDMM.
 
-The H5AD written by notebook 1 is the explicit handoff to notebook 2. This
-dependency is intentional: the notebooks expose clustering and alignment as
-separate, reusable stages while preserving one reproducible execution order.
+The two clustering steps are independent; both are required inputs to the
+alignment notebook.
 
 Installation
 ------------
@@ -48,8 +51,8 @@ integers alone.
 The validated release environment is pinned in the repository-level
 ``environment.yml``, including the exact BANKSY commit. Run the notebooks from
 the repository root with that environment and do not reuse a previously
-cropped ``st_reference_analysis_frame.h5ad`` as the S3R1 input: notebook 2
-expects the complete 70,844-cell reference and performs the half-brain crop
+cropped ``st_reference_analysis_frame.h5ad`` as the S3R1 input: the alignment
+notebook expects the complete 70,844-cell reference and performs the half-brain crop
 once, yielding 35,422 fixed cells. Use the input files listed for this tutorial
 rather than a previously cropped intermediate file.
 
@@ -108,13 +111,42 @@ Conversion to H5AD is optional. Exporting a vendor-specific object or deriving
 gene activity from peaks is upstream preprocessing and is not performed by
 spAlignDE.
 
-ST reference
-~~~~~~~~~~~~
+.. _atac-st-prepare-s3r1:
 
-The ST reference follows the same single-sample AnnData/CSV format. Before
-notebook 2, run :doc:`Single Clustering <clustering_single>` so that S3R1 has
-``adata.obs["cluster"]``. The full S3R1 sample is supplied to the alignment;
-the matching half-brain selection is performed and recorded by spAlignDE.
+ST reference: prepare MERFISH S3R1
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Download the **S3R1** cell-by-gene matrix and cell metadata from the Vizgen
+dataset above. Follow :doc:`Single Clustering <clustering_single>` to load,
+cluster, inspect, and save this sample. The
+:doc:`example notebook <../source_notebooks/clustering/clustering_single_nb>`
+uses S2R1 by default; replace its input paths with the S3R1 files.
+
+For paired CSV input, use ``cell_id,x,y`` in the metadata and ``cell_id``
+followed by gene columns in the expression table. The loader matches rows by
+cell ID. In the notebook's input cell, use:
+
+.. code-block:: python
+
+   DATA_DIR = PROJECT_ROOT / "data" / "cross_modality" / "atac"
+   input_adata = spAlignDE.load_single_sample_data(
+       DATA_DIR / "cell_metadata_S3R1.csv",
+       expression_csv=DATA_DIR / "cell_by_gene_S3R1.csv",
+   )
+
+Run the single-clustering and spatial inspection cells on ``input_adata``,
+then replace the notebook's S2R1 save path with:
+
+.. code-block:: python
+
+   clustered.write_h5ad(DATA_DIR / "merfish_s3r1_clustered.h5ad")
+
+This saves ``data/cross_modality/atac/merfish_s3r1_clustered.h5ad``, the default
+ST input to the alignment notebook. It contains the original expression
+matrix, ``obsm["spatial"]``, and the inferred ``obs["cluster"]`` labels.
+For another save location, set ``SPALIGNDE_ST_CLUSTERED_H5AD`` to that file.
+Supply the full S3R1 sample; the alignment notebook selects the matching
+half brain.
 
 Stage 1: independent clustering
 -------------------------------

@@ -1,10 +1,20 @@
 Spatial ATAC-to-ST Notebooks
 ============================
 
-These two executable notebooks implement the complete P22 spatial ATAC to
-MERFISH S3R1 workflow. Run them in order. The first notebook produces the
-clustered ATAC AnnData consumed by the second; the second performs a fresh
-global pre-alignment, automatic structure pairing, and S-LDDMM optimization.
+Prepare the ST reference and ATAC query independently, then align them:
+
+1. Download the **MERFISH S3R1** expression matrix and cell metadata, and
+   follow :doc:`Single Clustering <../tutorials/clustering_single>` using
+   S3R1 in place of the example's S2R1 input. Save the result as
+   ``data/cross_modality/atac/merfish_s3r1_clustered.h5ad``. See
+   :ref:`atac-st-prepare-s3r1` for the input and save-path example.
+2. Run the ATAC single-clustering notebook below to produce
+   ``tutorials/cross_modality/atac/output/p22_atac_single_clustered.h5ad``.
+3. Run the alignment notebook with both clustered files. It performs global
+   pre-alignment, automatic structure pairing, and S-LDDMM optimization.
+
+The ST input should retain the full S3R1 sample, original spatial coordinates,
+and ``obs["cluster"]``. The alignment notebook selects the matching half brain.
 
 For a new dataset, validate the partial field of view before changing pair or
 deformation settings. The accepted/rejected masks and cropped overlay are the
